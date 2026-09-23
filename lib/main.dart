@@ -183,7 +183,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V7.29';
+  static const version = 'V7.30';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -2383,7 +2383,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           surface: const Color(0xFFFFFDF8),
           onSurface: const Color(0xFF33414A),
         ),
-        scaffoldBackgroundColor: const Color(0xFFF5F3ED),
+        scaffoldBackgroundColor: const Color(0xFFF7F5F0),
         pageTransitionsTheme: PageTransitionsTheme(
           builders: {
             TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
@@ -2395,14 +2395,15 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           },
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF5F3ED),
+          backgroundColor: Colors.transparent,
           foregroundColor: Color(0xFF33414A),
           elevation: 0,
+          scrolledUnderElevation: 0,
           surfaceTintColor: Colors.transparent,
           centerTitle: true,
-          toolbarHeight: 56,
+          toolbarHeight: 52,
           titleTextStyle: TextStyle(
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w800,
             color: Color(0xFF33414A),
           ),
@@ -2412,9 +2413,10 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           color: const Color(0xFFFFFEFB),
           surfaceTintColor: Colors.transparent,
           margin: EdgeInsets.zero,
+          shadowColor: const Color(0x16000000),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xFFE6E1D8)),
+            borderRadius: BorderRadius.circular(18),
+            side: const BorderSide(color: Color(0xFFE5E1D9)),
           ),
         ),
         iconButtonTheme: const IconButtonThemeData(
@@ -2425,17 +2427,17 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 46),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            minimumSize: const Size(0, 44),
+            padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 11),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             textStyle: const TextStyle(fontWeight: FontWeight.w800),
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 46),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            minimumSize: const Size(0, 44),
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             side: const BorderSide(color: Color(0xFFD7D2C8)),
             textStyle: const TextStyle(fontWeight: FontWeight.w800),
           ),
@@ -2452,7 +2454,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: const Color(0xFFFFFEFB),
           indicatorColor: const Color(0xFFDCE7EA),
-          height: 68,
+          height: 66,
           elevation: 0,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -2477,13 +2479,13 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         ),
         bottomNavigationBar: SafeArea(
           top: false,
-          minimum: const EdgeInsets.fromLTRB(10, 4, 10, 8),
+          minimum: const EdgeInsets.fromLTRB(10, 4, 10, 7),
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: const Color(0xFFFFFEFB),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(22),
               border: Border.all(color: const Color(0xFFE3DED5)),
-              boxShadow: const [BoxShadow(color: Color(0x18000000), blurRadius: 16, offset: Offset(0, 5))],
+              boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 14, offset: Offset(0, 3))],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(24),
@@ -2504,7 +2506,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   }
 
   Widget pageTitle(String title, String subtitle) => Padding(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, color: const Color(0xFF33414A), letterSpacing: -0.35, height: 1.12)),
           const SizedBox(height: 5),
@@ -2552,7 +2554,7 @@ String _formatCoachDateTime(DateTime value) {
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 14, 8),
+            padding: const EdgeInsets.fromLTRB(16, 10, 12, 6),
             child: Row(children: [
               mascotAvatar(size: 48),
               const SizedBox(width: 12),
@@ -2576,10 +2578,10 @@ String _formatCoachDateTime(DateTime value) {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          padding: const EdgeInsets.fromLTRB(14, 4, 14, 6),
           sliver: SliverToBoxAdapter(
             child: Container(
-              padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
+              padding: const EdgeInsets.fromLTRB(15, 14, 14, 14),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [Color(0xFFE0E8EA), Color(0xFFE8E9DE)], begin: Alignment.topLeft, end: Alignment.bottomRight),
                 borderRadius: BorderRadius.circular(24),
@@ -2588,13 +2590,13 @@ String _formatCoachDateTime(DateTime value) {
               child: Row(children: [
                 Container(width: 58, height: 58, decoration: BoxDecoration(color: Colors.white.withOpacity(.82), shape: BoxShape.circle), child: const Center(child: Icon(Icons.wb_sunny_outlined, size: 29, color: Color(0xFFC67E67)))),
                 const SizedBox(width: 14),
-                const Expanded(child: Text('Une belle semaine, à ton rythme.\nDes temps forts, mais aussi de vraies respirations.', style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, color: Color(0xFF3E4D55), height: 1.4))),
+                const Expanded(child: Text('Une semaine à ton rythme.\nDes temps forts, et de vraies respirations.', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Color(0xFF3E4D55), height: 1.4))),
               ]),
             ),
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+          padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
           sliver: SliverToBoxAdapter(
             child: Card(
               color: const Color(0xFFF0E9DE),
@@ -2652,12 +2654,12 @@ String _formatCoachDateTime(DateTime value) {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
           sliver: SliverToBoxAdapter(
             child: Card(
               color: const Color(0xFFE5EEE9),
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
                     Expanded(child: Text('Aujourd’hui · ${dayNames[today]}', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900))),
@@ -2683,12 +2685,12 @@ String _formatCoachDateTime(DateTime value) {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
           sliver: SliverToBoxAdapter(
             child: Card(
               color: const Color(0xFFE7EDF0),
               child: Padding(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
                     mascotAvatar(size: 42),
@@ -2736,12 +2738,12 @@ String _formatCoachDateTime(DateTime value) {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
           sliver: SliverToBoxAdapter(
             child: Card(
               color: const Color(0xFFE9EEE9),
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -2761,7 +2763,7 @@ String _formatCoachDateTime(DateTime value) {
                         children: [
                           Text('Focus du jour', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
                           const SizedBox(height: 4),
-                          Text(_todayFocus(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF42534C))),
+                          Text(_todayFocus(), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF42534C))),
                           const SizedBox(height: 5),
                           Text(_todayFocusReason(), style: const TextStyle(color: Color(0xFF66706C), height: 1.3)),
                         ],
@@ -2774,12 +2776,12 @@ String _formatCoachDateTime(DateTime value) {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
           sliver: SliverToBoxAdapter(
             child: Card(
               color: const Color(0xFFF0EBDF),
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('La semaine en un coup d’œil', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 12),
@@ -2796,12 +2798,12 @@ String _formatCoachDateTime(DateTime value) {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
           sliver: SliverToBoxAdapter(
             child: Card(
               color: const Color(0xFFF3EEE4),
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
                     Container(
@@ -2838,12 +2840,12 @@ String _formatCoachDateTime(DateTime value) {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           sliver: SliverToBoxAdapter(
             child: Card(
               color: const Color(0xFFE7EDF0),
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
                     Expanded(child: Text('Le regard du coach', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900))),
@@ -3683,7 +3685,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
             Card(
               color: const Color(0xFFE7EDF0),
               child: Padding(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Cette semaine en quelques chiffres', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 14),
@@ -3707,7 +3709,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
             Card(
               color: const Color(0xFFF3EEE4),
               child: Padding(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
                     const Icon(Icons.piano_outlined, color: Color(0xFFC67E67)),
@@ -3727,7 +3729,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
             Card(
               color: const Color(0xFFE5EEE9),
               child: Padding(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
                     const Icon(Icons.sentiment_satisfied_alt_outlined, color: Color(0xFF6F8E80)),
@@ -3758,7 +3760,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
             const SizedBox(height: 12),
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Mon petit bilan personnel', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 6),
@@ -4535,7 +4537,7 @@ class _DataPage extends StatelessWidget {
         children: [
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Sauvegarder', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                 const SizedBox(height: 7),
@@ -4555,7 +4557,7 @@ class _DataPage extends StatelessWidget {
           const SizedBox(height: 14),
           Card(
             child: Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Restaurer', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                 const SizedBox(height: 7),
@@ -4576,7 +4578,7 @@ class _DataPage extends StatelessWidget {
           Card(
             color: const Color(0xFFF1E4DE),
             child: Padding(
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.all(16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Réinitialiser', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                 const SizedBox(height: 7),
