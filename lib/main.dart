@@ -177,7 +177,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V7.37';
+  static const version = 'V7.40';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -4464,105 +4464,132 @@ class _SportWeekPageState extends State<_SportWeekPage> {
 
   Widget _monthView() {
     final visible = _visibleActivities();
-    final selected = _activityFilter == 'Toutes'
-        ? null
-        : (visible.where((a) => a.name == _activityFilter).isEmpty
-            ? null
-            : visible.where((a) => a.name == _activityFilter).first);
     final days = _daysInMonth();
-    final firstWeekday = DateTime(_month.year, _month.month, 1).weekday - 1;
     final logs = widget.getLogs();
-    final now = DateTime.now();
-    final monday = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
 
     bool doneOn(Activity activity, DateTime date) {
       return logs.any((log) {
         if (!_sameDay(log.date, date)) return false;
         if (log.activityId == activity.id) return true;
-        return log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase();
+        return log.activityId == null &&
+            log.title.trim().toLowerCase() == activity.name.trim().toLowerCase();
       });
     }
 
-    bool plannedOn(Activity activity, DateTime date) {
-      // Historique réalisé = ✓ ; pour la semaine courante, les éléments du planning
-      // encore à faire apparaissent comme •.
-      for (final item in widget.getPlan()) {
-        if (item.activityId != activity.id) continue;
-        final itemDate = monday.add(Duration(days: item.day));
-        if (_sameDay(itemDate, date) && !item.done) return true;
-      }
-      return false;
+    // Calendrier mensuel volontairement très compact : même logique que la vue
+    // 7 jours, mais avec une petite case par jour. Les 30/31 cases se répartissent
+    // automatiquement sur 1 ou 2 lignes à droite du nom de l'activité.
+    Widget check(bool done) {
+      return SizedBox(
+        width: 11,
+        height: 11,
+        child: Container(
+          decoration: BoxDecoration(
+            color: done ? const Color(0xFF7D988D) : const Color(0xFFFFFDF9),
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(
+              color: done ? const Color(0xFF7D988D) : const Color(0xFFD3D0C8),
+              width: 0.9,
+            ),
+          ),
+          child: done ? const Icon(Icons.check, size: 8, color: Colors.white) : null,
+        ),
+      );
     }
 
-    Widget cell(int day) {
-      final date = DateTime(_month.year, _month.month, day);
-      final activity = selected;
-      final done = activity != null && doneOn(activity, date);
-      final planned = activity != null && !done && plannedOn(activity, date);
-      final bg = done
-          ? const Color(0xFF7D988D)
-          : planned
-              ? const Color(0xFFE5EEE9)
-              : const Color(0xFFFFFDF9);
-      final fg = done ? Colors.white : const Color(0xFF526B78);
-      return Container(
-        margin: const EdgeInsets.all(2),
-        padding: const EdgeInsets.fromLTRB(3, 4, 3, 4),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(9),
-          border: Border.all(color: const Color(0xFFE0DDD5)),
-        ),
-        child: Column(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Align(alignment: Alignment.topLeft, child: Text('$day', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: fg))),
-          Text(
-            activity == null ? '' : done ? '✓' : planned ? '•' : '',
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: fg),
+    Widget dayNumber(int day) {
+      return SizedBox(
+        width: 11,
+        height: 11,
+        child: Center(
+          child: Text(
+            '$day',
+            style: const TextStyle(fontSize: 7.5, fontWeight: FontWeight.w800, color: Color(0xFF77746D)),
           ),
-        ]),
+        ),
+      );
+    }
+
+    Widget compactCells(Activity activity, {required bool header}) {
+      return Expanded(
+        child: Wrap(
+          spacing: 2,
+          runSpacing: 2,
+          children: [
+            for (var day = 1; day <= days; day++)
+              header
+                  ? dayNumber(day)
+                  : check(doneOn(activity, DateTime(_month.year, _month.month, day))),
+          ],
+        ),
       );
     }
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        IconButton(onPressed: () => setState(() => _month = DateTime(_month.year, _month.month - 1, 1)), icon: const Icon(Icons.chevron_left)),
-        Expanded(child: Text(_monthLabel(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16))),
-        IconButton(onPressed: () => setState(() => _month = DateTime(_month.year, _month.month + 1, 1)), icon: const Icon(Icons.chevron_right)),
-      ]),
-      if (selected == null)
-        const Padding(
-          padding: EdgeInsets.only(bottom: 8),
-          child: Text('Sélectionne une activité (par exemple Yoga) pour voir ses jours réalisés sur le mois.', style: TextStyle(fontSize: 11.5, color: Color(0xFF6F7777))),
-        )
-      else
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(children: [
-            Text('${selected.emoji} ${selected.name}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5)),
-            const Spacer(),
-            Text('✓ ${logs.where((log) => _sameDay(log.date, DateTime(log.date.year, log.date.month, log.date.day)) && (log.activityId == selected.id || (log.activityId == null && log.title.trim().toLowerCase() == selected.name.trim().toLowerCase())) && log.date.year == _month.year && log.date.month == _month.month).length} jour(s)', style: const TextStyle(fontSize: 10.5, color: Color(0xFF6F7777))),
-          ]),
+        IconButton(
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+          onPressed: () => setState(() => _month = DateTime(_month.year, _month.month - 1, 1)),
+          icon: const Icon(Icons.chevron_left, size: 20),
         ),
-      Row(children: const [
-        Expanded(child: Center(child: Text('L', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF77746D))))),
-        Expanded(child: Center(child: Text('M', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF77746D))))),
-        Expanded(child: Center(child: Text('M', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF77746D))))),
-        Expanded(child: Center(child: Text('J', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF77746D))))),
-        Expanded(child: Center(child: Text('V', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF77746D))))),
-        Expanded(child: Center(child: Text('S', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF77746D))))),
-        Expanded(child: Center(child: Text('D', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF77746D))))),
+        Expanded(
+          child: Text(
+            _monthLabel(),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+          ),
+        ),
+        IconButton(
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+          onPressed: () => setState(() => _month = DateTime(_month.year, _month.month + 1, 1)),
+          icon: const Icon(Icons.chevron_right, size: 20),
+        ),
       ]),
       const SizedBox(height: 3),
-      GridView.count(
-        crossAxisCount: 7,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        childAspectRatio: 0.96,
-        children: [
-          for (var i = 0; i < firstWeekday; i++) const SizedBox.shrink(),
-          for (var day = 1; day <= days; day++) cell(day),
-        ],
-      ),
+      if (visible.isEmpty)
+        const Padding(
+          padding: EdgeInsets.only(bottom: 6),
+          child: Text('Aucune activité ne correspond aux filtres.', style: TextStyle(fontSize: 11.5, color: Color(0xFF6F7777))),
+        )
+      else ...[
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(
+              width: 92,
+              child: Padding(
+                padding: EdgeInsets.only(top: 1),
+                child: Text('ACTIVITÉ', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Color(0xFF77746D))),
+              ),
+            ),
+            compactCells(visible.first, header: true),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ...visible.map((activity) => Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 92,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 1, right: 4),
+                      child: Text(
+                        '${activity.emoji} ${activity.name}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, height: 1.05),
+                      ),
+                    ),
+                  ),
+                  compactCells(activity, header: false),
+                ],
+              ),
+            )),
+      ],
     ]);
   }
 
