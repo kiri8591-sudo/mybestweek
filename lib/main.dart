@@ -37,6 +37,7 @@ class Activity {
   String name;
   String emoji;
   String category;
+  String period;
   int duration;
   int frequency;
   int priority;
@@ -53,6 +54,7 @@ class Activity {
     required this.name,
     required this.emoji,
     required this.category,
+    this.period = 'Après-midi',
     required this.duration,
     required this.frequency,
     required this.priority,
@@ -73,6 +75,7 @@ class Activity {
         name: name,
         emoji: emoji,
         category: category,
+        period: period,
         duration: duration,
         frequency: frequency,
         priority: priority,
@@ -177,7 +180,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V7.40';
+  static const version = 'V7.48';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -273,6 +276,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           name: 'Piano',
           emoji: '🎹',
           category: 'Loisir',
+          period: 'Après-midi',
           duration: 120,
           frequency: 5,
           priority: 5,
@@ -283,6 +287,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           name: 'Lecture',
           emoji: '📖',
           category: 'Culture',
+          period: 'Soir',
           duration: 45,
           frequency: 6,
           priority: 3,
@@ -292,6 +297,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           name: 'Marché de Sarlat',
           emoji: '🧺',
           category: 'Sortie',
+          period: 'Matin',
           duration: 90,
           frequency: 1,
           priority: 3,
@@ -302,6 +308,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           name: 'Moment convivial',
           emoji: '🥂',
           category: 'Social',
+          period: 'Soir',
           duration: 120,
           frequency: 1,
           priority: 4,
@@ -429,6 +436,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         'name': a.name,
         'emoji': a.emoji,
         'category': a.category,
+        'period': a.period,
         'duration': a.duration,
         'frequency': a.frequency,
         'priority': a.priority,
@@ -517,6 +525,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           name: name,
           emoji: _asString(rawActivity['emoji']) ?? '✨',
           category: _asString(rawActivity['category']) ?? 'Autre',
+          period: ((_asString(rawActivity['period']) == 'Midi') ? 'Après-midi' : (_asString(rawActivity['period']) ?? 'Après-midi')),
           duration: max(1, _asInt(rawActivity['duration'], 30)),
           frequency: max(1, min(7, _asInt(rawActivity['frequency'], 1))),
           priority: max(1, min(5, _asInt(rawActivity['priority'], 3))),
@@ -1372,20 +1381,88 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     });
     if (_isSportActivity(activity)) analyzeSportSession(item, activity);
     _queueLocalStatePersist();
-    _showFeedback('✓ « ${item.title} » validé · ${item.duration} min.');
+    final validationActivity = item.activityId == null ? null : findActivity(item.activityId!);
+    _showFeedback(validationActivity != null && validationActivity.category != 'Sport'
+        ? '✓ « ${item.title} » validé.'
+        : '✓ « ${item.title} » validé · ${item.duration} min.');
   }
 
   void openPlanItem(PlanItem item) {
+    togglePlanItemDone(item, !item.done);
+  }
+
+  bool _isGenericActivityItem(PlanItem item) {
+    if (item.activityId == null) return false;
+    final activity = findActivity(item.activityId!);
+    return activity != null && !_isSportActivity(activity);
+  }
+
+  void _openGenericActivity(PlanItem item) {
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
-    if (item.done) {
-      togglePlanItemDone(item, false);
+    if (activity != null) {
+      addOrEditActivity(original: activity);
+    }
+  }
+
+  Future<void> _movePlanItemDay(PlanItem item) async {
+    if (!_isGenericActivityItem(item)) return;
+    var selectedDay = item.day;
+    final target = await showDialog<int>(
+      context: _navigatorKey.currentContext!,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Déplacer l’activité'),
+          content: DropdownButtonFormField<int>(
+            value: selectedDay,
+            decoration: const InputDecoration(labelText: 'Nouveau jour'),
+            items: List.generate(7, (day) => DropdownMenuItem<int>(
+              value: day,
+              child: Text(dayNames[day]),
+            )),
+            onChanged: (value) {
+              if (value != null) setDialogState(() => selectedDay = value);
+            },
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Annuler')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, selectedDay), child: const Text('Déplacer')),
+          ],
+        ),
+      ),
+    );
+    if (target == null || target == item.day) return;
+    if (plan.any((p) => p.id != item.id && p.activityId == item.activityId && p.day == target)) {
+      _showFeedback('Cette activité est déjà prévue ce jour-là.');
       return;
     }
-    if (activity == null) {
-      togglePlanItemDone(item, true);
-      return;
-    }
-    togglePlanItemDone(item, true);
+    final activity = findActivity(item.activityId!);
+    final replacement = PlanItem(
+      id: item.id,
+      day: target,
+      period: activity == null ? item.period : _periodForActivity(activity, target),
+      timeLabel: item.timeLabel,
+      title: item.title,
+      duration: item.duration,
+      activityId: item.activityId,
+      details: item.details,
+      customEmoji: item.customEmoji,
+      customCategory: item.customCategory,
+      optional: item.optional,
+      userAdded: item.userAdded,
+      fixedInWeeklyTemplate: item.fixedInWeeklyTemplate,
+      done: item.done,
+      realisedMinutes: item.realisedMinutes,
+      feeling: item.feeling,
+    );
+    setState(() {
+      final index = plan.indexWhere((p) => p.id == item.id);
+      if (index >= 0) plan[index] = replacement;
+      _sortPlan();
+    });
+    _queueLocalStatePersist();
+    _scaffoldMessengerKey.currentState?.showSnackBar(
+      SnackBar(content: Text('« ${item.title} » déplacée à ${dayNames[target]}.')),
+    );
   }
 
 
@@ -1408,7 +1485,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
                     ),
                   ),
-                  Text('${item.duration} min', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF526B78))),
+                  if (item.activityId == null || (findActivity(item.activityId!)?.category == 'Sport')) Text('${item.duration} min', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF526B78))),
                 ],
               ),
               const SizedBox(height: 6),
@@ -1467,7 +1544,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     final title = TextEditingController(text: item.title);
     final details = TextEditingController(text: item.details ?? '');
     final duration = TextEditingController(text: '${item.duration}');
-    var period = item.period;
+    var day = item.day;
+    var period = item.period == 'Midi' ? 'Après-midi' : item.period;
 
     showDialog<void>(
       context: _navigatorKey.currentContext!,
@@ -1490,20 +1568,31 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                   decoration: const InputDecoration(labelText: 'Détail / note'),
                 ),
                 const SizedBox(height: 10),
+                DropdownButtonFormField<int>(
+                  value: day,
+                  decoration: const InputDecoration(labelText: 'Jour'),
+                  items: List.generate(dayNames.length, (index) => DropdownMenuItem<int>(value: index, child: Text(dayNames[index]))),
+                  onChanged: (v) => setDialogState(() => day = v ?? day),
+                ),
+                const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   value: period,
-                  decoration: const InputDecoration(labelText: 'Moment'),
+                  decoration: const InputDecoration(labelText: 'Moment de la journée'),
                   items: const ['Matin', 'Après-midi', 'Soir']
                       .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                       .toList(),
                   onChanged: (v) => setDialogState(() => period = v ?? period),
                 ),
+                const SizedBox(height: 6),
+                const Align(alignment: Alignment.centerLeft, child: Text('Tu peux déplacer cette activité vers un autre jour et choisir Matin, Après-midi ou Soir.', style: TextStyle(fontSize: 12, color: Color(0xFF6F7777)))),
                 const SizedBox(height: 10),
-                TextField(
-                  controller: duration,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Durée (min)'),
-                ),
+                if (item.activityId == null || (findActivity(item.activityId!)?.category == 'Sport')) ...[
+                  TextField(
+                    controller: duration,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Durée (min)'),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1517,12 +1606,12 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                 final safeDuration = newDuration < 1 ? 1 : newDuration;
                 final activity = item.activityId == null ? null : findActivity(item.activityId!);
                 if (activity != null && _isSportActivity(activity)) {
-                  final budget = _sportBudgetForDay(item.day);
-                  final otherSport = _sportItemsForDay(item.day)
+                  final budget = _sportBudgetForDay(day);
+                  final otherSport = _sportItemsForDay(day)
                       .where((p) => p.id != item.id)
                       .fold<int>(0, (sum, p) => sum + p.duration);
                   if (otherSport + safeDuration > budget) {
-                    _showFeedback('Cette modification dépasserait le plafond Sport de ${dayNames[item.day]} (${budget} min).');
+                    _showFeedback('Cette modification dépasserait le plafond Sport de ${dayNames[day]} (${budget} min).');
                     return;
                   }
                 }
@@ -1586,7 +1675,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       plan.sort((a, b) {
         final dayCompare = a.day.compareTo(b.day);
         if (dayCompare != 0) return dayCompare;
-        const order = {'Matin': 0, 'Après-midi': 1, 'Soir': 2};
+        const order = {'Matin': 0, 'Après-midi': 1, 'Midi': 1, 'Soir': 2};
         final periodCompare = (order[a.period] ?? 9).compareTo(order[b.period] ?? 9);
         if (periodCompare != 0) return periodCompare;
         return a.id.compareTo(b.id);
@@ -1635,13 +1724,16 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       .fold<int>(0, (sum, p) => sum + p.duration);
 
   String _periodForActivity(Activity activity, int day) {
+    if (!_isSportActivity(activity) && !activity.isSportProgram) {
+      final saved = activity.period == 'Midi' ? 'Après-midi' : activity.period;
+      return ['Matin', 'Après-midi', 'Soir'].contains(saved) ? saved : 'Après-midi';
+    }
     switch (activity.category) {
       case 'Sport':
       case 'Bien-être':
       case 'Sortie':
         return 'Matin';
       case 'Culture':
-        return 'Soir';
       case 'Social':
         return 'Soir';
       case 'Loisir':
@@ -1694,7 +1786,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     // activité met à jour leur nom et leur durée, mais ne les supprime pas au
     // seul motif que la fréquence a changé.
     for (final item in linked) {
-      item.duration = activity.duration;
+      if (_isSportActivity(activity) || activity.isSportProgram) item.duration = activity.duration;
+      if (!_isSportActivity(activity) && !activity.isSportProgram) item.period = _periodForActivity(activity, item.day);
       if (previous != null && item.title.contains(previous.name)) {
         item.title = item.title.replaceFirst(previous.name, activity.name);
       }
@@ -1803,6 +1896,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     final name = TextEditingController(text: draft.name);
     final duration = TextEditingController(text: '${draft.duration}');
     var category = draft.category;
+    var period = ['Matin', 'Après-midi', 'Soir'].contains(draft.period) ? draft.period : 'Après-midi';
     var emoji = draft.emoji;
     var frequency = draft.frequency;
     var priority = draft.priority;
@@ -1824,8 +1918,35 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     }
 
     final emojiOptions = <String>[
-      '🚶', '🏊', '💪', '🧘', '🎹', '📖', '🧺', '🥂',
-      '🚴', '🌱', '🎨', '🧸', '✨'
+      // 🌞 Journée / ambiance
+      '🌞', '☀️', '🌤️', '⛅', '🌅', '🌄', '🌇', '🌙', '🌛', '🌜',
+      '⭐', '🌟', '✨', '💫', '🌈', '☁️', '❄️', '🔥', '💧',
+      // 🍎 Bien-être / quotidien
+      '🍎', '🍐', '🍊', '🍋', '🍓', '🍒', '🍇', '🍉', '🥑', '🥗',
+      '🍵', '☕', '🫖', '🥐', '🍞', '🍯', '🛀', '🧴', '🕯️', '🌿',
+      '🌱', '🌸', '🌷', '🌻', '🌼', '🌺', '🪻', '🍀', '🪴', '🌵',
+      // 🎨 Loisirs / culture
+      '🎹', '🎸', '🎻', '🎺', '🥁', '🎵', '🎶', '🎤', '🎨', '🖌️',
+      '📖', '📚', '📕', '📔', '✏️', '🖊️', '🧩', '♟️', '🎬', '🎧',
+      '🎮', '📺', '📷', '🎥', '🎭', '🧶', '🪡', '🧵',
+      // 🏃 Sport / mouvement
+      '🚶', '🚶‍♂️', '🚶‍♀️', '🏊', '🚴', '🥾', '🏃', '🏃‍♂️', '🏃‍♀️',
+      '🏋️', '💪', '🤸', '🤸‍♀️', '🧘', '🧘‍♀️', '🧘‍♂️', '🧗', '⛹️',
+      '⚽', '🏀', '🎾', '🏸', '🥎', '🛼', '🛴', '🧘‍♂️', '☯️',
+      // 🏠 Maison / organisation
+      '🏠', '🏡', '🛋️', '🛏️', '🧹', '🧺', '🧼', '🧽', '🪣', '🧴',
+      '🛒', '🛍️', '📅', '📝', '📌', '📍', '💻', '📱', '🗂️', '🗃️',
+      // ❤️ Social / petits plaisirs
+      '❤️', '🧡', '💛', '💚', '💙', '💜', '💕', '💖', '💝', '💞',
+      '🥂', '🍰', '🎁', '😊', '😄', '🥰', '😌', '🤗', '🙏', '💌',
+      '☀️', '👋', '🫶',
+      // 🐻 Mascottes / animaux
+      '🧸', '🐻', '🐼', '🐰', '🐱', '🦊', '🐨', '🐶', '🐹', '🐸',
+      '🐧', '🐥', '🦋', '🐝', '🐢', '🐠', '🦄',
+      // Nature / sorties
+      '🌳', '🌲', '🌴', '🏞️', '🌊', '🏖️', '⛰️', '🏕️', '🌍', '🗺️',
+      // Quelques icônes déjà utilisées / compatibles avec les anciennes fiches
+      '⚡', '💗', '🌺', '😴', '💤'
     ];
     if (!emojiOptions.contains(emoji)) {
       emojiOptions.insert(0, emoji);
@@ -1865,12 +1986,22 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                       .toList(),
                   onChanged: (v) => setDialogState(() => emoji = v ?? emoji),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: duration,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Durée de référence (min)'),
-                ),
+                const SizedBox(height: 10),                if (category == 'Sport' || draft.isSportProgram) ...[
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: duration,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Durée de référence (min)'),
+                  ),
+                ] else ...[
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    value: period,
+                    decoration: const InputDecoration(labelText: 'Moment habituel'),
+                    items: const ['Matin', 'Après-midi', 'Soir'].map((v) => DropdownMenuItem<String>(value: v, child: Text(v))).toList(),
+                    onChanged: (v) => setDialogState(() => period = v ?? period),
+                  ),
+                ],
                 if (draft.isSportProgram) ...[
                   const SizedBox(height: 12),
                   const Align(alignment: Alignment.centerLeft, child: Text('Durée Sport par jour', style: TextStyle(fontWeight: FontWeight.w900))),
@@ -1989,7 +2120,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                   name: name.text.trim(),
                   emoji: emoji,
                   category: category,
-                  duration: int.tryParse(duration.text) ?? 30,
+                  period: category == 'Sport' || draft.isSportProgram ? draft.period : period,
+                  duration: category == 'Sport' || draft.isSportProgram ? (int.tryParse(duration.text) ?? 30) : draft.duration,
                   frequency: frequency,
                   priority: priority,
                   preferredDays: preferred.toList()..sort(),
@@ -2583,31 +2715,40 @@ String _formatCoachDateTime(DateTime value) {
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(14, 4, 14, 6),
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
           sliver: SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(15, 14, 14, 14),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFFE0E8EA), Color(0xFFE8E9DE)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xFFD2D9D5)),
-              ),
-              child: Row(children: [
-                Container(
-                  width: 58,
-                  height: 58,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(.82),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFE7D4C6)),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  padding: const EdgeInsets.all(4),
-                  child: Image.memory(_bearHeadBytes, fit: BoxFit.contain, filterQuality: FilterQuality.medium, gaplessPlayback: true),
+            child: Card(
+              color: const Color(0xFFE9EEE9),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCE5D9),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.my_location_outlined, color: Color(0xFF6F8E80)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Focus du jour', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 4),
+                          Text(_todayFocus(), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF42534C))),
+                          const SizedBox(height: 5),
+                          Text(_todayFocusReason(), style: const TextStyle(color: Color(0xFF66706C), height: 1.3)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                const Expanded(child: Text('Une semaine à ton rythme.\nDes temps forts, et de vraies respirations.', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Color(0xFF3E4D55), height: 1.4))),
-              ]),
+              ),
             ),
           ),
         ),
@@ -2682,7 +2823,7 @@ String _formatCoachDateTime(DateTime value) {
                     if (todayItems.isNotEmpty) Text('$todayDone/${todayItems.length}'),
                   ]),
                   const SizedBox(height: 5),
-                  Text(todayItems.isEmpty ? 'Journée libre. Profite-en.' : 'Ta journée, dans l’ordre : Sport, matin, midi et soir.'),
+                  Text(todayItems.isEmpty ? 'Journée libre. Profite-en.' : 'Ta journée, dans l’ordre : Sport, matin, après-midi et soir.'),
                   if (sportBudget > 0 || todaySportItems.isNotEmpty) ...[
                     const SizedBox(height: 14),
                     _sportDayCard(today),
@@ -2692,7 +2833,7 @@ String _formatCoachDateTime(DateTime value) {
                     const Text('Aucune autre activité prévue aujourd’hui.', style: TextStyle(color: Color(0xFF6F7777)))
                   else ...[
                     _todayPeriodSection('Matin', todayOtherItems.where((item) => item.period == 'Matin').toList()),
-                    _todayPeriodSection('Midi', todayOtherItems.where((item) => item.period == 'Après-midi').toList()),
+                    _todayPeriodSection('Après-midi', todayOtherItems.where((item) => item.period == 'Après-midi').toList()),
                     _todayPeriodSection('Soir', todayOtherItems.where((item) => item.period == 'Soir').toList()),
                   ],
                 ]),
@@ -2749,44 +2890,6 @@ String _formatCoachDateTime(DateTime value) {
                     ),
                   ],
                 ]),
-              ),
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-          sliver: SliverToBoxAdapter(
-            child: Card(
-              color: const Color(0xFFE9EEE9),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDCE5D9),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(Icons.my_location_outlined, color: Color(0xFF6F8E80)),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Focus du jour', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
-                          const SizedBox(height: 4),
-                          Text(_todayFocus(), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF42534C))),
-                          const SizedBox(height: 5),
-                          Text(_todayFocusReason(), style: const TextStyle(color: Color(0xFF66706C), height: 1.3)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
           ),
@@ -2880,15 +2983,58 @@ String _formatCoachDateTime(DateTime value) {
     );
   }
 
+  Future<void> _moveTodayGenericActivityPeriod(PlanItem item, String targetPeriod) async {
+    if (!_isGenericActivityItem(item) || item.day != today) return;
+    if (item.period == targetPeriod) return;
+    setState(() {
+      item.period = targetPeriod;
+      _sortPlan();
+    });
+    _queueLocalStatePersist();
+    _showFeedback('« ${item.title} » déplacée vers $targetPeriod.');
+  }
+
   Widget _todayPeriodSection(String label, List<PlanItem> items) {
-    if (items.isEmpty) return const SizedBox.shrink();
+    final isDropPeriod = const ['Matin', 'Après-midi', 'Soir'].contains(label);
     return Padding(
       padding: const EdgeInsets.only(top: 8),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF526B78))),
-        const SizedBox(height: 4),
-        ...items.map(todayCard),
-      ]),
+      child: DragTarget<PlanItem>(
+        onWillAcceptWithDetails: (details) => isDropPeriod && _isGenericActivityItem(details.data) && details.data.day == today && details.data.period != label,
+        onAcceptWithDetails: (details) => _moveTodayGenericActivityPeriod(details.data, label),
+        builder: (context, candidateData, rejectedData) {
+          final highlighted = candidateData.isNotEmpty;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: EdgeInsets.all(highlighted ? 7 : 0),
+            decoration: BoxDecoration(
+              color: highlighted ? const Color(0xFFDCEBE5) : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+              border: highlighted ? Border.all(color: const Color(0xFF8EAD9F), width: 1.5) : null,
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF526B78))),
+                if (highlighted) ...[
+                  const SizedBox(width: 7),
+                  const Icon(Icons.south, size: 16, color: Color(0xFF6F8E80)),
+                  const SizedBox(width: 3),
+                  const Text('Déposer ici', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
+                ],
+              ]),
+              const SizedBox(height: 4),
+              if (items.isEmpty && highlighted)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(.65), borderRadius: BorderRadius.circular(12)),
+                  child: const Center(child: Text('Déposer l’activité ici', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF6F8E80)))),
+                )
+              else
+                ...items.map(todayCard),
+            ]),
+          );
+        },
+      ),
     );
   }
 
@@ -2896,7 +3042,7 @@ String _formatCoachDateTime(DateTime value) {
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
     final category = activity?.category ?? (item.customCategory ?? 'Autre');
     final bg = item.optional ? const Color(0xFFF0EDE6) : _pastelFor(category);
-    return Padding(
+    final card = Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Container(
         padding: const EdgeInsets.fromLTRB(8, 9, 6, 9),
@@ -2906,7 +3052,7 @@ String _formatCoachDateTime(DateTime value) {
             Checkbox(
               value: item.done,
               onChanged: (value) {
-                if (value == true || item.done) openPlanItem(item);
+                openPlanItem(item);
               },
               visualDensity: VisualDensity.compact,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
@@ -2915,28 +3061,42 @@ String _formatCoachDateTime(DateTime value) {
             Expanded(
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
-                onTap: () => openItemActions(item),
+                onTap: () => _isGenericActivityItem(item) ? _openGenericActivity(item) : openItemActions(item),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 3),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [Expanded(child: Text(item.title, style: TextStyle(fontWeight: FontWeight.w800, decoration: item.done ? TextDecoration.lineThrough : null))), if (item.optional) const Text('optionnel', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF7A7770)))]),
                     const SizedBox(height: 2),
-                    Text(item.done
-                        ? '${item.period} · ${item.duration} min · ✓ validé'
-                        : '${item.period} · ${item.duration} min'),
+                    Text((activity == null || activity.category == 'Sport')
+                        ? (item.done ? '${item.period} · ${item.duration} min · ✓ validé' : '${item.period} · ${item.duration} min')
+                        : (item.done ? '${item.period} · ✓ validé' : item.period)),
                   ]),
                 ),
               ),
             ),
             IconButton(
-              tooltip: 'Voir / modifier',
+              tooltip: _isGenericActivityItem(item) ? 'Déplacer' : 'Voir / modifier',
               visualDensity: VisualDensity.compact,
-              onPressed: () => openItemActions(item),
-              icon: const Icon(Icons.chevron_right, size: 22),
+              onPressed: () => _isGenericActivityItem(item) ? _movePlanItemDay(item) : openItemActions(item),
+              icon: Icon(_isGenericActivityItem(item) ? Icons.event_outlined : Icons.chevron_right, size: 22),
             ),
           ],
         ),
       ),
+    );
+    if (!_isGenericActivityItem(item) || item.day != today) return card;
+    return LongPressDraggable<PlanItem>(
+      data: item,
+      delay: const Duration(milliseconds: 180),
+      feedback: Material(
+        color: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Opacity(opacity: .88, child: card),
+        ),
+      ),
+      childWhenDragging: Opacity(opacity: .32, child: card),
+      child: card,
     );
   }
 
@@ -3020,7 +3180,7 @@ String _formatCoachDateTime(DateTime value) {
             Expanded(child: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, decoration: item.done ? TextDecoration.lineThrough : null))),
             const SizedBox(width: 6),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('${item.duration} min', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF526B78))),
+              if (activity == null || activity.category == 'Sport') Text('${item.duration} min', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF526B78))),
               const SizedBox(height: 3),
               if (activity != null) _sportWeeklyIndicator(activity),
             ]),
@@ -3577,7 +3737,7 @@ String _formatCoachDateTime(DateTime value) {
             Checkbox(
               value: item.done,
               onChanged: (value) {
-                if (value == true || item.done) openPlanItem(item);
+                openPlanItem(item);
               },
               visualDensity: VisualDensity.compact,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
@@ -3588,7 +3748,7 @@ String _formatCoachDateTime(DateTime value) {
             Expanded(
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
-                onTap: () => openItemActions(item),
+                onTap: () => _isGenericActivityItem(item) ? _openGenericActivity(item) : openItemActions(item),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Column(
@@ -3620,7 +3780,7 @@ String _formatCoachDateTime(DateTime value) {
                           child: Text(item.details!, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12.5, color: Color(0xFF5E6463))),
                         ),
                       const SizedBox(height: 2),
-                      Text('${item.duration} min', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF526B78))),
+                      if (item.activityId == null || (findActivity(item.activityId!)?.category == 'Sport')) Text('${item.duration} min', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF526B78))),
                     ],
                   ),
                 ),
@@ -3628,10 +3788,10 @@ String _formatCoachDateTime(DateTime value) {
             ),
             const SizedBox(width: 4),
             IconButton(
-              tooltip: 'Voir / modifier',
+              tooltip: _isGenericActivityItem(item) ? 'Déplacer' : 'Voir / modifier',
               visualDensity: VisualDensity.compact,
-              onPressed: () => openItemActions(item),
-              icon: const Icon(Icons.chevron_right, size: 22, color: Color(0xFF718087)),
+              onPressed: () => _isGenericActivityItem(item) ? _movePlanItemDay(item) : openItemActions(item),
+              icon: Icon(_isGenericActivityItem(item) ? Icons.event_outlined : Icons.chevron_right, size: 22, color: Color(0xFF718087)),
             ),
           ],
         ),
@@ -3771,7 +3931,9 @@ String _formatCoachDateTime(DateTime value) {
                                 Text(
                                   a.isSportProgram
                                       ? 'Programme Sport · ${a.sportDailyDurations.values.where((v) => v > 0).fold<int>(0, (s, v) => s + v)} min/sem.'
-                                      : '${a.category} · ${a.duration} min · ${a.frequency}×/sem.',
+                                      : a.category == 'Sport'
+                                          ? '${a.category} · ${a.duration} min · ${a.frequency}×/sem.'
+                                          : '${a.category} · ${a.period} · ${a.frequency}×/sem.',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(fontSize: 11.5, color: Color(0xFF6F7777)),
@@ -4304,14 +4466,18 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           const SizedBox(width: 8),
           Expanded(
             child: SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'Semaine', label: Text('7 jours'), icon: Icon(Icons.view_week_outlined, size: 17)),
-                ButtonSegment(value: 'Mois', label: Text('Mois'), icon: Icon(Icons.calendar_month_outlined, size: 17)),
-              ],
-              selected: {_view},
-              onSelectionChanged: (value) => setState(() => _view = value.first),
-              style: ButtonStyle(visualDensity: VisualDensity.compact),
-            ),
+                segments: const [
+                  ButtonSegment(value: 'Semaine', label: Text('7 jours')),
+                  ButtonSegment(value: 'Mois', label: Text('1 mois')),
+                ],
+                selected: {_view},
+                onSelectionChanged: (value) => setState(() => _view = value.first),
+                style: ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 8)),
+                ),
+              ),
           ),
         ]),
       ]),
@@ -4818,7 +4984,9 @@ class _InfoSheet extends StatelessWidget {
           const SizedBox(height: 8),
           Text(item.details ?? 'Un temps libre à organiser comme bon te semble.'),
           const SizedBox(height: 10),
-          Text('${item.period} · ${item.duration} min${item.optional ? ' · optionnel' : ''}', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF526B78))),
+          Text((item.activityId == null || (item.activityId?.startsWith('sport-') ?? false))
+              ? '${item.period} · ${item.duration} min${item.optional ? ' · optionnel' : ''}'
+              : '${item.period}${item.optional ? ' · optionnel' : ''}', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF526B78))),
           const SizedBox(height: 16),
           SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Très bien'))),
         ]),
