@@ -43,6 +43,8 @@ class Activity {
   int priority;
   List<int> preferredDays;
   int sportWeight;
+  bool allowMultiplePerDay;
+  int maxDailyOccurrences;
   final String? sportGroup;
   final int? sportGroupFrequency;
   final bool activeInSportRotation;
@@ -60,6 +62,8 @@ class Activity {
     required this.priority,
     this.preferredDays = const [],
     this.sportWeight = 5,
+    this.allowMultiplePerDay = false,
+    this.maxDailyOccurrences = 2,
     this.sportGroup,
     this.sportGroupFrequency,
     this.activeInSportRotation = true,
@@ -81,6 +85,8 @@ class Activity {
         priority: priority,
         preferredDays: [...preferredDays],
         sportWeight: sportWeight,
+        allowMultiplePerDay: allowMultiplePerDay,
+        maxDailyOccurrences: maxDailyOccurrences,
         sportGroup: sportGroup,
         sportGroupFrequency: sportGroupFrequency,
         activeInSportRotation: activeInSportRotation,
@@ -103,6 +109,7 @@ class PlanItem {
   final bool optional;
   final bool userAdded;
   final bool fixedInWeeklyTemplate;
+  bool manualPlacement;
   bool done;
   int? realisedMinutes;
   String? feeling;
@@ -121,6 +128,7 @@ class PlanItem {
     this.optional = false,
     this.userAdded = false,
     this.fixedInWeeklyTemplate = false,
+    this.manualPlacement = false,
     this.done = false,
     this.realisedMinutes,
     this.feeling,
@@ -158,6 +166,26 @@ class ActivityLog {
 }
 
 
+class ActivityMoveLog {
+  final DateTime date;
+  final String activityName;
+  final String? activityId;
+  final int fromDay;
+  final int toDay;
+  final String fromPeriod;
+  final String toPeriod;
+
+  ActivityMoveLog({
+    required this.date,
+    required this.activityName,
+    this.activityId,
+    required this.fromDay,
+    required this.toDay,
+    required this.fromPeriod,
+    required this.toPeriod,
+  });
+}
+
 class SportCoachLog {
   final DateTime date;
   final String activityName;
@@ -180,7 +208,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V7.48';
+  static const version = 'V7.61';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -318,6 +346,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
 
   List<PlanItem> plan = [];
   List<ActivityLog> logs = [];
+  List<ActivityMoveLog> activityMoveLogs = [];
   String weeklyNote = '';
 
   // Coach Sport : une analyse unique, lisible depuis l’Accueil, puis un
@@ -442,6 +471,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         'priority': a.priority,
         'preferredDays': a.preferredDays,
         'sportWeight': a.sportWeight,
+        'allowMultiplePerDay': a.allowMultiplePerDay,
+        'maxDailyOccurrences': a.maxDailyOccurrences,
         'sportGroup': a.sportGroup,
         'sportGroupFrequency': a.sportGroupFrequency,
         'activeInSportRotation': a.activeInSportRotation,
@@ -462,9 +493,19 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         'optional': p.optional,
         'userAdded': p.userAdded,
         'fixedInWeeklyTemplate': p.fixedInWeeklyTemplate,
+        'manualPlacement': p.manualPlacement,
         'done': p.done,
         'realisedMinutes': p.realisedMinutes,
         'feeling': p.feeling,
+      }).toList(),
+      'activityMoveLogs': activityMoveLogs.map((m) => {
+        'date': m.date.toIso8601String(),
+        'activityName': m.activityName,
+        'activityId': m.activityId,
+        'fromDay': m.fromDay,
+        'toDay': m.toDay,
+        'fromPeriod': m.fromPeriod,
+        'toPeriod': m.toPeriod,
       }).toList(),
       'logs': logs.map((l) => {
         'date': l.date.toIso8601String(),
@@ -531,6 +572,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           priority: max(1, min(5, _asInt(rawActivity['priority'], 3))),
           preferredDays: _asIntList(rawActivity['preferredDays']),
           sportWeight: max(1, min(10, _asInt(rawActivity['sportWeight'], 5))),
+          allowMultiplePerDay: _asBool(rawActivity['allowMultiplePerDay'], false),
+          maxDailyOccurrences: max(2, min(3, _asInt(rawActivity['maxDailyOccurrences'], 2))),
           sportGroup: _asString(rawActivity['sportGroup']),
           sportGroupFrequency: rawActivity['sportGroupFrequency'] == null ? null : max(1, min(7, _asInt(rawActivity['sportGroupFrequency']))),
           activeInSportRotation: _asBool(rawActivity['activeInSportRotation'], true),
@@ -564,10 +607,34 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           optional: _asBool(rawPlan['optional']),
           userAdded: _asBool(rawPlan['userAdded']),
           fixedInWeeklyTemplate: _asBool(rawPlan['fixedInWeeklyTemplate']),
+          manualPlacement: _asBool(rawPlan['manualPlacement']),
           done: _asBool(rawPlan['done']),
           realisedMinutes: _asBool(rawPlan['done']) ? max(1, _asInt(rawPlan['duration'], 30)) : null,
           feeling: _asString(rawPlan['feeling']),
         ));
+      }
+
+      final restoredMoveLogs = <ActivityMoveLog>[];
+      final rawMoveLogs = root['activityMoveLogs'];
+      if (rawMoveLogs is List) {
+        for (final raw in rawMoveLogs) {
+          if (raw is! Map) continue;
+          final dateRaw = _asString(raw['date']);
+          final date = dateRaw == null ? null : DateTime.tryParse(dateRaw);
+          final name = _asString(raw['activityName']);
+          final fromDay = _asInt(raw['fromDay'], -1);
+          final toDay = _asInt(raw['toDay'], -1);
+          if (date == null || name == null || fromDay < 0 || fromDay > 6 || toDay < 0 || toDay > 6) continue;
+          restoredMoveLogs.add(ActivityMoveLog(
+            date: date,
+            activityName: name,
+            activityId: _asString(raw['activityId']),
+            fromDay: fromDay,
+            toDay: toDay,
+            fromPeriod: _asString(raw['fromPeriod']) ?? 'Après-midi',
+            toPeriod: _asString(raw['toPeriod']) ?? 'Après-midi',
+          ));
+        }
       }
 
       final restoredLogs = <ActivityLog>[];
@@ -605,6 +672,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         logs
           ..clear()
           ..addAll(restoredLogs);
+        activityMoveLogs
+          ..clear()
+          ..addAll(restoredMoveLogs);
         weeklyNote = _asString(root['weeklyNote']) ?? '';
         sportCoachLastAnalysis = _asString(root['sportCoachLastAnalysis']) ?? '';
         final coachDate = _asString(root['sportCoachLastAnalysisAt']);
@@ -634,6 +704,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         final thought = _asString(root['morningThought']);
         if (thought != null && thought.isNotEmpty) _morningThought = thought;
       });
+      _normalizeSportDailyOccurrences();
       _queueLocalStatePersist();
       _showFeedback('Sauvegarde restaurée.');
       return true;
@@ -809,6 +880,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       priority: current.priority,
       preferredDays: [...current.preferredDays],
       sportWeight: current.sportWeight,
+      allowMultiplePerDay: current.allowMultiplePerDay,
+      maxDailyOccurrences: current.maxDailyOccurrences,
       sportGroup: current.sportGroup,
       sportGroupFrequency: current.sportGroupFrequency,
       activeInSportRotation: active,
@@ -908,21 +981,104 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         a.duration <= budget).toList();
     if (available.isEmpty) return [];
 
-    // Petit sac à dos : on cherche la combinaison qui remplit au mieux le
-    // budget quotidien sans couper artificiellement la durée d’une activité.
+    // IMPORTANT : lorsqu'une activité est configurée « plusieurs fois par
+    // jour », ce réglage devient une vraie demande du planning et pas
+    // seulement un plafond pour le moteur de rotation. On réserve donc en
+    // premier lieu le nombre d'occurrences demandé, si le budget et la
+    // fréquence restante le permettent.
+    final repeatCandidates = available.where((a) {
+      final dailyCount = a.allowMultiplePerDay
+          ? a.maxDailyOccurrences.clamp(2, 3).toInt()
+          : 1;
+      final weeklyRemaining = remaining[_sportRotationKey(a)] ?? 0;
+      return dailyCount >= 2 &&
+          weeklyRemaining > 0 &&
+          a.duration * dailyCount <= budget;
+    }).toList();
+
+    if (repeatCandidates.isNotEmpty) {
+      repeatCandidates.sort((a, b) => _sportRotationScore(
+            b, day, previousDayIds, generatedCount,
+          ).compareTo(_sportRotationScore(
+            a, day, previousDayIds, generatedCount,
+          )));
+
+      final repeated = repeatCandidates.first;
+      final count = repeated.maxDailyOccurrences.clamp(2, 3).toInt();
+      final selected = List<Activity>.filled(count, repeated);
+      var usedMinutes = repeated.duration * count;
+
+      // On peut ensuite compléter le budget avec d'autres activités, mais
+      // jamais ajouter une troisième occurrence lorsque l'utilisateur a
+      // choisi 2, ni dépasser la fréquence hebdomadaire restante.
+      final tempRemaining = <String, int>{...remaining};
+      final repeatKey = _sportRotationKey(repeated);
+      tempRemaining[repeatKey] = max(0, (tempRemaining[repeatKey] ?? 0) - 1);
+
+      final fillerCandidates = available.where((a) {
+        if (_sportRotationKey(a) == repeatKey) return false;
+        return (tempRemaining[_sportRotationKey(a)] ?? 0) > 0 &&
+            usedMinutes + a.duration <= budget;
+      }).toList();
+
+      // Petit remplissage glouton : la priorité reste la variété et le score
+      // du coach, sans remettre en cause la répétition explicitement demandée.
+      fillerCandidates.sort((a, b) => _sportRotationScore(
+            b, day, previousDayIds, generatedCount,
+          ).compareTo(_sportRotationScore(
+            a, day, previousDayIds, generatedCount,
+          )));
+
+      for (final activity in fillerCandidates) {
+        final key = _sportRotationKey(activity);
+        final remainingForKey = tempRemaining[key] ?? 0;
+        if (remainingForKey <= 0 || usedMinutes + activity.duration > budget) continue;
+        selected.add(activity);
+        usedMinutes += activity.duration;
+        tempRemaining[key] = remainingForKey - 1;
+      }
+      return selected;
+    }
+
+    // Cas normal : rotation classique avec sac à dos. Les copies multiples
+    // restent autorisées pour les activités qui le permettent, mais ce bloc
+    // n'est utilisé que lorsqu'aucune répétition explicite n'est réservable.
+    final expanded = <Activity>[];
+    for (final activity in available) {
+      final weeklyRemaining = remaining[_sportRotationKey(activity)] ?? 0;
+      final dailyLimit = activity.allowMultiplePerDay
+          ? activity.maxDailyOccurrences.clamp(2, 3).toInt()
+          : 1;
+      final copies = min(dailyLimit, weeklyRemaining);
+      for (var i = 0; i < copies; i++) {
+        expanded.add(activity);
+      }
+    }
+
     final dp = <int, _SportChoice>{
       0: const _SportChoice(minutes: 0, score: 0, activities: []),
     };
 
-    for (final activity in available) {
+    for (final activity in expanded) {
       final activityScore = _sportRotationScore(
-        activity, day, <String>{...previousDayIds}, generatedCount,
+        activity, day, previousDayIds, generatedCount,
       );
       final snapshot = Map<int, _SportChoice>.from(dp);
       for (final entry in snapshot.entries) {
         final newMinutes = entry.key + activity.duration;
         if (newMinutes > budget) continue;
-        if (entry.value.activities.any((a) => _sportRotationKey(a) == _sportRotationKey(activity))) continue;
+        final sameKey = entry.value.activities
+            .where((a) => _sportRotationKey(a) == _sportRotationKey(activity))
+            .toList();
+        if (sameKey.isNotEmpty) {
+          final sameActivityCount = sameKey.where((a) => a.id == activity.id).length;
+          final dailyLimit = activity.allowMultiplePerDay
+              ? activity.maxDailyOccurrences.clamp(2, 3).toInt()
+              : 1;
+          final canRepeat = activity.allowMultiplePerDay &&
+              sameActivityCount < dailyLimit;
+          if (!canRepeat) continue;
+        }
         final choice = _SportChoice(
           minutes: newMinutes,
           score: entry.value.score + activityScore,
@@ -943,11 +1099,52 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     if (choices.isEmpty) return [];
 
     final selected = choices.first.activities.toList();
-    // Si plusieurs combinaisons ont la même couverture, le score historique
-    // départage naturellement la rotation.
-    selected.sort((a, b) => _sportRotationScore(b, day, <String>{}, generatedCount)
-        .compareTo(_sportRotationScore(a, day, <String>{}, generatedCount)));
+    selected.sort((a, b) => _sportRotationScore(
+          b, day, <String>{}, generatedCount,
+        ).compareTo(_sportRotationScore(
+          a, day, <String>{}, generatedCount,
+        )));
     return selected;
+  }
+
+  void _completeGeneratedSportRepeats(List<PlanItem> generated, int day, int budget) {
+    final candidates = activities.where((a) =>
+        _isSportActivity(a) && a.activeInSportRotation && a.allowMultiplePerDay).toList();
+    for (final activity in candidates) {
+      final sameDay = generated.where((item) =>
+          item.day == day && item.activityId == activity.id).toList();
+      if (sameDay.isEmpty) continue;
+      final targetDaily = _sportDailyOccurrenceLimit(activity);
+      var needed = targetDaily - sameDay.length;
+      if (needed <= 0) continue;
+
+      // Les occurrences d'une même journée sont indépendantes de la
+      // fréquence/semaine : une activité réglée 2×/jour peut donc être
+      // complétée ici même si le groupe a déjà atteint son quota de séances
+      // hebdomadaire en nombre d'occurrences.
+
+      var used = generated.where((item) => item.day == day)
+          .fold<int>(0, (sum, item) => sum + item.duration);
+      var seq = 0;
+      while (needed > 0 && used + activity.duration <= budget) {
+        generated.add(PlanItem(
+          id: 'sport_repeat_${DateTime.now().microsecondsSinceEpoch}_${day}_$seq',
+          day: day,
+          period: _periodForActivity(activity, day),
+          timeLabel: null,
+          activityId: activity.id,
+          title: activity.name,
+          details: 'Sport · ${budget} min disponibles ce jour · occurrence supplémentaire demandée.',
+          duration: activity.duration,
+          optional: false,
+          userAdded: false,
+          fixedInWeeklyTemplate: false,
+        ));
+        used += activity.duration;
+        needed--;
+        seq++;
+      }
+    }
   }
 
   int _sportDayCount() {
@@ -995,6 +1192,70 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     return max(0, _sportBaseBudgetForDay(day) + (sportCoachDailyAdjustments[day] ?? 0));
   }
 
+  int _sportDailyOccurrenceLimit(Activity activity) {
+    if (!activity.allowMultiplePerDay) return 1;
+    return activity.maxDailyOccurrences.clamp(2, 3).toInt();
+  }
+
+  void _ensureSportMultipleOccurrencesForDay(int day) {
+    final budget = _sportBudgetForDay(day);
+    if (budget <= 0) return;
+
+    // Une occurrence déjà présente est le signal que cette activité a été
+    // retenue pour ce jour. On complète alors jusqu'au nombre demandé dans
+    // la fiche (« plusieurs fois par jour »), sans créer spontanément une
+    // activité qui n'avait pas été choisie.
+    final sportCandidates = activities.where((a) =>
+        _isSportActivity(a) && a.activeInSportRotation && a.allowMultiplePerDay).toList();
+
+    for (final activity in sportCandidates) {
+      final sameDay = _sportItemsForDayMutable(day)
+          .where((item) => item.activityId == activity.id)
+          .toList();
+      if (sameDay.isEmpty) continue;
+
+      final targetDaily = _sportDailyOccurrenceLimit(activity);
+      var needed = targetDaily - sameDay.length;
+      if (needed <= 0) continue;
+
+      // La fréquence/semaine représente les jours où l’activité peut être
+      // proposée. Le nombre d’occurrences dans une journée est indépendant.
+      // Une première occurrence déjà présente suffit donc pour compléter
+      // jusqu’au nombre configuré, sans être bloqué par le compteur semaine.
+
+      var used = _sportItemsForDayMutable(day)
+          .fold<int>(0, (sum, item) => sum + item.duration);
+      var seq = 0;
+      while (needed > 0 && used + activity.duration <= budget) {
+        plan.add(PlanItem(
+          id: 'sport_repeat_${DateTime.now().microsecondsSinceEpoch}_${day}_$seq',
+          day: day,
+          period: _periodForActivity(activity, day),
+          timeLabel: null,
+          activityId: activity.id,
+          title: activity.name,
+          details: 'Sport · ${budget} min disponibles ce jour · occurrence supplémentaire demandée.',
+          duration: activity.duration,
+          optional: false,
+          userAdded: false,
+          fixedInWeeklyTemplate: false,
+        ));
+        used += activity.duration;
+        needed--;
+        seq++;
+      }
+    }
+  }
+
+  void _normalizeSportDailyOccurrences() {
+    // Met à niveau un planning déjà enregistré après changement de version
+    // ou restauration, pour compléter les occurrences configurées par jour.
+    for (final day in _sportDays()) {
+      _ensureSportMultipleOccurrencesForDay(day);
+    }
+    _sortPlan();
+  }
+
   void _generateSportPart(List<PlanItem> generated, int seqStart) {
     final sportActivities = activities.where((a) => _isSportActivity(a) && a.activeInSportRotation).toList();
     if (sportActivities.isEmpty || _sportProgram == null) return;
@@ -1037,10 +1298,20 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           fixedInWeeklyTemplate: false,
         ));
         usedMinutes += activity.duration;
-        remaining[_sportRotationKey(activity)] = max(0, (remaining[_sportRotationKey(activity)] ?? 0) - 1);
         generatedCount[activity.id] = (generatedCount[activity.id] ?? 0) + 1;
         seq++;
       }
+
+      // La fréquence/rotation consomme un seul jour par activité retenue,
+      // même lorsque plusieurs occurrences ont été créées ce jour-là.
+      for (final activity in selected.toSet()) {
+        final key = _sportRotationKey(activity);
+        remaining[key] = max(0, (remaining[key] ?? 0) - 1);
+      }
+
+      // Si une activité sélectionnée est autorisée plusieurs fois par jour,
+      // complète immédiatement les occurrences manquantes.
+      _completeGeneratedSportRepeats(generated, day, budget);
       previousDayIds = selectedIds;
     }
   }
@@ -1141,7 +1412,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       ..clear()
       ..addAll(generated)
       ..addAll(personalMoments);
-    _sortPlan();
+    _normalizeSportDailyOccurrences();
 
     setState(() {});
     _queueLocalStatePersist();
@@ -1404,42 +1675,74 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     }
   }
 
+  void _recordActivityMove(PlanItem item, {required int fromDay, required String fromPeriod, required int toDay, required String toPeriod}) {
+    if (fromDay == toDay && fromPeriod == toPeriod) return;
+    activityMoveLogs.add(ActivityMoveLog(
+      date: DateTime.now(),
+      activityName: item.title,
+      activityId: item.activityId,
+      fromDay: fromDay,
+      toDay: toDay,
+      fromPeriod: fromPeriod == 'Midi' ? 'Après-midi' : fromPeriod,
+      toPeriod: toPeriod == 'Midi' ? 'Après-midi' : toPeriod,
+    ));
+    if (activityMoveLogs.length > 100) {
+      activityMoveLogs.removeRange(0, activityMoveLogs.length - 100);
+    }
+  }
+
   Future<void> _movePlanItemDay(PlanItem item) async {
     if (!_isGenericActivityItem(item)) return;
     var selectedDay = item.day;
-    final target = await showDialog<int>(
+    var selectedPeriod = item.period == 'Midi' ? 'Après-midi' : item.period;
+    final result = await showDialog<Map<String, dynamic>>(
       context: _navigatorKey.currentContext!,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setDialogState) => AlertDialog(
           title: const Text('Déplacer l’activité'),
-          content: DropdownButtonFormField<int>(
-            value: selectedDay,
-            decoration: const InputDecoration(labelText: 'Nouveau jour'),
-            items: List.generate(7, (day) => DropdownMenuItem<int>(
-              value: day,
-              child: Text(dayNames[day]),
-            )),
-            onChanged: (value) {
-              if (value != null) setDialogState(() => selectedDay = value);
-            },
-          ),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            DropdownButtonFormField<int>(
+              value: selectedDay,
+              decoration: const InputDecoration(labelText: 'Jour'),
+              items: List.generate(7, (day) => DropdownMenuItem<int>(value: day, child: Text(dayNames[day]))),
+              onChanged: (value) { if (value != null) setDialogState(() => selectedDay = value); },
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              value: selectedPeriod,
+              decoration: const InputDecoration(labelText: 'Moment'),
+              items: const ['Matin', 'Après-midi', 'Soir'].map((v) => DropdownMenuItem<String>(value: v, child: Text(v))).toList(),
+              onChanged: (value) { if (value != null) setDialogState(() => selectedPeriod = value); },
+            ),
+          ]),
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Annuler')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, selectedDay), child: const Text('Déplacer')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, {'day': selectedDay, 'period': selectedPeriod}), child: const Text('Déplacer')),
           ],
         ),
       ),
     );
-    if (target == null || target == item.day) return;
-    if (plan.any((p) => p.id != item.id && p.activityId == item.activityId && p.day == target)) {
+    if (result == null) return;
+    final target = result['day'] as int;
+    final targetPeriod = result['period'] as String;
+    if (target == item.day && targetPeriod == item.period) return;
+    final targetActivity = findActivity(item.activityId!);
+    final sameDayCount = plan.where((p) => p.id != item.id && p.activityId == item.activityId && p.day == target).length;
+    if (sameDayCount > 0 && !(targetActivity?.allowMultiplePerDay ?? false)) {
       _showFeedback('Cette activité est déjà prévue ce jour-là.');
       return;
     }
+    if ((targetActivity?.allowMultiplePerDay ?? false) && sameDayCount >= (targetActivity?.maxDailyOccurrences ?? 2)) {
+      _showFeedback('Le maximum quotidien de cette activité est atteint.');
+      return;
+    }
+    final fromDay = item.day;
+    final fromPeriod = item.period == 'Midi' ? 'Après-midi' : item.period;
     final activity = findActivity(item.activityId!);
     final replacement = PlanItem(
       id: item.id,
       day: target,
-      period: activity == null ? item.period : _periodForActivity(activity, target),
+      period: targetPeriod,
       timeLabel: item.timeLabel,
       title: item.title,
       duration: item.duration,
@@ -1450,6 +1753,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       optional: item.optional,
       userAdded: item.userAdded,
       fixedInWeeklyTemplate: item.fixedInWeeklyTemplate,
+      manualPlacement: true,
       done: item.done,
       realisedMinutes: item.realisedMinutes,
       feeling: item.feeling,
@@ -1457,12 +1761,45 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     setState(() {
       final index = plan.indexWhere((p) => p.id == item.id);
       if (index >= 0) plan[index] = replacement;
+      _recordActivityMove(item, fromDay: fromDay, fromPeriod: fromPeriod, toDay: target, toPeriod: targetPeriod);
       _sortPlan();
     });
     _queueLocalStatePersist();
     _scaffoldMessengerKey.currentState?.showSnackBar(
-      SnackBar(content: Text('« ${item.title} » déplacée à ${dayNames[target]}.')),
+      SnackBar(content: Text('« ${item.title} » déplacée à ${dayNames[target]} · $targetPeriod.')),
     );
+  }
+
+
+  bool _canDropGenericInWeeklyPeriod(PlanItem item, int targetDay, String targetPeriod) {
+    if (!_isGenericActivityItem(item)) return false;
+    if (item.day == targetDay && item.period == targetPeriod) return false;
+    final activity = findActivity(item.activityId!);
+    if (activity == null) return false;
+    final sameDayCount = plan.where((p) => p.id != item.id && p.activityId == item.activityId && p.day == targetDay).length;
+    if (sameDayCount == 0) return true;
+    return activity.allowMultiplePerDay && sameDayCount < activity.maxDailyOccurrences;
+  }
+
+  void _moveGenericActivityWeekly(PlanItem item, int targetDay, String targetPeriod) {
+    if (!_canDropGenericInWeeklyPeriod(item, targetDay, targetPeriod)) return;
+    final fromDay = item.day;
+    final fromPeriod = item.period == 'Midi' ? 'Après-midi' : item.period;
+    final replacement = PlanItem(
+      id: item.id, day: targetDay, period: targetPeriod, timeLabel: item.timeLabel,
+      title: item.title, duration: item.duration, activityId: item.activityId,
+      details: item.details, customEmoji: item.customEmoji, customCategory: item.customCategory,
+      optional: item.optional, userAdded: item.userAdded, fixedInWeeklyTemplate: item.fixedInWeeklyTemplate,
+      manualPlacement: true, done: item.done, realisedMinutes: item.realisedMinutes, feeling: item.feeling,
+    );
+    setState(() {
+      final index = plan.indexWhere((p) => p.id == item.id);
+      if (index >= 0) plan[index] = replacement;
+      _recordActivityMove(item, fromDay: fromDay, fromPeriod: fromPeriod, toDay: targetDay, toPeriod: targetPeriod);
+      _sortPlan();
+    });
+    _queueLocalStatePersist();
+    _showFeedback('« ${item.title} » déplacée vers ${dayNames[targetDay]} · $targetPeriod.');
   }
 
 
@@ -1703,6 +2040,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       MaterialPageRoute(builder: (_) => _WeeklyReviewPage(
         plan: plan,
         logs: _currentWeekLogs(),
+        moveLogs: activityMoveLogs,
         activities: activities,
         weeklyNote: weeklyNote,
         onSaveNote: (value) => setState(() => weeklyNote = value),
@@ -1787,7 +2125,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     // seul motif que la fréquence a changé.
     for (final item in linked) {
       if (_isSportActivity(activity) || activity.isSportProgram) item.duration = activity.duration;
-      if (!_isSportActivity(activity) && !activity.isSportProgram) item.period = _periodForActivity(activity, item.day);
+      if (!_isSportActivity(activity) && !activity.isSportProgram && !item.manualPlacement) item.period = _periodForActivity(activity, item.day);
       if (previous != null && item.title.contains(previous.name)) {
         item.title = item.title.replaceFirst(previous.name, activity.name);
       }
@@ -1829,6 +2167,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           optional: old.optional,
           userAdded: old.userAdded,
           fixedInWeeklyTemplate: old.fixedInWeeklyTemplate,
+          manualPlacement: old.manualPlacement,
           done: old.done,
           realisedMinutes: old.realisedMinutes,
           feeling: old.feeling,
@@ -1901,6 +2240,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     var frequency = draft.frequency;
     var priority = draft.priority;
     var sportWeight = draft.sportWeight;
+    var allowMultiplePerDay = draft.allowMultiplePerDay;
+    var maxDailyOccurrences = draft.maxDailyOccurrences.clamp(2, 3).toInt();
     var preferred = Set<int>.from(draft.preferredDays);
     final sportGroup = draft.sportGroup;
     final sportGroupFrequency = draft.sportGroupFrequency;
@@ -1950,6 +2291,17 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     ];
     if (!emojiOptions.contains(emoji)) {
       emojiOptions.insert(0, emoji);
+    }
+
+    void showSportHelp(String title, String message) {
+      showDialog<void>(
+        context: _navigatorKey.currentContext!,
+        builder: (context) => AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Compris'))],
+        ),
+      );
     }
 
     showDialog<void>(
@@ -2015,10 +2367,48 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                   )),
                 ],
                 const SizedBox(height: 10),
-                _StepperLine(label: 'Fréquence / semaine', value: frequency, min: 1, max: 7, onChanged: (v) => setDialogState(() => frequency = v)),
-                _StepperLine(label: 'Priorité', value: priority, min: 1, max: 5, onChanged: (v) => setDialogState(() => priority = v)),
+                _StepperLine(
+                  label: category == 'Sport' ? 'Jours avec cette activité / semaine' : 'Fréquence / semaine',
+                  value: frequency,
+                  min: 1,
+                  max: 7,
+                  onChanged: (v) => setDialogState(() => frequency = v),
+                ),
                 if (category == 'Sport')
-                  _StepperLine(label: 'Poids dans la rotation sport', value: sportWeight, min: 1, max: 10, onChanged: (v) => setDialogState(() => sportWeight = v)),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Les jours/semaine et les occurrences dans une même journée sont deux réglages indépendants.',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF6F7777)),
+                    ),
+                  ),
+                if (category == 'Sport') ...[
+                  Row(children: [
+                    Expanded(child: _StepperLine(label: 'Priorité', value: priority, min: 1, max: 5, onChanged: (v) => setDialogState(() => priority = v))),
+                    IconButton(icon: const Icon(Icons.info_outline, size: 19), tooltip: 'Expliquer la priorité', onPressed: () => showSportHelp('Priorité', 'La priorité indique l’importance de cette activité dans tes choix Sport. Plus elle est élevée, plus le coach la favorise lorsqu’il doit arbitrer entre plusieurs possibilités.')),
+                  ]),
+                  Row(children: [
+                    Expanded(child: _StepperLine(label: 'Poids dans la rotation sport', value: sportWeight, min: 1, max: 10, onChanged: (v) => setDialogState(() => sportWeight = v))),
+                    IconButton(icon: const Icon(Icons.info_outline, size: 19), tooltip: 'Expliquer le poids', onPressed: () => showSportHelp('Poids dans la rotation', 'Le poids est un réglage plus fin du choix automatique. Un poids élevé donne davantage de préférence à cette activité, sans imposer qu’elle soit choisie à chaque fois.')),
+                  ]),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(color: const Color(0xFFF1F4F1), borderRadius: BorderRadius.circular(14)),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        const Expanded(child: Text('Plusieurs fois dans la même journée', style: TextStyle(fontWeight: FontWeight.w800))),
+                        IconButton(icon: const Icon(Icons.info_outline, size: 19), tooltip: 'Expliquer', onPressed: () => showSportHelp('Plusieurs fois par jour', 'Cette option demande à la même activité Sport d’apparaître plusieurs fois le même jour. Le nombre d’occurrences est réglable de 2 à 3 et chaque séance reste indépendante. Si le budget du jour ne suffit pas, le planning ne peut pas toutes les placer.')),
+                        Switch.adaptive(value: allowMultiplePerDay, onChanged: (v) => setDialogState(() => allowMultiplePerDay = v)),
+                      ]),
+                      if (allowMultiplePerDay) ...[
+                        _StepperLine(label: "Nombre d'occurrences par jour", value: maxDailyOccurrences, min: 2, max: 3, onChanged: (v) => setDialogState(() => maxDailyOccurrences = v)),
+                        const Text('Exemple : 2 occurrences = 20 min le matin + 20 min en fin de journée.', style: TextStyle(fontSize: 11, color: Color(0xFF6F7777))),
+                      ],
+                    ]),
+                  ),
+                ] else
+                  _StepperLine(label: 'Priorité', value: priority, min: 1, max: 5, onChanged: (v) => setDialogState(() => priority = v)),
                 if (category == 'Sport' && !draft.isSportProgram) ...[
                   const SizedBox(height: 8),
                   Container(
@@ -2126,6 +2516,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                   priority: priority,
                   preferredDays: preferred.toList()..sort(),
                   sportWeight: sportWeight,
+                  allowMultiplePerDay: category == 'Sport' ? allowMultiplePerDay : false,
+                  maxDailyOccurrences: category == 'Sport' ? maxDailyOccurrences : 2,
                   sportGroup: sportGroup,
                   sportGroupFrequency: sportGroupFrequency,
                   activeInSportRotation: activeInSportRotation,
@@ -2160,6 +2552,15 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                 Navigator.pop(context);
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (!mounted) return;
+                  // La fiche doit se fermer immédiatement. Le réglage Sport
+                  // (notamment plusieurs occurrences par jour) est appliqué
+                  // après fermeture, sans lancer de gros recalcul dans
+                  // setState de la boîte de dialogue.
+                  if (_isSportActivity(updated)) {
+                    _applyEditedSportActivityOccurrences(updated);
+                    _queueLocalStatePersist();
+                  }
+                  if (!mounted) return;
                   _scaffoldMessengerKey.currentState?.showSnackBar(
                     SnackBar(
                       content: Text(edit
@@ -2178,6 +2579,114 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     );
   }
 
+
+
+  void _applyEditedSportActivityOccurrences(Activity activity) {
+    if (!_isSportActivity(activity) || !activity.activeInSportRotation) return;
+
+    final sportDays = _sportDays();
+    if (sportDays.isEmpty) return;
+
+    final desiredDaysCount = _sportTargetFrequency(activity).clamp(1, 7).toInt();
+    final dailyTarget = _sportDailyOccurrenceLimit(activity);
+
+    // Les jours préférés sont prioritaires. On complète ensuite avec les
+    // autres jours Sport nécessaires pour atteindre la fréquence hebdomadaire.
+    final preferredSportDays = activity.preferredDays
+        .where((day) => sportDays.contains(day))
+        .toList();
+    final orderedDays = <int>[...
+      preferredSportDays,
+      ...sportDays.where((day) => !preferredSportDays.contains(day)),
+    ];
+
+    final targetDays = orderedDays.take(desiredDaysCount).toSet();
+
+    // Si plusieurs occurrences/jour est désactivé, on ramène les occurrences
+    // non réalisées à une seule. Une occurrence déjà réalisée est conservée.
+    for (final day in sportDays) {
+      final sameDay = _sportItemsForDayMutable(day)
+          .where((item) => item.activityId == activity.id)
+          .toList();
+      if (!targetDays.contains(day) && sameDay.isEmpty) continue;
+      if (targetDays.contains(day)) continue;
+      final removable = [...sameDay]
+        ..sort((a, b) => a.id.compareTo(b.id));
+      while (removable.length > 1) {
+        final candidate = removable.lastWhere(
+          (item) => !item.done,
+          orElse: () => removable.first,
+        );
+        if (candidate.done) break;
+        plan.removeWhere((item) => item.id == candidate.id);
+        removable.remove(candidate);
+      }
+    }
+
+    for (final day in orderedDays) {
+      if (!targetDays.contains(day)) continue;
+      final budget = _sportBudgetForDay(day);
+      if (budget <= 0) continue;
+
+      var sameDay = _sportItemsForDayMutable(day)
+          .where((item) => item.activityId == activity.id)
+          .toList();
+
+      // Une activité explicitement réglée plusieurs fois par jour doit être
+      // visible autant de fois que demandé. La limite est quotidienne, sans
+      // modifier la fréquence des jours.
+      final wanted = dailyTarget;
+      var needed = wanted - sameDay.length;
+      if (needed <= 0) {
+        if (!activity.allowMultiplePerDay && sameDay.length > 1) {
+          for (final extra in sameDay.skip(1)) {
+            if (!extra.done) plan.removeWhere((item) => item.id == extra.id);
+          }
+        }
+        continue;
+      }
+
+      var used = _sportItemsForDayMutable(day)
+          .fold<int>(0, (sum, item) => sum + item.duration);
+
+      // On libère d'abord de la place dans les séances Sport non réalisées,
+      // sans jamais supprimer une séance déjà validée ni une occurrence de
+      // l'activité en cours d'édition.
+      final removable = _sportItemsForDayMutable(day)
+          .where((item) => !item.done && item.activityId != activity.id)
+          .toList()
+        ..sort((a, b) => a.id.compareTo(b.id));
+
+      for (final item in removable) {
+        if (used + needed * activity.duration <= budget) break;
+        plan.removeWhere((p) => p.id == item.id);
+        used -= item.duration;
+      }
+
+      var seq = 0;
+      while (needed > 0 && used + activity.duration <= budget) {
+        plan.add(PlanItem(
+          id: 'sport_edit_${activity.id}_${day}_${DateTime.now().microsecondsSinceEpoch}_$seq',
+          day: day,
+          period: _periodForActivity(activity, day),
+          timeLabel: null,
+          activityId: activity.id,
+          title: activity.name,
+          details: 'Sport · occurrence configurée dans la fiche activité.',
+          duration: activity.duration,
+          optional: false,
+          userAdded: false,
+          fixedInWeeklyTemplate: false,
+        ));
+        used += activity.duration;
+        needed--;
+        seq++;
+      }
+    }
+
+    _sortPlan();
+    setState(() {});
+  }
 
   List<int> _futureSportDays() {
     return _sportDays().where((d) => d > today).toList()..sort();
@@ -2331,6 +2840,88 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     _queueLocalStatePersist();
   }
 
+  void _forceSportActivityOnPreferredDays(Activity activity) {
+    if (!_isSportActivity(activity) || !activity.activeInSportRotation) return;
+    if (!activity.allowMultiplePerDay) return;
+
+    final sportDays = _sportDays().toSet();
+    final targetDays = _sportTargetFrequency(activity).clamp(1, 7).toInt();
+    final preferredDays = activity.preferredDays.where(sportDays.contains).toList()
+      ..sort();
+    final alreadyScheduledDays = plan
+        .where((item) => item.activityId == activity.id && sportDays.contains(item.day))
+        .map((item) => item.day)
+        .toSet();
+
+    final candidateDays = <int>[
+      ...preferredDays.where((day) => !alreadyScheduledDays.contains(day)),
+      ...sportDays.where((day) => !alreadyScheduledDays.contains(day)).toList()..sort(),
+    ];
+
+    var scheduledDays = alreadyScheduledDays.length;
+    for (final day in candidateDays) {
+      if (scheduledDays >= targetDays) break;
+
+      final budget = _sportBudgetForDay(day);
+      if (budget <= 0) continue;
+
+      final targetOccurrences = _sportDailyOccurrenceLimit(activity);
+      final existing = _sportItemsForDayMutable(day)
+          .where((item) => item.activityId == activity.id)
+          .toList();
+      if (existing.length >= targetOccurrences) {
+        scheduledDays++;
+        continue;
+      }
+
+      var used = _sportItemsForDayMutable(day)
+          .fold<int>(0, (sum, item) => sum + item.duration);
+      var needed = targetOccurrences - existing.length;
+
+      final removable = _sportItemsForDayMutable(day)
+          .where((item) => !item.done && item.activityId != activity.id)
+          .toList()
+        ..sort((a, b) {
+          final aa = a.activityId == null ? null : findActivity(a.activityId!);
+          final bb = b.activityId == null ? null : findActivity(b.activityId!);
+          final sa = aa == null ? 0.0 : _sportRotationScore(aa, day, <String>{}, <String, int>{});
+          final sb = bb == null ? 0.0 : _sportRotationScore(bb, day, <String>{}, <String, int>{});
+          return sa.compareTo(sb);
+        });
+
+      for (final item in removable) {
+        if (used + needed * activity.duration <= budget) break;
+        plan.removeWhere((p) => p.id == item.id);
+        used -= item.duration;
+      }
+
+      var seq = 0;
+      while (needed > 0 && used + activity.duration <= budget) {
+        plan.add(PlanItem(
+          id: 'sport_config_${activity.id}_${day}_${DateTime.now().microsecondsSinceEpoch}_$seq',
+          day: day,
+          period: _periodForActivity(activity, day),
+          timeLabel: null,
+          activityId: activity.id,
+          title: activity.name,
+          details: 'Sport · occurrence configurée dans la fiche activité.',
+          duration: activity.duration,
+          optional: false,
+          userAdded: false,
+          fixedInWeeklyTemplate: false,
+        ));
+        used += activity.duration;
+        needed--;
+        seq++;
+      }
+
+      final finalCount = _sportItemsForDayMutable(day)
+          .where((item) => item.activityId == activity.id)
+          .length;
+      if (finalCount >= targetOccurrences) scheduledDays++;
+    }
+  }
+
   void _refreshSportDay(int day) {
     final budget = _sportBudgetForDay(day);
     final existing = _sportItemsForDayMutable(day);
@@ -2388,6 +2979,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       ));
       seq++;
     }
+    _ensureSportMultipleOccurrencesForDay(day);
     _sortPlan();
   }
 
@@ -2986,8 +3578,11 @@ String _formatCoachDateTime(DateTime value) {
   Future<void> _moveTodayGenericActivityPeriod(PlanItem item, String targetPeriod) async {
     if (!_isGenericActivityItem(item) || item.day != today) return;
     if (item.period == targetPeriod) return;
+    final fromPeriod = item.period == 'Midi' ? 'Après-midi' : item.period;
     setState(() {
       item.period = targetPeriod;
+      item.manualPlacement = true;
+      _recordActivityMove(item, fromDay: item.day, fromPeriod: fromPeriod, toDay: item.day, toPeriod: targetPeriod);
       _sortPlan();
     });
     _queueLocalStatePersist();
@@ -3058,6 +3653,12 @@ String _formatCoachDateTime(DateTime value) {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
             ),
             const SizedBox(width: 2),
+            if (activity != null || item.customEmoji != null) ...[
+              (activity?.emoji ?? item.customEmoji ?? '📍') == '🧸'
+                  ? mascotChoiceAvatar(size: 34)
+                  : Text(activity?.emoji ?? item.customEmoji ?? '📍', style: const TextStyle(fontSize: 22)),
+              const SizedBox(width: 8),
+            ],
             Expanded(
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
@@ -3065,11 +3666,13 @@ String _formatCoachDateTime(DateTime value) {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 3),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [Expanded(child: Text(item.title, style: TextStyle(fontWeight: FontWeight.w800, decoration: item.done ? TextDecoration.lineThrough : null))), if (item.optional) const Text('optionnel', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF7A7770)))]),
+                    Row(children: [Expanded(child: Text(item.title, style: TextStyle(fontWeight: FontWeight.w800, decoration: item.done ? TextDecoration.lineThrough : null))), if (item.optional) const Text('optionnel', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF7A7770))),
+                          if (item.manualPlacement) const Padding(padding: EdgeInsets.only(left: 6), child: Text('déplacée', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))))]),
                     const SizedBox(height: 2),
-                    Text((activity == null || activity.category == 'Sport')
-                        ? (item.done ? '${item.period} · ${item.duration} min · ✓ validé' : '${item.period} · ${item.duration} min')
-                        : (item.done ? '${item.period} · ✓ validé' : item.period)),
+                    if (activity == null || activity.category == 'Sport')
+                      Text(item.done ? '${item.duration} min · ✓ validé' : '${item.duration} min')
+                    else if (item.done)
+                      const Text('✓ validé'),
                   ]),
                 ),
               ),
@@ -3167,6 +3770,9 @@ String _formatCoachDateTime(DateTime value) {
   Widget _sportItemRow(PlanItem item) {
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
     final emoji = activity?.emoji ?? '🏃';
+    final sameDay = activity == null ? <PlanItem>[] : _sportItemsForDay(item.day).where((p) => p.activityId == item.activityId).toList();
+    final occurrence = sameDay.indexWhere((p) => p.id == item.id) + 1;
+    final repeated = sameDay.length > 1;
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: InkWell(
@@ -3177,7 +3783,13 @@ String _formatCoachDateTime(DateTime value) {
           child: Row(children: [
             emoji == '🧸' ? mascotChoiceAvatar(size: 30) : Text(emoji, style: const TextStyle(fontSize: 17)),
             const SizedBox(width: 6),
-            Expanded(child: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, decoration: item.done ? TextDecoration.lineThrough : null))),
+            Expanded(child: Row(children: [
+              Expanded(child: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, decoration: item.done ? TextDecoration.lineThrough : null))),
+              if (repeated) ...[
+                const SizedBox(width: 5),
+                Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: const Color(0xFFF8FBF9), borderRadius: BorderRadius.circular(8)), child: Text('$occurrence/${sameDay.length}', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF6F8E80)))),
+              ],
+            ])),
             const SizedBox(width: 6),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               if (activity == null || activity.category == 'Sport') Text('${item.duration} min', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF526B78))),
@@ -3544,30 +4156,42 @@ String _formatCoachDateTime(DateTime value) {
                       }).toList();
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 5),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                        child: DragTarget<PlanItem>(
+                          onWillAcceptWithDetails: (details) => _canDropGenericInWeeklyPeriod(details.data, selectedDay, period),
+                          onAcceptWithDetails: (details) => _moveGenericActivityWeekly(details.data, selectedDay, period),
+                          builder: (context, candidateData, rejectedData) {
+                            final highlighted = candidateData.isNotEmpty;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 160),
+                              padding: EdgeInsets.all(highlighted ? 7 : 0),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF3F1EB),
-                                borderRadius: BorderRadius.circular(9),
+                                color: highlighted ? const Color(0xFFDCEBE5) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(13),
+                                border: highlighted ? Border.all(color: const Color(0xFF8EAD9F), width: 1.5) : null,
                               ),
-                              child: Text(
-                                period,
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF5E6D73)),
-                              ),
-                            ),
-                            if (periodItems.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.fromLTRB(9, 7, 9, 3),
-                                child: Text('Temps libre', style: TextStyle(fontSize: 12.5, color: Color(0xFF7A807D))),
-                              )
-                            else
-                              ...periodItems.map(planRow),
-                          ],
+                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Row(children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                    decoration: BoxDecoration(color: const Color(0xFFF3F1EB), borderRadius: BorderRadius.circular(9)),
+                                    child: Text(period, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF5E6D73))),
+                                  ),
+                                  if (highlighted) ...[
+                                    const SizedBox(width: 7), const Icon(Icons.south, size: 15, color: Color(0xFF6F8E80)),
+                                    const SizedBox(width: 3), const Text('Déposer ici', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
+                                  ],
+                                ]),
+                                if (periodItems.isEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(9, 7, 9, 3),
+                                    child: Text(highlighted ? 'Déposer l’activité ici' : 'Temps libre', style: TextStyle(fontSize: 12.5, color: highlighted ? const Color(0xFF6F8E80) : const Color(0xFF7A807D), fontWeight: highlighted ? FontWeight.w700 : FontWeight.normal)),
+                                  )
+                                else ...periodItems.map(planRow),
+                              ]),
+                            );
+                          },
                         ),
-                      );
+                      );;
                     }),
                     const SizedBox(height: 2),
                     Align(
@@ -3721,7 +4345,7 @@ String _formatCoachDateTime(DateTime value) {
     final emoji = activity?.emoji ?? (item.customEmoji ?? '📍');
     final bg = item.optional ? const Color(0xFFF0EDE6) : _pastelFor(category).withOpacity(.42);
 
-    return Padding(
+    final card = Padding(
       padding: const EdgeInsets.only(top: 7),
       child: Container(
         width: double.infinity,
@@ -3772,6 +4396,11 @@ String _formatCoachDateTime(DateTime value) {
                               padding: EdgeInsets.only(left: 6),
                               child: Text('ajouté', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF7A7770))),
                             ),
+                          if (item.manualPlacement)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 6),
+                              child: Text('déplacée', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
+                            ),
                         ],
                       ),
                       if (item.details != null)
@@ -3796,6 +4425,14 @@ String _formatCoachDateTime(DateTime value) {
           ],
         ),
       ),
+    );
+    if (!_isGenericActivityItem(item)) return card;
+    return LongPressDraggable<PlanItem>(
+      data: item,
+      delay: const Duration(milliseconds: 180),
+      feedback: Material(color: Colors.transparent, child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 360), child: Opacity(opacity: .88, child: card))),
+      childWhenDragging: Opacity(opacity: .32, child: card),
+      child: card,
     );
   }
 
@@ -3960,6 +4597,7 @@ String _formatCoachDateTime(DateTime value) {
 class _WeeklyReviewPage extends StatefulWidget {
   final List<PlanItem> plan;
   final List<ActivityLog> logs;
+  final List<ActivityMoveLog> moveLogs;
   final List<Activity> activities;
   final String weeklyNote;
   final ValueChanged<String> onSaveNote;
@@ -3967,6 +4605,7 @@ class _WeeklyReviewPage extends StatefulWidget {
   const _WeeklyReviewPage({
     required this.plan,
     required this.logs,
+    required this.moveLogs,
     required this.activities,
     required this.weeklyNote,
     required this.onSaveNote,
@@ -3993,9 +4632,17 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
 
   @override
   Widget build(BuildContext context) {
+    const dayNames = <String>['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
     final trackedPlan = widget.plan.where((p) => p.activityId != null).toList();
     final completed = trackedPlan.where((p) => p.done).length;
     final completionRate = trackedPlan.isEmpty ? 0.0 : completed / trackedPlan.length;
+    final plannedMinutes = trackedPlan.fold<int>(0, (sum, item) => sum + item.duration);
+    final realisedMinutes = trackedPlan.where((item) => item.done).fold<int>(0, (sum, item) => sum + item.duration);
+    final remainingMinutes = max(0, plannedMinutes - realisedMinutes);
+    final currentWeekStart = DateTime.now();
+    final monday = DateTime(currentWeekStart.year, currentWeekStart.month, currentWeekStart.day).subtract(Duration(days: currentWeekStart.weekday - 1));
+    final nextMonday = monday.add(const Duration(days: 7));
+    final weekMoves = widget.moveLogs.where((m) => !m.date.isBefore(monday) && m.date.isBefore(nextMonday)).toList()..sort((a,b) => b.date.compareTo(a.date));
     final validatedMinutes = widget.logs.fold<int>(0, (sum, log) => sum + log.plannedMinutes);
     final plannedRealised = widget.logs.fold<int>(0, (sum, log) => sum + log.plannedMinutes);
     final unplanned = widget.logs.where((log) => log.unplanned).length;
@@ -4036,7 +4683,19 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                   ]),
                   const SizedBox(height: 10),
                   Row(children: [
-                    Expanded(child: _ReviewStat(label: 'Temps des activités validées', value: '$validatedMinutes min', icon: Icons.timer_outlined)),
+                    Expanded(child: _ReviewStat(label: 'Prévu', value: '$plannedMinutes min', icon: Icons.schedule_outlined)),
+                    const SizedBox(width: 10),
+                    Expanded(child: _ReviewStat(label: 'Réalisé', value: '$realisedMinutes min', icon: Icons.play_circle_outline)),
+                  ]),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    Expanded(child: _ReviewStat(label: 'À faire', value: '$remainingMinutes min', icon: Icons.hourglass_empty_outlined)),
+                    const SizedBox(width: 10),
+                    Expanded(child: _ReviewStat(label: 'Déplacées', value: '${weekMoves.length}', icon: Icons.open_with_outlined)),
+                  ]),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    Expanded(child: _ReviewStat(label: 'Temps validé', value: '$validatedMinutes min', icon: Icons.timer_outlined)),
                     const SizedBox(width: 10),
                     Expanded(child: _ReviewStat(label: 'Imprévus', value: '$unplanned', icon: Icons.auto_awesome_outlined)),
                   ]),
@@ -4094,6 +4753,33 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                           : veryGood + good >= 3
                               ? 'Les retours sont plutôt positifs. Le rythme semble confortable.'
                               : 'Les retours sont variés : le prochain bilan permettra d’affiner le rythme.'),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              color: const Color(0xFFF0EBDF),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    const Icon(Icons.open_with_outlined, color: Color(0xFF6F8E80)),
+                    const SizedBox(width: 8),
+                    Text('Les déplacements de la semaine', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                  ]),
+                  const SizedBox(height: 8),
+                  if (weekMoves.isEmpty)
+                    const Text('Aucune activité n’a été déplacée cette semaine.', style: TextStyle(color: Color(0xFF6F7777)))
+                  else
+                    ...weekMoves.take(8).map((m) => Padding(
+                      padding: const EdgeInsets.only(top: 7),
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Text('↔ ', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF6F8E80))),
+                        Expanded(child: Text('${m.activityName} · ${dayNames[m.fromDay]} ${m.fromPeriod} → ${dayNames[m.toDay]} ${m.toPeriod}', style: const TextStyle(fontSize: 12.5))),
+                      ]),
+                    )),
+                  if (weekMoves.length > 8)
+                    Padding(padding: const EdgeInsets.only(top: 8), child: Text('${weekMoves.length - 8} autre(s) déplacement(s).', style: const TextStyle(fontSize: 11.5, color: Color(0xFF6F7777)))),
                 ]),
               ),
             ),
