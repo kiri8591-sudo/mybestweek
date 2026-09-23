@@ -183,7 +183,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V7.30';
+  static const version = 'V7.32';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -212,6 +212,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
 
   int tab = 0;
   String categoryFilter = 'Toutes';
+  int _weekSelectedDay = -1;
   int _resetGeneration = 0;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -3139,6 +3140,9 @@ String _formatCoachDateTime(DateTime value) {
   Widget buildWeek() {
     final trackable = plan.where((p) => p.activityId != null).toList();
     final totalMinutes = trackable.fold<int>(0, (sum, p) => sum + p.duration);
+    final selectedDay = _weekSelectedDay >= 0 && _weekSelectedDay < 7 ? _weekSelectedDay : today;
+    final selectedItems = itemsForDay(selectedDay);
+    final selectedDone = selectedItems.where((item) => item.done).length;
     const periods = ['Matin', 'Après-midi', 'Soir'];
 
     return CustomScrollView(
@@ -3146,34 +3150,45 @@ String _formatCoachDateTime(DateTime value) {
         SliverToBoxAdapter(
           child: pageTitle(
             'Ma semaine',
-            'Un cadre simple : matin, après-midi, soirée. Le reste peut rester libre.',
+            'Choisis un jour. Le détail s’affiche juste en dessous.',
           ),
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Card(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
                 child: Row(
                   children: [
-                    const Icon(Icons.event_note_outlined, color: Color(0xFF526B78)),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE7EDF0),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: const Icon(Icons.event_note_outlined, color: Color(0xFF526B78), size: 21),
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(
-                        '$totalMinutes min prévues · ${completedCount()} moment(s) validé(s)',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('$totalMinutes min prévues', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                          const SizedBox(height: 2),
+                          Text('${completedCount()} moment(s) validé(s)', style: const TextStyle(fontSize: 12, color: Color(0xFF6F7777))),
+                        ],
                       ),
                     ),
                     FilledButton.tonalIcon(
                       onPressed: openWeeklyReview,
-                      icon: const Icon(Icons.insights_outlined, size: 18),
+                      icon: const Icon(Icons.insights_outlined, size: 17),
                       label: const Text('Bilan'),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-                        minimumSize: Size.zero,
+                        minimumSize: const Size(0, 42),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
                       ),
                     ),
                   ],
@@ -3184,20 +3199,94 @@ String _formatCoachDateTime(DateTime value) {
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: SizedBox(
+              height: 82,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 1),
+                itemCount: 7,
+                separatorBuilder: (_, __) => const SizedBox(width: 7),
+                itemBuilder: (context, day) {
+                  final isSelected = day == selectedDay;
+                  final isToday = day == today;
+                  final dayItems = itemsForDay(day);
+                  final done = dayItems.where((item) => item.done).length;
+                  return GestureDetector(
+                    onTap: () => setState(() => _weekSelectedDay = day),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      width: 58,
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFFDCE5E7)
+                            : const Color(0xFFFFFDF9),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected
+                              ? const Color(0xFF9FB2B8)
+                              : const Color(0xFFE0DDD5),
+                          width: isSelected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            dayNames[day].substring(0, 3),
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w900,
+                              color: isSelected ? const Color(0xFF526B78) : const Color(0xFF727977),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${dayItems.length}',
+                            style: TextStyle(
+                              fontSize: 19,
+                              height: 1,
+                              fontWeight: FontWeight.w900,
+                              color: isSelected ? const Color(0xFF33414A) : const Color(0xFF596563),
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            done == 0 ? (isToday ? 'aujourd’hui' : 'à faire') : '$done ✓',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w800,
+                              color: done > 0 ? const Color(0xFF6F8E80) : const Color(0xFF8A8D88),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Card(
               color: const Color(0xFFE5EEE9),
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(15, 14, 15, 12),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: const [
-                    Icon(Icons.self_improvement_outlined, color: Color(0xFF6F8E80)),
+                    Icon(Icons.self_improvement_outlined, color: Color(0xFF6F8E80), size: 21),
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Le planning est un cadre, pas une obligation. Garde du temps pour l’envie, la météo et les imprévus.',
-                        style: TextStyle(height: 1.35, fontWeight: FontWeight.w600),
+                        style: TextStyle(fontSize: 12.5, height: 1.35, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -3206,112 +3295,118 @@ String _formatCoachDateTime(DateTime value) {
             ),
           ),
         ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          sliver: SliverList.builder(
-            itemCount: 7,
-            itemBuilder: (context, day) {
-              final isToday = day == today;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Card(
-                  color: isToday ? const Color(0xFFE7EDF0) : null,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(15, 15, 15, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Card(
+              color: const Color(0xFFE7EDF0),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(15, 14, 15, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                dayNames[day],
-                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
-                              ),
-                            ),
-                            if (isToday)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFDCE5E7),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Text(
-                                  'AUJOURD’HUI',
-                                  style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF526B78)),
-                                ),
-                              ),
-                            const SizedBox(width: 6),
-                            IconButton(
-                              tooltip: 'Ajouter un moment',
-                              visualDensity: VisualDensity.compact,
-                              onPressed: () => addUnplannedToDay(day),
-                              icon: const Icon(Icons.add_circle_outline, color: Color(0xFF526B78)),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 3),
-                        _dayMood(day),
-                        if (_sportBudgetForDay(day) > 0) ...[
-                          const SizedBox(height: 7),
-                          _sportDayCard(day),
-                        ],
-                        const SizedBox(height: 10),
-                        ...periods.map((period) {
-                          final periodItems = itemsForDay(day).where((item) {
-                            if (item.period != period) return false;
-                            // Les activités Sport appartiennent exclusivement au
-                            // bloc Sport de l'en-tête de la journée. Elles ne
-                            // doivent pas être répétées dans « Matin », même si
-                            // leur créneau logique est le matin.
-                            if (item.activityId != null) {
-                              final activity = findActivity(item.activityId!);
-                              if (activity != null && _isSportActivity(activity)) return false;
-                            }
-                            return true;
-                          }).toList();
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF3F1EB),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    period,
-                                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: Color(0xFF5E6D73)),
-                                  ),
-                                ),
-                                if (periodItems.isEmpty)
-                                  const Padding(
-                                    padding: EdgeInsets.fromLTRB(10, 7, 10, 3),
-                                    child: Text('Temps libre', style: TextStyle(fontSize: 13, color: Color(0xFF7A807D))),
-                                  )
-                                else
-                                  ...periodItems.map(planRow),
-                              ],
-                            ),
-                          );
-                        }),
-                        const SizedBox(height: 4),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton.icon(
-                            onPressed: () => addUnplannedToDay(day),
-                            icon: const Icon(Icons.add, size: 18),
-                            label: const Text('Ajouter autre chose'),
+                        Expanded(
+                          child: Text(
+                            dayNames[selectedDay],
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 21, color: Color(0xFF33414A)),
                           ),
+                        ),
+                        if (selectedDay == today)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDCE5E7),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text(
+                              'AUJOURD’HUI',
+                              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF526B78)),
+                            ),
+                          ),
+                        const SizedBox(width: 3),
+                        IconButton(
+                          tooltip: 'Ajouter un moment',
+                          onPressed: () => addUnplannedToDay(selectedDay),
+                          icon: const Icon(Icons.add_circle_outline, color: Color(0xFF526B78)),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 2),
+                    _dayMood(selectedDay),
+                    const SizedBox(height: 9),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            selectedItems.isEmpty
+                                ? 'Journée libre'
+                                : '$selectedDone / ${selectedItems.length} moment(s) validé(s)',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF65706D)),
+                          ),
+                        ),
+                        if (_sportBudgetForDay(selectedDay) > 0)
+                          Text(
+                            'Sport ${_sportBudgetForDay(selectedDay)} min',
+                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: Color(0xFF6F8E80)),
+                          ),
+                      ],
+                    ),
+                    if (_sportBudgetForDay(selectedDay) > 0) ...[
+                      const SizedBox(height: 8),
+                      _sportDayCard(selectedDay),
+                    ],
+                    const SizedBox(height: 8),
+                    ...periods.map((period) {
+                      final periodItems = selectedItems.where((item) {
+                        if (item.period != period) return false;
+                        if (item.activityId != null) {
+                          final activity = findActivity(item.activityId!);
+                          if (activity != null && _isSportActivity(activity)) return false;
+                        }
+                        return true;
+                      }).toList();
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 5),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F1EB),
+                                borderRadius: BorderRadius.circular(9),
+                              ),
+                              child: Text(
+                                period,
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF5E6D73)),
+                              ),
+                            ),
+                            if (periodItems.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.fromLTRB(9, 7, 9, 3),
+                                child: Text('Temps libre', style: TextStyle(fontSize: 12.5, color: Color(0xFF7A807D))),
+                              )
+                            else
+                              ...periodItems.map(planRow),
+                          ],
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 2),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => addUnplannedToDay(selectedDay),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Ajouter autre chose'),
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            },
+              ),
+            ),
           ),
         ),
         const SliverPadding(padding: EdgeInsets.only(bottom: 18)),
@@ -3531,78 +3626,148 @@ String _formatCoachDateTime(DateTime value) {
 
   Widget buildActivities() {
     final cats = <String>['Toutes', 'Sport', 'Bien-être', 'Loisir', 'Culture', 'Sortie', 'Social'];
-    final filtered = categoryFilter == 'Toutes' ? activities : activities.where((a) => a.category == categoryFilter).toList();
+    final filtered = categoryFilter == 'Toutes'
+        ? activities
+        : activities.where((a) => a.category == categoryFilter).toList();
+
     return CustomScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-            child: Row(children: [
-              mascotAvatar(size: 46),
-              const SizedBox(width: 10),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Mes activités', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900, color: const Color(0xFF33414A))),
-                const SizedBox(height: 4),
-                Text('${activities.length} activités · personnalise ton rythme', style: const TextStyle(color: Color(0xFF6F7777))),
-              ])),
-              IconButton(onPressed: openHistory, tooltip: 'Historique', icon: const Icon(Icons.history)),
-              if (activities.any(_isSportActivity)) ...[
-                const SizedBox(width: 2),
-                IconButton(onPressed: openSportWeekOverview, tooltip: 'Semaine Sport', icon: const Icon(Icons.calendar_view_week_outlined)),
-              ],
-              const SizedBox(width: 6),
-              FilledButton.tonalIcon(
-                onPressed: () => addOrEditActivity(),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Ajouter'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Mes activités',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF33414A),
+                              letterSpacing: -0.3,
+                            ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${activities.length} activités',
+                        style: const TextStyle(fontSize: 13, color: Color(0xFF6F7777)),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ]),
+                IconButton(
+                  onPressed: openHistory,
+                  tooltip: 'Historique',
+                  icon: const Icon(Icons.history_outlined),
+                ),
+                if (activities.any(_isSportActivity))
+                  IconButton(
+                    onPressed: openSportWeekOverview,
+                    tooltip: 'Semaine Sport',
+                    icon: const Icon(Icons.fitness_center_outlined),
+                  ),
+                FilledButton(
+                  onPressed: () => addOrEditActivity(),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                    padding: const EdgeInsets.symmetric(horizontal: 13),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  ),
+                  child: const Icon(Icons.add, size: 22),
+                ),
+              ],
+            ),
           ),
         ),
         SliverToBoxAdapter(
           child: SizedBox(
-            height: 54,
+            height: 48,
             child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(20, 6, 20, 8),
+              padding: const EdgeInsets.fromLTRB(18, 1, 18, 7),
               scrollDirection: Axis.horizontal,
               itemCount: cats.length,
               separatorBuilder: (_, __) => const SizedBox(width: 7),
-              itemBuilder: (_, i) => FilterChip(label: Text(cats[i]), selected: categoryFilter == cats[i], onSelected: (_) => setState(() => categoryFilter = cats[i])),
+              itemBuilder: (_, i) => ChoiceChip(
+                label: Text(cats[i]),
+                selected: categoryFilter == cats[i],
+                onSelected: (_) => setState(() => categoryFilter = cats[i]),
+                labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              ),
             ),
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
           sliver: SliverList.builder(
             itemCount: filtered.length,
             itemBuilder: (context, index) {
               final a = filtered[index];
+              final sportWaiting = a.category == 'Sport' && !a.isSportProgram && !a.activeInSportRotation;
               return Padding(
-                padding: const EdgeInsets.only(bottom: 9),
+                padding: const EdgeInsets.only(bottom: 8),
                 child: Card(
-                  child: ListTile(
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
                     onTap: () => addOrEditActivity(original: a),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-                    leading: CircleAvatar(radius: 25, backgroundColor: _pastelFor(a.category), child: Text(a.emoji, style: const TextStyle(fontSize: 23))),
-                    title: Text(a.name, style: const TextStyle(fontWeight: FontWeight.w800)),
-                    subtitle: Text(a.isSportProgram
-                        ? 'Programme sport · ${a.sportDailyDurations.values.where((v) => v > 0).fold<int>(0, (s, v) => s + v)} min/semaine · ${a.sportDailyDurations.values.where((v) => v > 0).length} jour(s)' 
-                        : '${a.category} · ${a.duration} min · ${a.frequency}×/semaine${a.category == 'Sport' ? ' · poids ${a.sportWeight}' : ''}'),
-                    trailing: FilledButton.tonal(
-                      onPressed: () => addOrEditActivity(original: a),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(13, 12, 9, 12),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 22,
+                            backgroundColor: _pastelFor(a.category),
+                            child: Text(a.emoji, style: const TextStyle(fontSize: 21)),
+                          ),
+                          const SizedBox(width: 11),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        a.name,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14.5),
+                                      ),
+                                    ),
+                                    if (sportWaiting)
+                                      Container(
+                                        margin: const EdgeInsets.only(left: 6),
+                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF1EEE8),
+                                          borderRadius: BorderRadius.circular(9),
+                                        ),
+                                        child: const Text(
+                                          'PLUS TARD',
+                                          style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Color(0xFF8E756A)),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  a.isSportProgram
+                                      ? 'Programme Sport · ${a.sportDailyDurations.values.where((v) => v > 0).fold<int>(0, (s, v) => s + v)} min/sem.'
+                                      : '${a.category} · ${a.duration} min · ${a.frequency}×/sem.',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 11.5, color: Color(0xFF6F7777)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(Icons.chevron_right_rounded, color: Color(0xFF899398)),
+                        ],
                       ),
-                      child: const Text('Modifier'),
                     ),
                   ),
                 ),
@@ -3610,11 +3775,9 @@ String _formatCoachDateTime(DateTime value) {
             },
           ),
         ),
-        const SliverPadding(padding: EdgeInsets.only(bottom: 30)),
       ],
     );
-  }
-}
+  }}
 
 
 class _WeeklyReviewPage extends StatefulWidget {
