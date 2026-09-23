@@ -177,7 +177,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V7.35';
+  static const version = 'V7.37';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -1853,7 +1853,10 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   value: emoji,
-                  decoration: const InputDecoration(labelText: 'Icône'),
+                  decoration: const InputDecoration(
+                    labelText: 'Icône',
+                    helperText: '🧸 Ourson utilise ta mascotte MyBestWeek.',
+                  ),
                   items: emojiOptions
                       .map((v) => DropdownMenuItem<String>(
                             value: v,
@@ -2525,7 +2528,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: EdgeInsets.all(size * .025),
-        child: Image.memory(_bearHeadBytes, fit: BoxFit.cover, gaplessPlayback: true),
+        child: Image.memory(_bearHeadBytes, fit: BoxFit.contain, filterQuality: FilterQuality.medium, gaplessPlayback: true),
       ),
     );
   }
@@ -2590,7 +2593,18 @@ String _formatCoachDateTime(DateTime value) {
                 border: Border.all(color: const Color(0xFFD2D9D5)),
               ),
               child: Row(children: [
-                Container(width: 58, height: 58, decoration: BoxDecoration(color: Colors.white.withOpacity(.82), shape: BoxShape.circle), child: const Center(child: Icon(Icons.wb_sunny_outlined, size: 29, color: Color(0xFFC67E67)))),
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(.82),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFE7D4C6)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  padding: const EdgeInsets.all(4),
+                  child: Image.memory(_bearHeadBytes, fit: BoxFit.contain, filterQuality: FilterQuality.medium, gaplessPlayback: true),
+                ),
                 const SizedBox(width: 14),
                 const Expanded(child: Text('Une semaine à ton rythme.\nDes temps forts, et de vraies respirations.', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: Color(0xFF3E4D55), height: 1.4))),
               ]),
@@ -4178,22 +4192,20 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     final doneMinutes = done.fold<int>(0, (s, p) => s + p.duration);
     final rate = plannedMinutes == 0 ? 0 : (doneMinutes * 100 / plannedMinutes).round();
 
-    Widget stat(String value, String label, IconData icon) => Expanded(
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFFDF9),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE0DDD5)),
-        ),
-        child: Column(children: [
-          Icon(icon, size: 18, color: const Color(0xFF6F8E80)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: Color(0xFF33414A))),
-          const SizedBox(height: 2),
-          Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 9.5, color: Color(0xFF6F7777))),
-        ]),
+    Widget stat(String value, String label, IconData icon) => Container(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFDF9),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE0DDD5)),
       ),
+      child: Column(children: [
+        Icon(icon, size: 18, color: const Color(0xFF6F8E80)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: Color(0xFF33414A))),
+        const SizedBox(height: 2),
+        Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 9.5, color: Color(0xFF6F7777))),
+      ]),
     );
 
     return LayoutBuilder(
@@ -4207,14 +4219,17 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         ];
         if (wide) {
           return Row(children: [
-            stats[0], const SizedBox(width: 7), stats[1], const SizedBox(width: 7),
-            stats[2], const SizedBox(width: 7), stats[3],
+            Expanded(child: stats[0]), const SizedBox(width: 7),
+            Expanded(child: stats[1]), const SizedBox(width: 7),
+            Expanded(child: stats[2]), const SizedBox(width: 7),
+            Expanded(child: stats[3]),
           ]);
         }
+        final itemWidth = max(0.0, (constraints.maxWidth - 7) / 2);
         return Wrap(
           spacing: 7,
           runSpacing: 7,
-          children: stats.map((item) => SizedBox(width: (constraints.maxWidth - 7) / 2, child: item)).toList(),
+          children: stats.map((item) => SizedBox(width: itemWidth, child: item)).toList(),
         );
       },
     );
@@ -4681,12 +4696,13 @@ Widget mascotChoiceAvatar({double size = 34}) => Container(
   decoration: BoxDecoration(
     color: const Color(0xFFFFF4EA),
     shape: BoxShape.circle,
-    border: Border.all(color: const Color(0xFFE7D4C6)),
+    border: Border.all(color: const Color(0xFFE7D4C6), width: 1.2),
+    boxShadow: const [BoxShadow(color: Color(0x12000000), blurRadius: 4, offset: Offset(0, 1))],
   ),
   clipBehavior: Clip.antiAlias,
   child: Padding(
     padding: EdgeInsets.all(size * .02),
-    child: Image.memory(_bearHeadBytes, fit: BoxFit.cover, gaplessPlayback: true),
+    child: Image.memory(_bearHeadBytes, fit: BoxFit.contain, filterQuality: FilterQuality.medium, gaplessPlayback: true),
   ),
 );
 
@@ -4697,7 +4713,7 @@ Widget mascotAvatarInline({double size = 34}) => Container(
   clipBehavior: Clip.antiAlias,
   child: Padding(
     padding: EdgeInsets.all(size * .02),
-    child: Image.memory(_bearHeadBytes, fit: BoxFit.cover, gaplessPlayback: true),
+    child: Image.memory(_bearHeadBytes, fit: BoxFit.contain, filterQuality: FilterQuality.medium, gaplessPlayback: true),
   ),
 );
 
