@@ -48,6 +48,24 @@ class _DayWeather {
 
 final Map<String, String> _customActivityIconData = {};
 
+String _planItemIconValue(PlanItem item, Iterable<Activity> activities) {
+  if (item.activityId != null) {
+    for (final activity in activities) {
+      if (activity.id == item.activityId) return activity.emoji;
+    }
+  }
+  return item.customEmoji ?? '📍';
+}
+
+String _activityLogIconValue(ActivityLog log, Iterable<Activity> activities) {
+  if (log.activityId != null) {
+    for (final activity in activities) {
+      if (activity.id == log.activityId) return activity.emoji;
+    }
+  }
+  return log.emoji;
+}
+
 Widget _activityIconWidget(String value, {double size = 24}) {
   if (value.startsWith('customicon://')) {
     final id = value.substring('customicon://'.length);
@@ -257,7 +275,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V8.03';
+  static const version = 'V8.05';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -474,6 +492,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       _morningThought = choices[Random().nextInt(choices.length)];
       _morningThoughtIcon = _morningThoughtIcons[Random().nextInt(_morningThoughtIcons.length)];
     });
+    _queueLocalStatePersist();
   }
 
   void _showFeedback(String message) {
@@ -725,7 +744,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           fixedInWeeklyTemplate: _asBool(rawPlan['fixedInWeeklyTemplate']),
           manualPlacement: _asBool(rawPlan['manualPlacement']),
           done: _asBool(rawPlan['done']),
-          realisedMinutes: _asBool(rawPlan['done']) ? max(1, _asInt(rawPlan['duration'], 30)) : null,
+          realisedMinutes: rawPlan['realisedMinutes'] == null
+              ? (_asBool(rawPlan['done']) ? max(1, _asInt(rawPlan['duration'], 30)) : null)
+              : max(0, _asInt(rawPlan['realisedMinutes'])),
           feeling: _asString(rawPlan['feeling']),
         ));
       }
@@ -770,7 +791,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           period: _asString(rawLog['period']) ?? 'Après-midi',
           day: day,
           plannedMinutes: max(0, _asInt(rawLog['plannedMinutes'])),
-          realisedMinutes: max(0, _asInt(rawLog['plannedMinutes'])),
+          realisedMinutes: max(0, _asInt(rawLog['realisedMinutes'], _asInt(rawLog['plannedMinutes']))),
           feeling: _asString(rawLog['feeling']) ?? 'Bien',
           unplanned: _asBool(rawLog['unplanned']),
           planItemId: _asString(rawLog['planItemId']),
@@ -888,6 +909,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       activities = keptActivities;
       plan = emptyPlan;
       logs = emptyLogs;
+      activityMoveLogs = [];
       weeklyNote = '';
       sportCoachLastAnalysis = '';
       sportCoachLastAnalysisAt = null;
@@ -1057,7 +1079,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     logs[index] = ActivityLog(
       date: old.date,
       title: item.title,
-      emoji: old.emoji,
+      emoji: (old.activityId != null ? findActivity(old.activityId!)?.emoji : null) ?? old.emoji,
       category: old.category,
       period: item.period,
       day: item.day,
@@ -2142,6 +2164,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         _weatherIcon = '🌤️';
         _weatherError = '';
       });
+      _queueLocalStatePersist();
       return;
     }
 
@@ -2211,7 +2234,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                 border: Border.all(color: const Color(0xFFE8DDCC)),
               ),
               child: Row(children: [
-                _activityIconWidget(activity?.emoji ?? item.customEmoji ?? '🗓️', size: 30),
+                _activityIconWidget(_planItemIconValue(item, activities), size: 30),
                 const SizedBox(width: 8),
                 Expanded(
                   child: InkWell(
@@ -2526,6 +2549,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                   onPressed: () {
                     Navigator.pop(sheetContext);
                     setState(() => plan.removeWhere((p) => p.id == item.id));
+                    _queueLocalStatePersist();
                     _scaffoldMessengerKey.currentState?.showSnackBar(
                       SnackBar(content: Text('« ${item.title} » retiré de la semaine.')),
                     );
@@ -4580,9 +4604,8 @@ String _formatCoachDateTime(DateTime value) {
                           const SizedBox(height: 5),
                           Text(
                             '« $_morningThought »',
-                            maxLines: 5,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 10.6, height: 1.28, fontStyle: FontStyle.italic, color: Color(0xFF5D554B)),
+                            softWrap: true,
+                            style: const TextStyle(fontSize: 10.3, height: 1.2, fontStyle: FontStyle.italic, color: Color(0xFF5D554B)),
                           ),
                           Align(
                             alignment: Alignment.bottomRight,
@@ -4912,9 +4935,7 @@ String _formatCoachDateTime(DateTime value) {
             ),
             const SizedBox(width: 2),
             if (activity != null || item.customEmoji != null) ...[
-              (activity?.emoji ?? item.customEmoji ?? '📍') == '🧸'
-                  ? mascotChoiceAvatar(size: 34)
-                  : Text(activity?.emoji ?? item.customEmoji ?? '📍', style: const TextStyle(fontSize: 22)),
+              _activityIconWidget(_planItemIconValue(item, activities), size: 34),
               const SizedBox(width: 8),
             ],
             Expanded(
@@ -5027,7 +5048,7 @@ String _formatCoachDateTime(DateTime value) {
 
   Widget _sportItemRow(PlanItem item) {
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
-    final emoji = activity?.emoji ?? '🏃';
+    final emoji = _planItemIconValue(item, activities);
     final sameDay = activity == null ? <PlanItem>[] : _sportItemsForDay(item.day).where((p) => p.activityId == item.activityId).toList();
     final occurrence = sameDay.indexWhere((p) => p.id == item.id) + 1;
     final repeated = sameDay.length > 1;
@@ -5111,7 +5132,7 @@ String _formatCoachDateTime(DateTime value) {
       logs[logIndex] = ActivityLog(
         date: old.date,
         title: old.title,
-        emoji: old.emoji,
+        emoji: (old.activityId != null ? findActivity(old.activityId!)?.emoji : null) ?? old.emoji,
         category: old.category,
         period: old.period,
         day: old.day,
@@ -5742,7 +5763,7 @@ String _formatCoachDateTime(DateTime value) {
   Widget planRow(PlanItem item) {
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
     final category = activity?.category ?? (item.customCategory ?? 'Autre');
-    final emoji = activity?.emoji ?? (item.customEmoji ?? '📍');
+    final emoji = _planItemIconValue(item, activities);
     final bg = item.optional ? const Color(0xFFF0EDE6) : _pastelFor(category).withOpacity(.42);
 
     final card = Padding(
@@ -6043,21 +6064,20 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
     final completed = trackedPlan.where((p) => p.done).length;
     final completionRate = trackedPlan.isEmpty ? 0.0 : completed / trackedPlan.length;
     final plannedMinutes = trackedPlan.fold<int>(0, (sum, item) => sum + item.duration);
-    final realisedMinutes = trackedPlan.where((item) => item.done).fold<int>(0, (sum, item) => sum + item.duration);
+    final realisedMinutes = trackedPlan.where((item) => item.done).fold<int>(0, (sum, item) => sum + (item.realisedMinutes ?? item.duration));
     final remainingMinutes = max(0, plannedMinutes - realisedMinutes);
     final currentWeekStart = DateTime.now();
     final monday = DateTime(currentWeekStart.year, currentWeekStart.month, currentWeekStart.day).subtract(Duration(days: currentWeekStart.weekday - 1));
     final nextMonday = monday.add(const Duration(days: 7));
     final weekMoves = widget.moveLogs.where((m) => !m.date.isBefore(monday) && m.date.isBefore(nextMonday)).toList()..sort((a,b) => b.date.compareTo(a.date));
-    final validatedMinutes = widget.logs.fold<int>(0, (sum, log) => sum + log.plannedMinutes);
-    final plannedRealised = widget.logs.fold<int>(0, (sum, log) => sum + log.plannedMinutes);
+    final validatedMinutes = widget.logs.fold<int>(0, (sum, log) => sum + log.realisedMinutes);
     final unplanned = widget.logs.where((log) => log.unplanned).length;
     final pianoMinutes = widget.logs
         .where((log) => log.title.toLowerCase().contains('piano'))
-        .fold<int>(0, (sum, log) => sum + log.plannedMinutes);
+        .fold<int>(0, (sum, log) => sum + log.realisedMinutes);
     final sportMinutes = widget.logs
         .where((log) => log.category == 'Sport')
-        .fold<int>(0, (sum, log) => sum + log.plannedMinutes);
+        .fold<int>(0, (sum, log) => sum + log.realisedMinutes);
     final veryGood = widget.logs.where((log) => log.feeling == 'Très bien').length;
     final good = widget.logs.where((log) => log.feeling == 'Bien').length;
     final difficult = widget.logs.where((log) => log.feeling == 'Difficile').length;
@@ -6777,7 +6797,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
             return Padding(
               padding: const EdgeInsets.only(top: 3),
               child: Row(children: [
-                Text(activity?.emoji ?? '🏃', style: const TextStyle(fontSize: 16)),
+                _activityIconWidget(_planItemIconValue(item, widget.getActivities()), size: 16),
                 const SizedBox(width: 7),
                 Expanded(child: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, decoration: item.done ? TextDecoration.lineThrough : null))),
                 const SizedBox(width: 6),
@@ -8394,7 +8414,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                 CircleAvatar(
                   radius: 22,
                   backgroundColor: const Color(0xFFE7EDF0),
-                  child: _activityIconWidget(log.emoji, size: 28),
+                  child: _activityIconWidget(_activityLogIconValue(log, widget.activities), size: 28),
                 ),
                 const SizedBox(width: 11),
                 Expanded(
