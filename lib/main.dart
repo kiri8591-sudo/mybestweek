@@ -46,6 +46,32 @@ class _DayWeather {
   });
 }
 
+final Map<String, String> _customActivityIconData = {};
+
+Widget _activityIconWidget(String value, {double size = 24}) {
+  if (value.startsWith('customicon://')) {
+    final id = value.substring('customicon://'.length);
+    final data = _customActivityIconData[id];
+    if (data != null && data.isNotEmpty) {
+      try {
+        final comma = data.indexOf(',');
+        final encoded = comma >= 0 ? data.substring(comma + 1) : data;
+        return Image.memory(
+          base64Decode(encoded),
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.medium,
+          gaplessPlayback: true,
+        );
+      } catch (_) {}
+    }
+    return Text('🖼️', style: TextStyle(fontSize: size * .78));
+  }
+  if (value == '🧸') return mascotChoiceAvatar(size: size);
+  return Text(value, style: TextStyle(fontSize: size * .78));
+}
+
 class Activity {
   final String id;
   String name;
@@ -231,7 +257,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V8.00';
+  static const version = 'V8.03';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -287,6 +313,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   String _homeMascotKind = 'ourson'; // ourson | emoji | photo
   String _homeMascotEmoji = '🧸';
   String _homeMascotImageData = '';
+  final List<_CustomActivityEmoji> _customActivityEmojis = [];
+  final List<_CustomActivityIcon> _customActivityIcons = [];
   DateTime _clockNow = DateTime.now();
   Timer? _clockTimer;
 
@@ -521,6 +549,12 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       'homeMascotKind': _homeMascotKind,
       'homeMascotEmoji': _homeMascotEmoji,
       'homeMascotImageData': _homeMascotImageData,
+      'customActivityEmojis': _customActivityEmojis.map((e) => e.value).toList(),
+      'customActivityIcons': _customActivityIcons.map((e) => {
+        'id': e.id,
+        'label': e.label,
+        'data': e.data,
+      }).toList(),
       'todayNameday': _todayNameday,
       'todayNamedayDateKey': _todayNamedayDateKey,
       'morningThought': _morningThought,
@@ -768,6 +802,28 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         _homeMascotKind = _asString(root['homeMascotKind']) ?? 'ourson';
         _homeMascotEmoji = _asString(root['homeMascotEmoji']) ?? '🧸';
         _homeMascotImageData = _asString(root['homeMascotImageData']) ?? '';
+        _customActivityEmojis
+          ..clear()
+          ..addAll(((root['customActivityEmojis'] is List) ? (root['customActivityEmojis'] as List) : const [])
+              .map((v) => '${v}')
+              .where((v) => v.trim().isNotEmpty && !_customActivityEmojis.any((e) => e.value == v.trim()))
+              .map((v) => _CustomActivityEmoji(v.trim())));
+        _customActivityIcons
+          ..clear();
+        _customActivityIconData.clear();
+        final rawCustomIcons = root['customActivityIcons'];
+        if (rawCustomIcons is List) {
+          for (final rawIcon in rawCustomIcons) {
+            if (rawIcon is! Map) continue;
+            final id = _asString(rawIcon['id']);
+            final label = _asString(rawIcon['label']) ?? 'Icône personnelle';
+            final data = _asString(rawIcon['data']);
+            if (id == null || id.isEmpty || data == null || data.isEmpty) continue;
+            final entry = _CustomActivityIcon(id: id, label: label, data: data);
+            _customActivityIcons.add(entry);
+            _customActivityIconData[id] = data;
+          }
+        }
         _todayNameday = _asString(root['todayNameday']) ?? '';
         _todayNamedayDateKey = _asString(root['todayNamedayDateKey']) ?? '';
         weeklyNote = _asString(root['weeklyNote']) ?? '';
@@ -901,8 +957,11 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       ),
     );
     if (confirmed == true && mounted) {
-      setState(() => _lastICloudBackupAt = DateTime.now());
-      _queueLocalStatePersist();
+      final confirmedAt = DateTime.now();
+      setState(() => _lastICloudBackupAt = confirmedAt);
+      // Persistance immédiate : le rappel doit rester masqué même après
+      // fermeture/réouverture de l’application.
+      _persistLocalState();
       _showFeedback('✓ Sauvegarde iCloud enregistrée comme effectuée.');
     }
   }
@@ -2152,7 +2211,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                 border: Border.all(color: const Color(0xFFE8DDCC)),
               ),
               child: Row(children: [
-                activity?.emoji == '🧸' ? mascotChoiceAvatar(size: 30) : Text(activity?.emoji ?? item.customEmoji ?? '🗓️', style: const TextStyle(fontSize: 21)),
+                _activityIconWidget(activity?.emoji ?? item.customEmoji ?? '🗓️', size: 30),
                 const SizedBox(width: 8),
                 Expanded(
                   child: InkWell(
@@ -2648,7 +2707,14 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         moveLogs: activityMoveLogs,
         activities: activities,
         weeklyNote: weeklyNote,
-        onSaveNote: (value) => setState(() => weeklyNote = value),
+        onSaveNote: (value) {
+          setState(() => weeklyNote = value);
+          _queueLocalStatePersist();
+        },
+        onOpenHistory: openHistory,
+        onReplan: () {
+          generateWeek(showSnack: true);
+        },
       )),
     );
   }
@@ -2980,6 +3046,78 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     _sortPlan();
   }
 
+  Future<String?> _pickCustomActivityIconImage() async {
+    final input = html.FileUploadInputElement()
+      ..accept = 'image/png,image/jpeg,image/webp,image/gif'
+      ..multiple = false;
+    input.style
+      ..position = 'fixed'
+      ..left = '-10000px'
+      ..top = '0'
+      ..width = '1px'
+      ..height = '1px'
+      ..opacity = '0';
+    html.document.body?.children.add(input);
+    try {
+      input.click();
+      await input.onChange.first;
+      final files = input.files;
+      if (files == null || files.isEmpty) return null;
+      final file = files.first;
+      if (file.size > 512 * 1024) {
+        _showFeedback('Icône trop lourde. Choisis une image de moins de 512 Ko.');
+        return null;
+      }
+      final reader = html.FileReader();
+      reader.readAsDataUrl(file);
+      await reader.onLoad.first;
+      final data = reader.result?.toString();
+      if (data == null || data.isEmpty) return null;
+      final id = 'icon_${DateTime.now().microsecondsSinceEpoch}';
+      final label = file.name.isEmpty ? 'Icône personnelle' : file.name;
+      _customActivityIcons.add(_CustomActivityIcon(id: id, label: label, data: data));
+      _customActivityIconData[id] = data;
+      _queueLocalStatePersist();
+      return 'customicon://$id';
+    } finally {
+      input.remove();
+    }
+  }
+
+  Future<String?> _addCustomActivityEmoji() async {
+    final controller = TextEditingController();
+    final value = await showDialog<String>(
+      context: _navigatorKey.currentContext!,
+      builder: (context) => AlertDialog(
+        title: const Text('Ajouter un emoji'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 8,
+          decoration: const InputDecoration(hintText: 'Colle ou saisis un emoji'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+          FilledButton(
+            onPressed: () {
+              final v = controller.text.trim();
+              if (v.isNotEmpty) Navigator.pop(context, v);
+            },
+            child: const Text('Ajouter'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null || value.trim().isEmpty) return null;
+    final v = value.trim();
+    if (!_customActivityEmojis.any((e) => e.value == v)) {
+      _customActivityEmojis.add(_CustomActivityEmoji(v));
+      _queueLocalStatePersist();
+    }
+    return v;
+  }
+
   void addOrEditActivity({Activity? original}) {
     final edit = original != null;
     final draft = original?.copy() ?? Activity(
@@ -3144,38 +3282,80 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                   onTap: () async {
                     final picked = await showDialog<String>(
                       context: context,
-                      builder: (pickerContext) => AlertDialog(
-                        title: const Text('Choisir une icône'),
-                        content: SizedBox(
-                          width: 420,
-                          height: 360,
-                          child: GridView.builder(
-                            padding: const EdgeInsets.all(4),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 6,
-                              mainAxisSpacing: 8,
-                              crossAxisSpacing: 8,
-                              childAspectRatio: 1,
-                            ),
-                            itemCount: dedupedEmojiOptions.length,
-                            itemBuilder: (_, index) {
-                              final value = dedupedEmojiOptions[index];
-                              return InkWell(
-                                borderRadius: BorderRadius.circular(13),
-                                onTap: () => Navigator.pop(pickerContext, value),
-                                child: Container(
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: value == emoji ? const Color(0xFFEAF2ED) : const Color(0xFFF8F5EF),
-                                    borderRadius: BorderRadius.circular(13),
-                                    border: Border.all(color: value == emoji ? const Color(0xFFB9CCBF) : const Color(0xFFE4DED5)),
+                      builder: (pickerContext) => StatefulBuilder(
+                        builder: (pickerContext, setPickerState) {
+                          final customValues = _customActivityEmojis.map((e) => e.value).toList();
+                          final values = [...dedupedEmojiOptions, ...customValues, ..._customActivityIcons.map((e) => 'customicon://${e.id}')];
+                          final uniqueValues = <String>[];
+                          for (final v in values) {
+                            if (!uniqueValues.contains(v)) uniqueValues.add(v);
+                          }
+                          return AlertDialog(
+                            title: const Text('Choisir une icône'),
+                            content: SizedBox(
+                              width: 420,
+                              height: 410,
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: () async {
+                                            final value = await _pickCustomActivityIconImage();
+                                            if (value != null && pickerContext.mounted) Navigator.pop(pickerContext, value);
+                                          },
+                                          icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                                          label: const Text('Importer une image'),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 7),
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: () async {
+                                            final value = await _addCustomActivityEmoji();
+                                            if (value != null && pickerContext.mounted) Navigator.pop(pickerContext, value);
+                                          },
+                                          icon: const Icon(Icons.emoji_emotions_outlined, size: 18),
+                                          label: const Text('Ajouter un emoji'),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  child: value == '🧸' ? mascotChoiceAvatar(size: 32) : Text(value, style: const TextStyle(fontSize: 24)),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                                  const SizedBox(height: 9),
+                                  Expanded(
+                                    child: GridView.builder(
+                                      padding: const EdgeInsets.all(4),
+                                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 6,
+                                        mainAxisSpacing: 8,
+                                        crossAxisSpacing: 8,
+                                        childAspectRatio: 1,
+                                      ),
+                                      itemCount: uniqueValues.length,
+                                      itemBuilder: (_, index) {
+                                        final value = uniqueValues[index];
+                                        return InkWell(
+                                          borderRadius: BorderRadius.circular(13),
+                                          onTap: () => Navigator.pop(pickerContext, value),
+                                          child: Container(
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                              color: value == emoji ? const Color(0xFFEAF2ED) : const Color(0xFFF8F5EF),
+                                              borderRadius: BorderRadius.circular(13),
+                                              border: Border.all(color: value == emoji ? const Color(0xFFB9CCBF) : const Color(0xFFE4DED5)),
+                                            ),
+                                            child: _activityIconWidget(value, size: 30),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     );
                     if (picked != null) setDialogState(() => emoji = picked);
@@ -3186,7 +3366,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                       helperText: 'Appuie pour ouvrir la palette d’icônes.',
                     ),
                     child: Row(children: [
-                      emoji == '🧸' ? mascotChoiceAvatar(size: 28) : Text(emoji, style: const TextStyle(fontSize: 24)),
+                      _activityIconWidget(emoji, size: 28),
                       const SizedBox(width: 9),
                       const Expanded(child: Text('Choisir une icône')),
                       const Icon(Icons.expand_more_rounded),
@@ -4345,32 +4525,25 @@ String _formatCoachDateTime(DateTime value) {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _homeMascotAvatar(size: 56),
-                  const SizedBox(width: 9),
+                  _homeMascotAvatar(size: 52),
+                  const SizedBox(width: 8),
                   Expanded(
-                    flex: 6,
+                    flex: 7,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _userName.trim().isEmpty ? 'Bonjour 👋' : 'Bonjour ${_userName.trim()} 👋',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 18.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.4),
-                              ),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FittedBox(
+                            alignment: Alignment.centerLeft,
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              _userName.trim().isEmpty ? 'Bonjour 👋' : 'Bonjour ${_userName.trim()} 👋',
+                              maxLines: 1,
+                              softWrap: false,
+                              style: const TextStyle(fontSize: 18.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.4),
                             ),
-                            IconButton(
-                              visualDensity: VisualDensity.compact,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
-                              tooltip: 'Personnaliser l’accueil',
-                              onPressed: _editHomeIdentity,
-                              icon: const Icon(Icons.edit_rounded, size: 16, color: Color(0xFF6F7B74)),
-                            ),
-                          ],
+                          ),
                         ),
                         Text(dateText(), style: const TextStyle(fontSize: 10.3, color: Color(0xFF756E67))),
                         const SizedBox(height: 2),
@@ -4397,7 +4570,7 @@ String _formatCoachDateTime(DateTime value) {
                   ),
                   const SizedBox(width: 11),
                   Expanded(
-                    flex: 5,
+                    flex: 4,
                     child: Padding(
                       padding: const EdgeInsets.only(top: 4, right: 2),
                       child: Column(
@@ -4427,6 +4600,12 @@ String _formatCoachDateTime(DateTime value) {
                     ),
                   ),
                   const SizedBox(width: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                    decoration: BoxDecoration(color: const Color(0xFFFFFCF7), borderRadius: BorderRadius.circular(9), border: Border.all(color: const Color(0xFFE6DBCF))),
+                    child: Text(version, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Color(0xFF7A807D))),
+                  ),
+                  const SizedBox(width: 3),
                   PopupMenuButton<String>(
                     tooltip: 'Réglages',
                     icon: const Icon(Icons.more_horiz_rounded, color: Color(0xFF6F7B74)),
@@ -4481,7 +4660,7 @@ String _formatCoachDateTime(DateTime value) {
                     ),
                     const SizedBox(width: 6),
                     TextButton(
-                      onPressed: openDataManager,
+                      onPressed: exportBackupToICloud,
                       child: const Text('Sauvegarder'),
                     ),
                   ],
@@ -4860,7 +5039,7 @@ String _formatCoachDateTime(DateTime value) {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(children: [
-            emoji == '🧸' ? mascotChoiceAvatar(size: 30) : Text(emoji, style: const TextStyle(fontSize: 17)),
+            _activityIconWidget(emoji, size: 30),
             const SizedBox(width: 6),
             Expanded(child: Row(children: [
               Expanded(child: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, decoration: item.done ? TextDecoration.lineThrough : null))),
@@ -5588,7 +5767,7 @@ String _formatCoachDateTime(DateTime value) {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
             ),
             const SizedBox(width: 2),
-            emoji == '🧸' ? mascotChoiceAvatar(size: 34) : Text(emoji, style: const TextStyle(fontSize: 19)),
+            _activityIconWidget(emoji, size: 34),
             const SizedBox(width: 8),
             Expanded(
               child: InkWell(
@@ -5753,7 +5932,7 @@ String _formatCoachDateTime(DateTime value) {
                           CircleAvatar(
                             radius: 22,
                             backgroundColor: _pastelFor(a.category),
-                            child: a.emoji == '🧸' ? mascotChoiceAvatar(size: 36) : Text(a.emoji, style: const TextStyle(fontSize: 21)),
+                            child: _activityIconWidget(a.emoji, size: 36),
                           ),
                           const SizedBox(width: 11),
                           Expanded(
@@ -5824,6 +6003,8 @@ class _WeeklyReviewPage extends StatefulWidget {
   final List<Activity> activities;
   final String weeklyNote;
   final ValueChanged<String> onSaveNote;
+  final VoidCallback onOpenHistory;
+  final VoidCallback onReplan;
 
   const _WeeklyReviewPage({
     required this.plan,
@@ -5832,6 +6013,8 @@ class _WeeklyReviewPage extends StatefulWidget {
     required this.activities,
     required this.weeklyNote,
     required this.onSaveNote,
+    required this.onOpenHistory,
+    required this.onReplan,
   });
 
   @override
@@ -5924,6 +6107,48 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                   ]),
                   const SizedBox(height: 12),
                   LinearProgressIndicator(value: completionRate, minHeight: 9, borderRadius: BorderRadius.circular(20)),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              color: const Color(0xFFF7F3EA),
+              child: Padding(
+                padding: const EdgeInsets.all(15),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    const Icon(Icons.insights_outlined, color: Color(0xFF7D988D)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('À quoi sert ce bilan ?', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                  ]),
+                  const SizedBox(height: 7),
+                  const Text(
+                    'Le bilan compare ce qui était prévu avec ce qui a réellement été vécu cette semaine. Il rassemble tes validations, tes durées, tes ressentis et tes déplacements pour aider MyBestWeek à mieux comprendre ton rythme.',
+                    style: TextStyle(fontSize: 12.1, height: 1.35, color: Color(0xFF606B6A)),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: widget.onOpenHistory,
+                        icon: const Icon(Icons.history_outlined, size: 17),
+                        label: const Text('Historique & mémoire'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        onPressed: () {
+                          widget.onReplan();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Planning repensé à partir de tes activités et de leur historique.')));
+                          }
+                        },
+                        icon: const Icon(Icons.auto_awesome_outlined, size: 17),
+                        label: const Text('Repenser'),
+                      ),
+                    ),
+                  ]),
                 ]),
               ),
             ),
@@ -6757,7 +6982,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
             width: 109,
             child: Row(
               children: [
-                Text(activity.emoji, style: const TextStyle(fontSize: 18)),
+                _activityIconWidget(activity.emoji, size: 28),
                 const SizedBox(width: 5),
                 Expanded(
                   child: Column(
@@ -6923,11 +7148,20 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                     width: 92,
                     child: Padding(
                       padding: const EdgeInsets.only(top: 1, right: 4),
-                      child: Text(
-                        '${activity.emoji} ${activity.name}',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, height: 1.05),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _activityIconWidget(activity.emoji, size: 16),
+                          const SizedBox(width: 3),
+                          Expanded(
+                            child: Text(
+                              activity.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, height: 1.05),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -7042,7 +7276,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
               padding: const EdgeInsets.fromLTRB(13, 10, 13, 10),
               decoration: BoxDecoration(color: const Color(0xFFF1EEE8), borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFDCD8CF))),
               child: Row(children: [
-                Text(activity.emoji, style: const TextStyle(fontSize: 19)),
+                _activityIconWidget(activity.emoji, size: 28),
                 const SizedBox(width: 9),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(activity.name, style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF77746D))),
@@ -7375,6 +7609,18 @@ class _DataPage extends StatelessWidget {
 }
 
 
+
+class _CustomActivityEmoji {
+  final String value;
+  const _CustomActivityEmoji(this.value);
+}
+
+class _CustomActivityIcon {
+  final String id;
+  final String label;
+  final String data;
+  const _CustomActivityIcon({required this.id, required this.label, required this.data});
+}
 
 class _HomeMascotChoice {
   final String kind;
@@ -7854,7 +8100,7 @@ class _HistorySheetState extends State<_HistorySheet> {
           CircleAvatar(
             radius: 18,
             backgroundColor: const Color(0xFFE7EDF0),
-            child: Text(activity.emoji, style: const TextStyle(fontSize: 16)),
+            child: _activityIconWidget(activity.emoji, size: 24),
           ),
           const SizedBox(width: 9),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -7896,7 +8142,7 @@ class _HistorySheetState extends State<_HistorySheet> {
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              CircleAvatar(radius: 24, backgroundColor: const Color(0xFFE7EDF0), child: Text(activity.emoji, style: const TextStyle(fontSize: 21))),
+              CircleAvatar(radius: 24, backgroundColor: const Color(0xFFE7EDF0), child: _activityIconWidget(activity.emoji, size: 34)),
               const SizedBox(width: 10),
               Expanded(child: Text(activity.name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900))),
             ]),
@@ -7991,7 +8237,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                 const Text('Aucune activité ne présente un écart important sur les 30 derniers jours.', style: TextStyle(fontSize: 12.2, color: Color(0xFF697271)))
               else
                 ...under.map((a) => _insightTile(
-                      title: '${a.emoji} ${a.name}',
+                      title: a.name,
                       text: 'Prévue ${a.frequency}×/sem. · réalisée ${_countFor(a, 30)}× sur 30 jours. Elle mérite d’être davantage visible dans le planning.',
                       icon: Icons.trending_down_outlined,
                     )),
@@ -7999,7 +8245,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                 const SizedBox(height: 11),
                 const Text('Bien ancrées', style: TextStyle(fontWeight: FontWeight.w900)),
                 ...anchored.map((a) => _insightTile(
-                      title: '${a.emoji} ${a.name}',
+                      title: a.name,
                       text: 'Rythme bien installé : ${_countFor(a, 30)} réalisation(s) sur les 30 derniers jours.',
                       icon: Icons.check_circle_outline,
                     )),
@@ -8148,7 +8394,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                 CircleAvatar(
                   radius: 22,
                   backgroundColor: const Color(0xFFE7EDF0),
-                  child: Text(log.emoji, style: const TextStyle(fontSize: 19)),
+                  child: _activityIconWidget(log.emoji, size: 28),
                 ),
                 const SizedBox(width: 11),
                 Expanded(
