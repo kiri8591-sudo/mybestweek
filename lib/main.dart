@@ -47,6 +47,7 @@ class _DayWeather {
 }
 
 final Map<String, String> _customActivityIconData = {};
+final Map<String, Uint8List> _customActivityIconBytes = {};
 
 String _planItemIconValue(PlanItem item, Iterable<Activity> activities) {
   if (item.activityId != null) {
@@ -72,10 +73,13 @@ Widget _activityIconWidget(String value, {double size = 24}) {
     final data = _customActivityIconData[id];
     if (data != null && data.isNotEmpty) {
       try {
-        final comma = data.indexOf(',');
-        final encoded = comma >= 0 ? data.substring(comma + 1) : data;
+        final bytes = _customActivityIconBytes[id] ??= (() {
+          final comma = data.indexOf(',');
+          final encoded = comma >= 0 ? data.substring(comma + 1) : data;
+          return Uint8List.fromList(base64Decode(encoded));
+        })();
         return Image.memory(
-          base64Decode(encoded),
+          bytes,
           width: size,
           height: size,
           fit: BoxFit.contain,
@@ -88,6 +92,13 @@ Widget _activityIconWidget(String value, {double size = 24}) {
   }
   if (value == '🧸') return mascotChoiceAvatar(size: size);
   return Text(value, style: TextStyle(fontSize: size * .78));
+}
+
+String _normalizeFeeling(String? raw) {
+  final value = (raw ?? '').trim();
+  if (value.isEmpty) return '';
+  if (value == 'Validé' || value == 'Valide') return 'Bien';
+  return value;
 }
 
 class Activity {
@@ -275,7 +286,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V8.05';
+  static const version = 'V8.06';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -747,7 +758,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           realisedMinutes: rawPlan['realisedMinutes'] == null
               ? (_asBool(rawPlan['done']) ? max(1, _asInt(rawPlan['duration'], 30)) : null)
               : max(0, _asInt(rawPlan['realisedMinutes'])),
-          feeling: _asString(rawPlan['feeling']),
+          feeling: (() { final v = _normalizeFeeling(_asString(rawPlan['feeling'])); return v.isEmpty ? null : v; })(),
         ));
       }
 
@@ -792,7 +803,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           day: day,
           plannedMinutes: max(0, _asInt(rawLog['plannedMinutes'])),
           realisedMinutes: max(0, _asInt(rawLog['realisedMinutes'], _asInt(rawLog['plannedMinutes']))),
-          feeling: _asString(rawLog['feeling']) ?? 'Bien',
+          feeling: (() { final v = _normalizeFeeling(_asString(rawLog['feeling'])); return v.isEmpty ? 'Bien' : v; })(),
           unplanned: _asBool(rawLog['unplanned']),
           planItemId: _asString(rawLog['planItemId']),
           activityId: _asString(rawLog['activityId']),
@@ -832,6 +843,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         _customActivityIcons
           ..clear();
         _customActivityIconData.clear();
+        _customActivityIconBytes.clear();
         final rawCustomIcons = root['customActivityIcons'];
         if (rawCustomIcons is List) {
           for (final rawIcon in rawCustomIcons) {
@@ -1085,7 +1097,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       day: item.day,
       plannedMinutes: item.duration,
       realisedMinutes: item.duration,
-      feeling: old.feeling,
+      feeling: _normalizeFeeling(old.feeling),
       unplanned: old.unplanned,
       planItemId: old.planItemId,
       activityId: old.activityId,
@@ -1905,6 +1917,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         _todayNameday = 'Éphéméride indisponible';
         _todayNamedayDateKey = key;
       });
+      _queueLocalStatePersist();
     }
   }
 
@@ -2023,6 +2036,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         _weatherLoading = false;
         _weatherError = 'Météo indisponible';
       });
+      _queueLocalStatePersist();
     }
   }
 
@@ -2163,6 +2177,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         _weatherTemperature = '';
         _weatherIcon = '🌤️';
         _weatherError = '';
+        _weatherForecast.clear();
       });
       _queueLocalStatePersist();
       return;
@@ -2292,7 +2307,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     setState(() {
       item.done = true;
       item.realisedMinutes = item.duration;
-      item.feeling = 'Validé';
+      item.feeling = 'Bien';
       logs.removeWhere((log) => log.planItemId == item.id);
       logs.add(ActivityLog(
         date: now,
@@ -2303,7 +2318,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         day: item.day,
         plannedMinutes: item.duration,
         realisedMinutes: item.duration,
-        feeling: 'Validé',
+        feeling: 'Bien',
         unplanned: item.activityId == null,
         planItemId: item.id,
         activityId: item.activityId,
@@ -2320,7 +2335,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     setState(() {
       item.done = true;
       item.realisedMinutes = item.duration;
-      item.feeling = 'Validé';
+      item.feeling = 'Bien';
       logs.removeWhere((log) => log.planItemId == item.id);
       logs.add(ActivityLog(
         date: now,
@@ -2331,7 +2346,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         day: item.day,
         plannedMinutes: item.duration,
         realisedMinutes: item.duration,
-        feeling: 'Validé',
+        feeling: 'Bien',
         unplanned: false,
         planItemId: item.id,
         activityId: item.activityId,
@@ -2571,6 +2586,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     final duration = TextEditingController(text: '${item.duration}');
     var day = item.day;
     var period = item.period == 'Midi' ? 'Après-midi' : item.period;
+    var feeling = _normalizeFeeling(item.feeling);
 
     showDialog<void>(
       context: _navigatorKey.currentContext!,
@@ -2618,6 +2634,19 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                     decoration: const InputDecoration(labelText: 'Durée (min)'),
                   ),
                 ],
+                if (item.done) ...[
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    value: feeling.isEmpty ? 'Bien' : feeling,
+                    decoration: const InputDecoration(labelText: 'Ressenti'),
+                    items: const [
+                      DropdownMenuItem(value: 'Très bien', child: Text('Très bien')),
+                      DropdownMenuItem(value: 'Bien', child: Text('Bien')),
+                      DropdownMenuItem(value: 'Difficile', child: Text('Difficile')),
+                    ],
+                    onChanged: (v) => setDialogState(() => feeling = v ?? feeling),
+                  ),
+                ],
               ],
             ),
           ),
@@ -2645,6 +2674,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                   item.title = newTitle;
                   item.details = details.text.trim().isEmpty ? null : details.text.trim();
                   item.duration = safeDuration;
+                  if (item.done) item.feeling = feeling.isEmpty ? 'Bien' : feeling;
                   _syncCompletedValidationDuration(item);
                 });
                 _queueLocalStatePersist();
@@ -3070,6 +3100,31 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     _sortPlan();
   }
 
+  Future<String?> _compressCustomActivityIconDataUrl(String dataUrl) async {
+    try {
+      final image = html.ImageElement();
+      final loaded = image.onLoad.first;
+      image.src = dataUrl;
+      await loaded;
+      final sourceWidth = image.naturalWidth;
+      final sourceHeight = image.naturalHeight;
+      if (sourceWidth <= 0 || sourceHeight <= 0) return dataUrl;
+
+      const maxDimension = 192;
+      final scale = min(1.0, maxDimension / max(sourceWidth, sourceHeight));
+      final targetWidth = max(1, (sourceWidth * scale).round());
+      final targetHeight = max(1, (sourceHeight * scale).round());
+      if (targetWidth == sourceWidth && targetHeight == sourceHeight) return dataUrl;
+
+      final canvas = html.CanvasElement(width: targetWidth, height: targetHeight);
+      canvas.context2D.drawImageScaled(image, 0, 0, targetWidth, targetHeight);
+      final compressed = canvas.toDataUrl('image/webp', 0.84);
+      return compressed.isEmpty ? dataUrl : compressed;
+    } catch (_) {
+      return dataUrl;
+    }
+  }
+
   Future<String?> _pickCustomActivityIconImage() async {
     final input = html.FileUploadInputElement()
       ..accept = 'image/png,image/jpeg,image/webp,image/gif'
@@ -3095,12 +3150,19 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       final reader = html.FileReader();
       reader.readAsDataUrl(file);
       await reader.onLoad.first;
-      final data = reader.result?.toString();
-      if (data == null || data.isEmpty) return null;
+      final originalData = reader.result?.toString();
+      if (originalData == null || originalData.isEmpty) return null;
+      final data = await _compressCustomActivityIconDataUrl(originalData);
       final id = 'icon_${DateTime.now().microsecondsSinceEpoch}';
       final label = file.name.isEmpty ? 'Icône personnelle' : file.name;
-      _customActivityIcons.add(_CustomActivityIcon(id: id, label: label, data: data));
-      _customActivityIconData[id] = data;
+      final entry = _CustomActivityIcon(id: id, label: label, data: data ?? originalData);
+      _customActivityIcons.add(entry);
+      _customActivityIconData[id] = entry.data;
+      try {
+        final comma = entry.data.indexOf(',');
+        final encoded = comma >= 0 ? entry.data.substring(comma + 1) : entry.data;
+        _customActivityIconBytes[id] = Uint8List.fromList(base64Decode(encoded));
+      } catch (_) {}
       _queueLocalStatePersist();
       return 'customicon://$id';
     } finally {
@@ -3140,6 +3202,91 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       _queueLocalStatePersist();
     }
     return v;
+  }
+
+  int _activityIconUsage(String value) => activities.where((a) => a.emoji == value).length;
+
+  Future<void> _manageCustomActivityIcons() async {
+    await showDialog<void>(
+      context: _navigatorKey.currentContext!,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final customIcons = [..._customActivityIcons];
+          final customEmojis = [..._customActivityEmojis];
+          return AlertDialog(
+            title: const Text('Mes icônes personnelles'),
+            content: SizedBox(
+              width: 430,
+              height: 430,
+              child: (customIcons.isEmpty && customEmojis.isEmpty)
+                  ? const Center(child: Text('Aucune icône ou emoji personnel enregistré.'))
+                  : ListView(
+                      children: [
+                        if (customIcons.isNotEmpty) ...[
+                          const Text('Images', style: TextStyle(fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 6),
+                          ...customIcons.map((icon) {
+                            final token = 'customicon://${icon.id}';
+                            final usage = _activityIconUsage(token);
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 6),
+                              child: ListTile(
+                                dense: true,
+                                leading: _activityIconWidget(token, size: 34),
+                                title: Text(icon.label, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                subtitle: Text(usage == 0 ? 'Disponible dans la palette' : 'Utilisée par $usage activité${usage > 1 ? 's' : ''}'),
+                                trailing: IconButton(
+                                  tooltip: usage == 0 ? 'Supprimer' : 'Utilisée',
+                                  onPressed: usage > 0
+                                      ? null
+                                      : () {
+                                          setDialogState(() {
+                                            _customActivityIcons.removeWhere((e) => e.id == icon.id);
+                                            _customActivityIconData.remove(icon.id);
+                                            _customActivityIconBytes.remove(icon.id);
+                                          });
+                                          _queueLocalStatePersist();
+                                        },
+                                  icon: const Icon(Icons.delete_outline),
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                        if (customEmojis.isNotEmpty) ...[
+                          if (customIcons.isNotEmpty) const SizedBox(height: 8),
+                          const Text('Emojis personnels', style: TextStyle(fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 6),
+                          ...customEmojis.map((entry) {
+                            final usage = _activityIconUsage(entry.value);
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 6),
+                              child: ListTile(
+                                dense: true,
+                                leading: Text(entry.value, style: const TextStyle(fontSize: 28)),
+                                title: Text(usage == 0 ? 'Emoji personnel' : 'Utilisé par $usage activité${usage > 1 ? 's' : ''}'),
+                                trailing: IconButton(
+                                  tooltip: 'Retirer de la palette',
+                                  onPressed: () {
+                                    setDialogState(() => _customActivityEmojis.removeWhere((e) => e.value == entry.value));
+                                    _queueLocalStatePersist();
+                                  },
+                                  icon: const Icon(Icons.delete_outline),
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ],
+                    ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Fermer')),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   void addOrEditActivity({Activity? original}) {
@@ -3345,6 +3492,18 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                                         ),
                                       ),
                                     ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton.icon(
+                                      onPressed: () async {
+                                        await _manageCustomActivityIcons();
+                                        if (pickerContext.mounted) setPickerState(() {});
+                                      },
+                                      icon: const Icon(Icons.tune, size: 16),
+                                      label: const Text('Gérer mes icônes'),
+                                    ),
                                   ),
                                   const SizedBox(height: 9),
                                   Expanded(
@@ -3705,6 +3864,24 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                   if (edit) {
                     final index = activities.indexWhere((a) => a.id == original.id);
                     if (index >= 0) activities[index] = updated;
+                    for (var i = 0; i < logs.length; i++) {
+                      final log = logs[i];
+                      if (log.activityId != updated.id) continue;
+                      logs[i] = ActivityLog(
+                        date: log.date,
+                        title: log.title,
+                        emoji: updated.emoji,
+                        category: updated.category,
+                        period: log.period,
+                        day: log.day,
+                        plannedMinutes: log.plannedMinutes,
+                        realisedMinutes: log.realisedMinutes,
+                        feeling: _normalizeFeeling(log.feeling),
+                        unplanned: log.unplanned,
+                        planItemId: log.planItemId,
+                        activityId: log.activityId,
+                      );
+                    }
                     _syncActivityToWeek(updated, previous: original);
                   } else {
                     activities.add(updated);
