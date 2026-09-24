@@ -32,6 +32,20 @@ void main() {
   runApp(const MaBelleSemaineApp());
 }
 
+class _DayWeather {
+  final String icon;
+  final String text;
+  final String temperature;
+  final bool outdoorBad;
+
+  const _DayWeather({
+    required this.icon,
+    required this.text,
+    required this.temperature,
+    required this.outdoorBad,
+  });
+}
+
 class Activity {
   final String id;
   String name;
@@ -42,6 +56,9 @@ class Activity {
   int frequency;
   int priority;
   List<int> preferredDays;
+  bool isDateRange;
+  DateTime? rangeStart;
+  DateTime? rangeEnd;
   int sportWeight;
   bool allowMultiplePerDay;
   int maxDailyOccurrences;
@@ -61,6 +78,9 @@ class Activity {
     required this.frequency,
     required this.priority,
     this.preferredDays = const [],
+    this.isDateRange = false,
+    this.rangeStart,
+    this.rangeEnd,
     this.sportWeight = 5,
     this.allowMultiplePerDay = false,
     this.maxDailyOccurrences = 2,
@@ -84,6 +104,9 @@ class Activity {
         frequency: frequency,
         priority: priority,
         preferredDays: [...preferredDays],
+        isDateRange: isDateRange,
+        rangeStart: rangeStart,
+        rangeEnd: rangeEnd,
         sportWeight: sportWeight,
         allowMultiplePerDay: allowMultiplePerDay,
         maxDailyOccurrences: maxDailyOccurrences,
@@ -208,7 +231,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V7.77';
+  static const version = 'V8.00';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -248,7 +271,28 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
   static const String _localStateKey = 'ma_belle_semaine_local_state_v2';
+  static const int _cloudBackupReminderDays = 7;
   bool _persistenceQueued = false;
+  DateTime? _lastICloudBackupAt;
+  String _userName = '';
+  String _weatherCity = '';
+  String _todayNameday = '';
+  String _todayNamedayDateKey = '';
+  String _weatherText = '';
+  String _weatherIcon = '🌤️';
+  String _weatherTemperature = '';
+  String _weatherError = '';
+  bool _weatherLoading = false;
+  final Map<String, _DayWeather> _weatherForecast = {};
+  String _homeMascotKind = 'ourson'; // ourson | emoji | photo
+  String _homeMascotEmoji = '🧸';
+  String _homeMascotImageData = '';
+  DateTime _clockNow = DateTime.now();
+  Timer? _clockTimer;
+
+  bool get _cloudBackupReminderDue =>
+      _lastICloudBackupAt == null ||
+      DateTime.now().difference(_lastICloudBackupAt!).inHours >= _cloudBackupReminderDays * 24;
 
   List<Activity> activities = _defaultActivities();
 
@@ -384,7 +428,16 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     _focusIcon = _focusIcons[random.nextInt(_focusIcons.length)];
     _focusVariant = random.nextInt(3);
     generateWeek(showSnack: false);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadLocalState());
+    _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() => _clockNow = DateTime.now());
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _loadLocalState();
+      if (mounted && _weatherCity.trim().isNotEmpty) {
+        await _loadWeather();
+      }
+    });
+
   }
 
   void refreshMorningThought() {
@@ -458,6 +511,18 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       'formatVersion': 1,
       'appVersion': version,
       'createdAt': DateTime.now().toIso8601String(),
+      'lastICloudBackupAt': _lastICloudBackupAt?.toIso8601String(),
+      'userName': _userName,
+      'weatherCity': _weatherCity,
+      'weatherText': _weatherText,
+      'weatherIcon': _weatherIcon,
+      'weatherTemperature': _weatherTemperature,
+      'weatherError': _weatherError,
+      'homeMascotKind': _homeMascotKind,
+      'homeMascotEmoji': _homeMascotEmoji,
+      'homeMascotImageData': _homeMascotImageData,
+      'todayNameday': _todayNameday,
+      'todayNamedayDateKey': _todayNamedayDateKey,
       'morningThought': _morningThought,
       'weeklyNote': weeklyNote,
       'sportCoachLastAnalysis': sportCoachLastAnalysis,
@@ -481,6 +546,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         'frequency': a.frequency,
         'priority': a.priority,
         'preferredDays': a.preferredDays,
+        'isDateRange': a.isDateRange,
+        'rangeStart': a.rangeStart?.toIso8601String(),
+        'rangeEnd': a.rangeEnd?.toIso8601String(),
         'sportWeight': a.sportWeight,
         'allowMultiplePerDay': a.allowMultiplePerDay,
         'maxDailyOccurrences': a.maxDailyOccurrences,
@@ -582,6 +650,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           frequency: max(1, min(7, _asInt(rawActivity['frequency'], 1))),
           priority: max(1, min(5, _asInt(rawActivity['priority'], 3))),
           preferredDays: _asIntList(rawActivity['preferredDays']),
+          isDateRange: _asBool(rawActivity['isDateRange'], false),
+          rangeStart: (() { final raw = _asString(rawActivity['rangeStart']); return raw == null ? null : DateTime.tryParse(raw); })(),
+          rangeEnd: (() { final raw = _asString(rawActivity['rangeEnd']); return raw == null ? null : DateTime.tryParse(raw); })(),
           sportWeight: max(1, min(10, _asInt(rawActivity['sportWeight'], 5))),
           allowMultiplePerDay: _asBool(rawActivity['allowMultiplePerDay'], false),
           maxDailyOccurrences: max(2, min(3, _asInt(rawActivity['maxDailyOccurrences'], 2))),
@@ -686,6 +757,19 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         activityMoveLogs
           ..clear()
           ..addAll(restoredMoveLogs);
+        final cloudBackupDate = _asString(root['lastICloudBackupAt']);
+        _lastICloudBackupAt = cloudBackupDate == null ? null : DateTime.tryParse(cloudBackupDate);
+        _userName = _asString(root['userName']) ?? '';
+        _weatherCity = _asString(root['weatherCity']) ?? '';
+        _weatherText = _asString(root['weatherText']) ?? '';
+        _weatherIcon = _asString(root['weatherIcon']) ?? '🌤️';
+        _weatherTemperature = _asString(root['weatherTemperature']) ?? '';
+        _weatherError = _asString(root['weatherError']) ?? '';
+        _homeMascotKind = _asString(root['homeMascotKind']) ?? 'ourson';
+        _homeMascotEmoji = _asString(root['homeMascotEmoji']) ?? '🧸';
+        _homeMascotImageData = _asString(root['homeMascotImageData']) ?? '';
+        _todayNameday = _asString(root['todayNameday']) ?? '';
+        _todayNamedayDateKey = _asString(root['todayNamedayDateKey']) ?? '';
         weeklyNote = _asString(root['weeklyNote']) ?? '';
         sportCoachLastAnalysis = _asString(root['sportCoachLastAnalysis']) ?? '';
         final coachDate = _asString(root['sportCoachLastAnalysisAt']);
@@ -715,6 +799,13 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         final thought = _asString(root['morningThought']);
         if (thought != null && thought.isNotEmpty) _morningThought = thought;
       });
+      for (final item in plan) {
+        if (_isDateRangePlanItem(item)) {
+          item.done = false;
+          item.realisedMinutes = null;
+          item.feeling = null;
+        }
+      }
       _normalizeSportDailyOccurrences();
       _queueLocalStatePersist();
       _showFeedback('Sauvegarde restaurée.');
@@ -748,6 +839,16 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       sportCoachSuggestionDelta = 0;
       sportCoachLogs = [];
       sportCoachDailyAdjustments = {};
+      _userName = '';
+      _weatherCity = '';
+      _todayNameday = '';
+      _todayNamedayDateKey = '';
+      _weatherText = '';
+      _weatherTemperature = '';
+      _weatherError = '';
+      _homeMascotKind = 'ourson';
+      _homeMascotEmoji = '🧸';
+      _homeMascotImageData = '';
       categoryFilter = 'Toutes';
       tab = 0;
       _morningThought = freshThought;
@@ -781,6 +882,36 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     anchor.remove();
     html.Url.revokeObjectUrl(url);
     _showFeedback('Sauvegarde téléchargée.');
+  }
+
+  Future<void> exportBackupToICloud() async {
+    exportBackupFile();
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: _navigatorKey.currentContext!,
+      builder: (c) => AlertDialog(
+        title: const Text('Sauvegarde iCloud'),
+        content: const Text(
+          'Le fichier de sauvegarde vient d’être créé. Sur iPhone, enregistre-le dans « Fichiers » puis choisis « iCloud Drive ». Quand l’enregistrement est terminé, confirme ici.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Plus tard')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('C’est fait')),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      setState(() => _lastICloudBackupAt = DateTime.now());
+      _queueLocalStatePersist();
+      _showFeedback('✓ Sauvegarde iCloud enregistrée comme effectuée.');
+    }
+  }
+
+  String _cloudBackupStatusText() {
+    final last = _lastICloudBackupAt;
+    if (last == null) return 'Aucune sauvegarde iCloud confirmée.';
+    final d = last.toLocal();
+    return 'Dernière sauvegarde iCloud : ${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')} à ${d.hour.toString().padLeft(2, '0')}h${d.minute.toString().padLeft(2, '0')}';
   }
 
   Future<bool> importBackupFile() async {
@@ -825,8 +956,11 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       MaterialPageRoute(
         builder: (_) => _DataPage(
           onExport: exportBackupFile,
+          onICloudExport: exportBackupToICloud,
           onImport: importBackupFile,
           onReset: resetDatabaseCompletely,
+          cloudBackupStatus: _cloudBackupStatusText(),
+          cloudReminderDays: _cloudBackupReminderDays,
         ),
       ),
     );
@@ -890,6 +1024,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       frequency: current.frequency,
       priority: current.priority,
       preferredDays: [...current.preferredDays],
+      isDateRange: current.isDateRange,
+      rangeStart: current.rangeStart,
+      rangeEnd: current.rangeEnd,
       sportWeight: current.sportWeight,
       allowMultiplePerDay: current.allowMultiplePerDay,
       maxDailyOccurrences: current.maxDailyOccurrences,
@@ -1374,10 +1511,34 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       ..sort((a, b) {
         final priorityCompare = b.priority.compareTo(a.priority);
         if (priorityCompare != 0) return priorityCompare;
+        final historyCompare = _historyPlanningScore(b, today)
+            .compareTo(_historyPlanningScore(a, today));
+        if (historyCompare != 0) return historyCompare;
         return b.frequency.compareTo(a.frequency);
       });
 
     for (final activity in orderedActivities) {
+      if (activity.isDateRange) {
+        final rangeDays = _dateRangeDaysForCurrentWeek(activity);
+        for (final day in rangeDays) {
+          generated.add(PlanItem(
+            id: 'range_${activity.id}_${DateTime.now().microsecondsSinceEpoch}_$seq',
+            day: day,
+            period: _periodForActivity(activity, day),
+            timeLabel: null,
+            activityId: activity.id,
+            title: activity.name,
+            details: 'Activité quotidienne · ${_dateRangeLabel(activity)}',
+            duration: activity.duration,
+            optional: false,
+            userAdded: true,
+            fixedInWeeklyTemplate: false,
+          ));
+          seq++;
+        }
+        continue;
+      }
+
       final target = activity.frequency.clamp(1, 7).toInt();
       for (var occurrence = 0; occurrence < target; occurrence++) {
         final candidates = List<int>.generate(7, (i) => i)
@@ -1389,6 +1550,10 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
             final aSameActivity = usedByActivity[activity.id]!.contains(a) ? 1 : 0;
             final bSameActivity = usedByActivity[activity.id]!.contains(b) ? 1 : 0;
             if (aSameActivity != bSameActivity) return aSameActivity.compareTo(bSameActivity);
+
+            final historyCompare = _historyPlanningScore(activity, b)
+                .compareTo(_historyPlanningScore(activity, a));
+            if (historyCompare != 0) return historyCompare;
 
             int load(int day) => generated.where((p) => p.day == day).fold<int>(0, (sum, p) => sum + p.duration);
             final loadCompare = load(a).compareTo(load(b));
@@ -1585,9 +1750,12 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     ];
   }
 
-  int completedCount() => plan.where((p) => p.done).length;
+  int completedCount() => plan.where((p) => p.done && !_isDateRangePlanItem(p)).length;
 
   List<PlanItem> itemsForDay(int day) => plan.where((p) => p.day == day).toList();
+
+  List<PlanItem> actionableItemsForDay(int day) =>
+      itemsForDay(day).where((p) => !_isDateRangePlanItem(p)).toList();
 
   String dateText() {
     final d = DateTime.now();
@@ -1598,7 +1766,433 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     return '${d.day} ${months[d.month - 1]} ${d.year}';
   }
 
+  String _dayMoment() {
+    final hour = _clockNow.hour;
+    if (hour < 12) return 'Bon matin ☀️';
+    if (hour < 18) return 'Bon après-midi 🌿';
+    if (hour < 22) return 'Bonne soirée 🌙';
+    return 'Bonne nuit ✨';
+  }
+
+  String _clockText() {
+    final h = _clockNow.hour.toString().padLeft(2, '0');
+    final m = _clockNow.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
+  String _todayDateKey() {
+    final d = DateTime.now();
+    return '${d.year}-${d.month}-${d.day}';
+  }
+
+  Future<void> _loadTodayNameday() async {
+    final key = _todayDateKey();
+    if (_todayNamedayDateKey == key && _todayNameday.trim().isNotEmpty) return;
+    try {
+      final d = DateTime.now();
+      final url = Uri.parse('https://nominis.cef.fr/json/nominis.php?jour=${d.day}&mois=${d.month}&annee=${d.year}');
+      final raw = await html.HttpRequest.getString(url.toString());
+      final root = jsonDecode(raw);
+      String value = '';
+      if (root is Map) {
+        final response = root['response'];
+        if (response is Map) {
+          final prenoms = response['prenoms'];
+          if (prenoms is Map) {
+            final majeurs = prenoms['majeurs'];
+            if (majeurs is Map) value = majeurs.keys.take(3).join(', ');
+          }
+          if (value.isEmpty) {
+            final saints = response['saints'];
+            if (saints is Map) {
+              final majeurs = saints['majeurs'];
+              if (majeurs is Map) value = majeurs.keys.take(2).join(', ');
+            }
+          }
+        }
+      }
+      if (value.isEmpty) value = 'Pas de fête répertoriée';
+      if (!mounted) return;
+      setState(() {
+        _todayNameday = value;
+        _todayNamedayDateKey = key;
+      });
+      _queueLocalStatePersist();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _todayNameday = 'Éphéméride indisponible';
+        _todayNamedayDateKey = key;
+      });
+    }
+  }
+
+  String _weatherLabelForCode(int code) {
+    if (code == 0) return 'Ciel dégagé';
+    if (code == 1 || code == 2) return 'Éclaircies';
+    if (code == 3) return 'Couvert';
+    if (code == 45 || code == 48) return 'Brouillard';
+    if (code >= 51 && code <= 57) return 'Bruine';
+    if (code >= 61 && code <= 67) return 'Pluie';
+    if (code >= 71 && code <= 77) return 'Neige';
+    if (code >= 80 && code <= 82) return 'Averses';
+    if (code >= 95 && code <= 99) return 'Orage';
+    return 'Météo variable';
+  }
+
+  String _weatherIconForCode(int code) {
+    if (code == 0) return '☀️';
+    if (code == 1 || code == 2) return '🌤️';
+    if (code == 3) return '☁️';
+    if (code == 45 || code == 48) return '🌫️';
+    if (code >= 51 && code <= 67) return '🌧️';
+    if (code >= 71 && code <= 77) return '❄️';
+    if (code >= 80 && code <= 82) return '🌦️';
+    if (code >= 95 && code <= 99) return '⛈️';
+    return '🌤️';
+  }
+
+  String _weatherDateKey(DateTime d) => '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  _DayWeather _dayWeatherFromCode(int code, String temperature) {
+    final text = _weatherLabelForCode(code);
+    final icon = _weatherIconForCode(code);
+    final low = text.toLowerCase();
+    final outdoorBad = low.contains('pluie') || low.contains('averse') || low.contains('orage') || low.contains('neige') || low.contains('bruine');
+    return _DayWeather(icon: icon, text: text, temperature: temperature, outdoorBad: outdoorBad);
+  }
+
+  _DayWeather? _weatherForWeekDay(int day) {
+    final date = _weekDateForDay(day);
+    return _weatherForecast[_weatherDateKey(date)];
+  }
+
+  Future<void> _loadWeather() async {
+    final city = _weatherCity.trim();
+    if (city.isEmpty) return;
+    if (mounted) setState(() { _weatherLoading = true; _weatherError = ''; });
+    try {
+      final geoUrl = Uri.parse('https://geocoding-api.open-meteo.com/v1/search?name=${Uri.encodeQueryComponent(city)}&count=1&language=fr&format=json');
+      final geoRaw = await html.HttpRequest.getString(geoUrl.toString());
+      final geo = jsonDecode(geoRaw);
+      final results = geo is Map ? geo['results'] : null;
+      if (results is! List || results.isEmpty || results.first is! Map) throw Exception('Ville introuvable');
+      final place = results.first as Map;
+      final latitude = place['latitude'];
+      final longitude = place['longitude'];
+      final resolvedName = '${place['name'] ?? city}';
+      if (latitude is! num || longitude is! num) throw Exception('Coordonnées indisponibles');
+
+      final weatherUrl = Uri.parse('https://api.open-meteo.com/v1/forecast?latitude=$latitude&longitude=$longitude&current=temperature_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,precipitation_probability_max&forecast_days=7&timezone=auto');
+      final weatherRaw = await html.HttpRequest.getString(weatherUrl.toString());
+      final weather = jsonDecode(weatherRaw);
+      final current = weather is Map ? weather['current'] : null;
+      final daily = weather is Map ? weather['daily'] : null;
+      if (current is! Map || daily is! Map) throw Exception('Météo indisponible');
+      final temp = current['temperature_2m'];
+      final code = current['weather_code'];
+      if (temp is! num || code is! num) throw Exception('Données météo incomplètes');
+
+      final forecastDates = daily['time'];
+      final forecastCodes = daily['weather_code'];
+      final forecastTemps = daily['temperature_2m_max'];
+      final forecastRain = daily['precipitation_probability_max'];
+      final nextForecast = <String, _DayWeather>{};
+      if (forecastDates is List && forecastCodes is List && forecastTemps is List) {
+        final count = [forecastDates.length, forecastCodes.length, forecastTemps.length].reduce((a, b) => a < b ? a : b);
+        for (var i = 0; i < count && i < 7; i++) {
+          final ds = '${forecastDates[i]}';
+          final c = forecastCodes[i];
+          final t = forecastTemps[i];
+          if (c is! num || t is! num) continue;
+          nextForecast[ds] = _dayWeatherFromCode(c.toInt(), '${t.round()}°');
+        }
+      }
+
+      // La probabilité de pluie ne remplace pas le code météo, mais renforce
+      // le signal d'alerte pour les messages destinés aux activités extérieures.
+      if (forecastDates is List && forecastCodes is List && forecastTemps is List && forecastRain is List) {
+        final count = [forecastDates.length, forecastCodes.length, forecastTemps.length, forecastRain.length].reduce((a, b) => a < b ? a : b);
+        for (var i = 0; i < count && i < 7; i++) {
+          final ds = '${forecastDates[i]}';
+          final rain = forecastRain[i];
+          final existing = nextForecast[ds];
+          if (existing != null && rain is num && rain.toInt() >= 60 && !existing.outdoorBad) {
+            nextForecast[ds] = _DayWeather(icon: '🌦️', text: '${existing.text} · risque d’averses', temperature: existing.temperature, outdoorBad: true);
+          }
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _weatherCity = resolvedName;
+        _weatherTemperature = '${temp.round()}°';
+        _weatherIcon = _weatherIconForCode(code.toInt());
+        _weatherText = _weatherLabelForCode(code.toInt());
+        _weatherError = '';
+        _weatherLoading = false;
+        _weatherForecast
+          ..clear()
+          ..addAll(nextForecast);
+      });
+      _queueLocalStatePersist();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _weatherLoading = false;
+        _weatherError = 'Météo indisponible';
+      });
+    }
+  }
+
+  Widget _homeMascotAvatar({double size = 56}) {
+    Widget content;
+    if (_homeMascotKind == 'photo' && _homeMascotImageData.isNotEmpty) {
+      try {
+        final comma = _homeMascotImageData.indexOf(',');
+        final encoded = comma >= 0 ? _homeMascotImageData.substring(comma + 1) : _homeMascotImageData;
+        final bytes = base64Decode(encoded);
+        content = Image.memory(bytes, fit: BoxFit.cover, filterQuality: FilterQuality.medium, gaplessPlayback: true);
+      } catch (_) {
+        content = Image.memory(_bearHeadBytes, fit: BoxFit.contain, filterQuality: FilterQuality.medium, gaplessPlayback: true);
+      }
+    } else if (_homeMascotKind == 'emoji') {
+      content = Center(child: Text(_homeMascotEmoji, style: TextStyle(fontSize: size * .52)));
+    } else {
+      content = Image.memory(_bearHeadBytes, fit: BoxFit.contain, filterQuality: FilterQuality.medium, gaplessPlayback: true);
+    }
+
+    return GestureDetector(
+      onTap: _editHomeMascot,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF4EA),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFE7D4C6), width: 1.5),
+              boxShadow: const [BoxShadow(color: Color(0x16000000), blurRadius: 8, offset: Offset(0, 3))],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(padding: EdgeInsets.all(size * .05), child: content),
+          ),
+          Positioned(
+            right: -1,
+            bottom: -1,
+            child: Container(
+              width: 19,
+              height: 19,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFEFB),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFE0D5C8)),
+              ),
+              child: const Icon(Icons.edit_rounded, size: 10, color: Color(0xFF6F7B74)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<String?> _pickHomeMascotImage() async {
+    final input = html.FileUploadInputElement()
+      ..accept = 'image/*'
+      ..multiple = false;
+    input.style
+      ..position = 'fixed'
+      ..left = '-10000px'
+      ..top = '0'
+      ..width = '1px'
+      ..height = '1px'
+      ..opacity = '0';
+    html.document.body?.children.add(input);
+    try {
+      input.click();
+      await input.onChange.first;
+      final files = input.files;
+      if (files == null || files.isEmpty) return null;
+      final file = files.first;
+      if (file.size > 1024 * 1024) {
+        _showFeedback('Photo trop lourde. Choisis une image de moins de 1 Mo.');
+        return null;
+      }
+      final reader = html.FileReader();
+      reader.readAsDataUrl(file);
+      await reader.onLoad.first;
+      return reader.result?.toString();
+    } finally {
+      input.remove();
+    }
+  }
+
+  Future<void> _editHomeMascot() async {
+    final choice = await showModalBottomSheet<_HomeMascotChoice>(
+      context: _navigatorKey.currentContext!,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: const Color(0xFFFFFBF5),
+      builder: (_) => _HomeMascotSheet(currentKind: _homeMascotKind, currentEmoji: _homeMascotEmoji),
+    );
+    if (choice == null || !mounted) return;
+
+    if (choice.kind == 'photo') {
+      final data = await _pickHomeMascotImage();
+      if (data == null || !mounted) return;
+      setState(() {
+        _homeMascotKind = 'photo';
+        _homeMascotImageData = data;
+      });
+    } else {
+      setState(() {
+        _homeMascotKind = choice.kind;
+        _homeMascotEmoji = choice.emoji;
+        _homeMascotImageData = '';
+      });
+    }
+    _queueLocalStatePersist();
+  }
+
+  Future<void> _editHomeIdentity() async {
+    final result = await showModalBottomSheet<_HomeIdentityResult>(
+      context: _navigatorKey.currentContext!,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: const Color(0xFFFFFBF5),
+      builder: (_) => _HomeIdentitySheet(
+        initialName: _userName,
+        initialCity: _weatherCity,
+      ),
+    );
+
+    if (result == null || !mounted) return;
+    setState(() {
+      _userName = result.name;
+      _weatherCity = result.city;
+      _weatherError = '';
+    });
+    _queueLocalStatePersist();
+
+    if (result.city.isEmpty) {
+      setState(() {
+        _weatherText = '';
+        _weatherTemperature = '';
+        _weatherIcon = '🌤️';
+        _weatherError = '';
+      });
+      return;
+    }
+
+    await _loadWeather();
+  }
+
+  @override
+  void dispose() {
+    _clockTimer?.cancel();
+    super.dispose();
+  }
+
+  bool _isDateRangePlanItem(PlanItem item) {
+    if (item.activityId == null) return false;
+    final activity = findActivity(item.activityId!);
+    return activity?.isDateRange == true;
+  }
+
+  Future<void> _removeDateRangeOccurrence(PlanItem item) async {
+    if (!_isDateRangePlanItem(item)) return;
+    final removed = await showDialog<bool>(
+      context: _navigatorKey.currentContext!,
+      builder: (context) => AlertDialog(
+        title: const Text('Retirer ce jour ?'),
+        content: Text('« ${item.title} » restera présente les autres jours de sa période.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Retirer ce jour')),
+        ],
+      ),
+    );
+    if (removed != true || !mounted) return;
+    setState(() => plan.removeWhere((p) => p.id == item.id));
+    _queueLocalStatePersist();
+    _showFeedback('« ${item.title} » retirée de ${dayNames[item.day]}.');
+  }
+
+  Widget _multiDaySection(List<PlanItem> items, {required int day}) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(11, 9, 9, 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1E8D8),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: const Color(0xFFE2D3B9)),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Row(children: [
+            Text('🗓️', style: TextStyle(fontSize: 19)),
+            SizedBox(width: 7),
+            Expanded(child: Text('Activités sur plusieurs jours', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Color(0xFF6E614F)))),
+          ]),
+          const SizedBox(height: 3),
+          const Text('Présentes pendant toute la période. Elles ne se valident pas.', style: TextStyle(fontSize: 10.5, color: Color(0xFF7A756B), fontWeight: FontWeight.w600)),
+          const SizedBox(height: 5),
+          ...items.map((item) {
+            final activity = findActivity(item.activityId!);
+            return Container(
+              margin: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.fromLTRB(7, 7, 5, 7),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBF5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE8DDCC)),
+              ),
+              child: Row(children: [
+                activity?.emoji == '🧸' ? mascotChoiceAvatar(size: 30) : Text(activity?.emoji ?? item.customEmoji ?? '🗓️', style: const TextStyle(fontSize: 21)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: activity == null ? null : () => addOrEditActivity(original: activity),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13.2, fontWeight: FontWeight.w900, color: Color(0xFF4F5B55))),
+                        const SizedBox(height: 2),
+                        Text(activity == null ? 'Période' : _dateRangeLabel(activity), style: const TextStyle(fontSize: 10.2, color: Color(0xFF7A756B), fontWeight: FontWeight.w700)),
+                      ]),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Modifier l’activité',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: activity == null ? null : () => addOrEditActivity(original: activity),
+                  icon: const Icon(Icons.edit_outlined, size: 19, color: Color(0xFF7A6D5D)),
+                ),
+                IconButton(
+                  tooltip: 'Retirer ce jour',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => _removeDateRangeOccurrence(item),
+                  icon: const Icon(Icons.remove_circle_outline, size: 19, color: Color(0xFFC27D68)),
+                ),
+              ]),
+            );
+          }),
+        ]),
+      ),
+    );
+  }
+
   void togglePlanItemDone(PlanItem item, bool checked) {
+    if (_isDateRangePlanItem(item)) {
+      _showFeedback('Une activité sur plusieurs jours ne se valide pas.');
+      return;
+    }
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
     if (!checked) {
       setState(() {
@@ -1676,7 +2270,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   bool _isGenericActivityItem(PlanItem item) {
     if (item.activityId == null) return false;
     final activity = findActivity(item.activityId!);
-    return activity != null && !_isSportActivity(activity);
+    return activity != null && !_isSportActivity(activity) && !activity.isDateRange;
   }
 
   void _openGenericActivity(PlanItem item) {
@@ -2064,7 +2658,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       context: _navigatorKey.currentContext!,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (sheetContext) => _HistorySheet(logs: logs, dayNames: dayNames),
+      builder: (sheetContext) => _HistorySheet(logs: logs, activities: activities, dayNames: dayNames),
     );
   }
 
@@ -2127,6 +2721,134 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     return true;
   }
 
+  DateTime _dateOnly(DateTime value) => DateTime(value.year, value.month, value.day);
+
+  bool _sameDateValue(DateTime? a, DateTime? b) {
+    if (a == null || b == null) return a == b;
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  String _shortDate(DateTime value) {
+    final d = _dateOnly(value);
+    final dd = d.day.toString().padLeft(2, '0');
+    final mm = d.month.toString().padLeft(2, '0');
+    return '$dd/$mm/${d.year}';
+  }
+
+  String _dateRangeLabel(Activity activity) {
+    if (!activity.isDateRange || activity.rangeStart == null || activity.rangeEnd == null) {
+      return '';
+    }
+    final start = _shortDate(activity.rangeStart!);
+    final end = _shortDate(activity.rangeEnd!);
+    return start == end ? 'Le $start · tous les jours' : 'Du $start au $end · tous les jours';
+  }
+
+  List<int> _dateRangeDaysForCurrentWeek(Activity activity) {
+    if (!activity.isDateRange || activity.rangeStart == null || activity.rangeEnd == null) return [];
+    final start = _dateOnly(activity.rangeStart!);
+    final end = _dateOnly(activity.rangeEnd!);
+    if (end.isBefore(start)) return [];
+    final monday = _startOfCurrentWeek();
+    final result = <int>[];
+    for (var day = 0; day < 7; day++) {
+      final date = monday.add(Duration(days: day));
+      if (!date.isBefore(start) && !date.isAfter(end)) result.add(day);
+    }
+    return result;
+  }
+
+  void _ensureDateRangeActivityInCurrentWeek(Activity activity) {
+    final days = _dateRangeDaysForCurrentWeek(activity);
+    if (days.isEmpty) return;
+    for (final day in days) {
+      final exists = plan.any((item) =>
+          item.activityId == activity.id && item.day == day && !item.fixedInWeeklyTemplate);
+      if (exists) continue;
+      plan.add(PlanItem(
+        id: 'range_${activity.id}_${DateTime.now().microsecondsSinceEpoch}_$day',
+        activityId: activity.id,
+        day: day,
+        period: _periodForActivity(activity, day),
+        timeLabel: null,
+        title: activity.name,
+        details: 'Activité quotidienne · ${_dateRangeLabel(activity)}',
+        duration: activity.duration,
+        optional: false,
+        userAdded: true,
+        fixedInWeeklyTemplate: false,
+      ));
+    }
+  }
+
+  List<String> _uniqueStrings(Iterable<String> source) {
+    final result = <String>[];
+    final seen = <String>{};
+    for (final value in source) {
+      if (seen.add(value)) result.add(value);
+    }
+    return result;
+  }
+
+  List<String> _suggestedEmojisForName(String label, String category) {
+    final text = label.trim().toLowerCase();
+    final matches = <String>[];
+    void addAll(Iterable<String> values) {
+      for (final value in values) {
+        if (!matches.contains(value)) matches.add(value);
+      }
+    }
+
+    if (RegExp(r'road\s*trip|voyage|route|déplacement|deplacement|voiture|camping').hasMatch(text)) {
+      addAll(['🚗', '🗺️', '🧳', '🏕️']);
+    }
+    if (RegExp(r'dessin|peinture|aquarelle|croquis|artist|atelier').hasMatch(text)) {
+      addAll(['🎨', '🖌️', '✏️', '🧵']);
+    }
+    if (RegExp(r'stage|cours|formation|apprentissage').hasMatch(text)) {
+      addAll(['📚', '✏️', '🎨', '📝']);
+    }
+    if (RegExp(r'piano|musique|guitare|chant').hasMatch(text)) {
+      addAll(['🎹', '🎵', '🎶', '🎧']);
+    }
+    if (RegExp(r'lecture|livre|roman').hasMatch(text)) {
+      addAll(['📖', '📚', '☕', '🛋️']);
+    }
+    if (RegExp(r'ciné|cinema|film|série|serie').hasMatch(text)) {
+      addAll(['🎬', '📺', '🍿', '🎭']);
+    }
+    if (RegExp(r'photo|photographie|vidéo|video').hasMatch(text)) {
+      addAll(['📷', '🎥', '🗺️']);
+    }
+    if (RegExp(r'marché|marche|randonnée|randonnee|promenade|balade').hasMatch(text)) {
+      addAll(['🚶', '🥾', '🌳', '🏞️']);
+    }
+    if (RegExp(r'jardin|jardinage|plante').hasMatch(text)) {
+      addAll(['🌱', '🪴', '🌿', '🌸']);
+    }
+    if (RegExp(r'restaurant|repas|cuisine|cuisiner').hasMatch(text)) {
+      addAll(['🍽️', '🥐', '🍵', '🍰']);
+    }
+    if (RegExp(r'amis|famille|convivial|anniversaire|fête|fete').hasMatch(text)) {
+      addAll(['🥂', '🎁', '💌', '🫶']);
+    }
+    if (RegExp(r'repos|détente|detente|méditation|meditation|bien-être|bien etre').hasMatch(text)) {
+      addAll(['🌿', '🕯️', '🛀', '🌸']);
+    }
+    if (RegExp(r'ours|ourson|mascotte').hasMatch(text)) addAll(['🧸']);
+
+    switch (category) {
+      case 'Sport': addAll(['🏃', '🚶', '🧘', '🥾']); break;
+      case 'Bien-être': addAll(['🌿', '🌸', '🕯️', '🛀']); break;
+      case 'Culture': addAll(['📖', '🎨', '🎬', '🎭']); break;
+      case 'Sortie': addAll(['🗺️', '🚗', '🌳', '🏞️']); break;
+      case 'Social': addAll(['🥂', '💌', '🫶', '☕']); break;
+      default: addAll(['✨', '🌿', '😊', '🧸']);
+    }
+
+    return _uniqueStrings(matches).take(6).toList();
+  }
+
   void _syncActivityToWeek(Activity activity, {Activity? previous}) {
     final linked = plan.where((p) => p.activityId == activity.id).toList();
 
@@ -2141,6 +2863,32 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         item.title = item.title.replaceFirst(previous.name, activity.name);
       }
       _syncCompletedValidationDuration(item);
+    }
+
+    final rangeChanged = previous == null
+        ? activity.isDateRange
+        : previous.isDateRange != activity.isDateRange ||
+            !_sameDateValue(previous.rangeStart, activity.rangeStart) ||
+            !_sameDateValue(previous.rangeEnd, activity.rangeEnd);
+
+    // Une activité « sur une période » ignore la fréquence hebdomadaire :
+    // elle est placée chaque jour compris entre les deux dates. Lors d’une
+    // modification de période, on reconstruit uniquement ses occurrences
+    // courantes ; les validations supprimées restent dans l’historique.
+    if (activity.isDateRange && !_isSportActivity(activity) && !activity.isSportProgram) {
+      if (rangeChanged) {
+        plan.removeWhere((item) => item.activityId == activity.id && !item.fixedInWeeklyTemplate);
+        _ensureDateRangeActivityInCurrentWeek(activity);
+      } else if (previous == null) {
+        _ensureDateRangeActivityInCurrentWeek(activity);
+      }
+      _sortPlan();
+      return;
+    }
+
+    // Passage d’une activité sur période vers une activité hebdomadaire.
+    if (previous?.isDateRange == true && !activity.isDateRange) {
+      plan.removeWhere((item) => item.activityId == activity.id && !item.fixedInWeeklyTemplate);
     }
 
     // Les activités Sport réelles sont des composants du programme générique
@@ -2257,6 +3005,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     final sportGroup = draft.sportGroup;
     final sportGroupFrequency = draft.sportGroupFrequency;
     var activeInSportRotation = draft.activeInSportRotation;
+    var dateRangeEnabled = draft.isDateRange && draft.category != 'Sport' && !draft.isSportProgram;
+    DateTime? rangeStart = draft.rangeStart == null ? null : _dateOnly(draft.rangeStart!);
+    DateTime? rangeEnd = draft.rangeEnd == null ? null : _dateOnly(draft.rangeEnd!);
     final sportDailyDurations = {...draft.sportDailyDurations};
 
     // Toujours inclure la valeur actuellement enregistrée dans les listes
@@ -2287,7 +3038,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       '⚽', '🏀', '🎾', '🏸', '🥎', '🛼', '🛴', '🧘‍♂️', '☯️',
       // 🏠 Maison / organisation
       '🏠', '🏡', '🛋️', '🛏️', '🧹', '🧺', '🧼', '🧽', '🪣', '🧴',
-      '🛒', '🛍️', '📅', '📝', '📌', '📍', '💻', '📱', '🗂️', '🗃️',
+      '🛒', '🛍️', '🧳', '🍽️', '🍿', '📅', '📝', '📌', '📍', '💻', '📱', '🗂️', '🗃️',
       // ❤️ Social / petits plaisirs
       '❤️', '🧡', '💛', '💚', '💙', '💜', '💕', '💖', '💝', '💞',
       '🥂', '🍰', '🎁', '😊', '😄', '🥰', '😌', '🤗', '🙏', '💌',
@@ -2300,8 +3051,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       // Quelques icônes déjà utilisées / compatibles avec les anciennes fiches
       '⚡', '💗', '🌺', '😴', '💤'
     ];
-    if (!emojiOptions.contains(emoji)) {
-      emojiOptions.insert(0, emoji);
+    final dedupedEmojiOptions = _uniqueStrings(emojiOptions);
+    if (!dedupedEmojiOptions.contains(emoji)) {
+      dedupedEmojiOptions.insert(0, emoji);
     }
 
     void showSportHelp(String title, String message) {
@@ -2334,35 +3086,112 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                   textCapitalization: TextCapitalization.sentences,
                   textInputAction: TextInputAction.next,
                   scrollPadding: const EdgeInsets.only(bottom: 220),
+                  onChanged: (_) => setDialogState(() {}),
                   decoration: const InputDecoration(
                     labelText: 'Nom',
                     hintText: 'Nom de l’activité',
                     alignLabelWithHint: true,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 7),
+                Builder(
+                  builder: (_) {
+                    final suggestions = _suggestedEmojisForName(name.text, category);
+                    if (suggestions.isEmpty) return const SizedBox.shrink();
+                    return Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF7EC),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFF0E0C7)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Icônes suggérées', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF7C6B59))),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 5,
+                            children: suggestions.map((value) => ActionChip(
+                              label: value == '🧸' ? Row(mainAxisSize: MainAxisSize.min, children: [mascotChoiceAvatar(size: 20), const SizedBox(width: 4), const Text('Ourson')]) : Text(value, style: const TextStyle(fontSize: 19)),
+                              onPressed: () => setDialogState(() => emoji = value),
+                              visualDensity: VisualDensity.compact,
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            )).toList(),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 9),
                 DropdownButtonFormField<String>(
                   value: category,
                   decoration: const InputDecoration(labelText: 'Catégorie'),
                   items: categoryOptions
                       .map((v) => DropdownMenuItem<String>(value: v, child: Text(v)))
                       .toList(),
-                  onChanged: (v) => setDialogState(() => category = v ?? category),
+                  onChanged: (v) => setDialogState(() {
+                    category = v ?? category;
+                    if (category == 'Sport') dateRangeEnabled = false;
+                  }),
                 ),
                 const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  value: emoji,
-                  decoration: const InputDecoration(
-                    labelText: 'Icône',
-                    helperText: '🧸 Ourson utilise ta mascotte MyBestWeek.',
+                InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () async {
+                    final picked = await showDialog<String>(
+                      context: context,
+                      builder: (pickerContext) => AlertDialog(
+                        title: const Text('Choisir une icône'),
+                        content: SizedBox(
+                          width: 420,
+                          height: 360,
+                          child: GridView.builder(
+                            padding: const EdgeInsets.all(4),
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 6,
+                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 8,
+                              childAspectRatio: 1,
+                            ),
+                            itemCount: dedupedEmojiOptions.length,
+                            itemBuilder: (_, index) {
+                              final value = dedupedEmojiOptions[index];
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(13),
+                                onTap: () => Navigator.pop(pickerContext, value),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: value == emoji ? const Color(0xFFEAF2ED) : const Color(0xFFF8F5EF),
+                                    borderRadius: BorderRadius.circular(13),
+                                    border: Border.all(color: value == emoji ? const Color(0xFFB9CCBF) : const Color(0xFFE4DED5)),
+                                  ),
+                                  child: value == '🧸' ? mascotChoiceAvatar(size: 32) : Text(value, style: const TextStyle(fontSize: 24)),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                    if (picked != null) setDialogState(() => emoji = picked);
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Icône',
+                      helperText: 'Appuie pour ouvrir la palette d’icônes.',
+                    ),
+                    child: Row(children: [
+                      emoji == '🧸' ? mascotChoiceAvatar(size: 28) : Text(emoji, style: const TextStyle(fontSize: 24)),
+                      const SizedBox(width: 9),
+                      const Expanded(child: Text('Choisir une icône')),
+                      const Icon(Icons.expand_more_rounded),
+                    ]),
                   ),
-                  items: emojiOptions
-                      .map((v) => DropdownMenuItem<String>(
-                            value: v,
-                            child: v == '🧸' ? Row(children: [mascotChoiceAvatar(size: 28), const SizedBox(width: 8), const Text('Ourson')]) : Text(v, style: const TextStyle(fontSize: 20)),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setDialogState(() => emoji = v ?? emoji),
                 ),
                 const SizedBox(height: 10),                if (category == 'Sport' || draft.isSportProgram) ...[
                   const SizedBox(height: 10),
@@ -2380,6 +3209,104 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                     onChanged: (v) => setDialogState(() => period = v ?? period),
                   ),
                 ],
+                if (category != 'Sport' && !draft.isSportProgram) ...[
+                  const SizedBox(height: 9),
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(11, 9, 11, 10),
+                    decoration: BoxDecoration(
+                      color: dateRangeEnabled ? const Color(0xFFEFF5F1) : const Color(0xFFF6F4EF),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: dateRangeEnabled ? const Color(0xFFCFE0D5) : const Color(0xFFE2DED6),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          const Text('🗓️', style: TextStyle(fontSize: 19)),
+                          const SizedBox(width: 7),
+                          const Expanded(child: Text('Activité quotidienne sur une période', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5))),
+                          Switch.adaptive(
+                            value: dateRangeEnabled,
+                            onChanged: (value) {
+                              setDialogState(() {
+                                dateRangeEnabled = value;
+                                if (value && rangeStart == null) {
+                                  rangeStart = _dateOnly(DateTime.now());
+                                  rangeEnd = rangeStart;
+                                }
+                              });
+                            },
+                          ),
+                        ]),
+                        if (dateRangeEnabled) ...[
+                          const SizedBox(height: 3),
+                          const Text('Exemple : road trip, stage ou atelier réalisé chaque jour du début à la fin.', style: TextStyle(fontSize: 10.5, color: Color(0xFF6F7777), height: 1.25)),
+                          const SizedBox(height: 8),
+                          Row(children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  final initial = rangeStart ?? _dateOnly(DateTime.now());
+                                  final picked = await showDatePicker(
+                                    context: _navigatorKey.currentContext!,
+                                    initialDate: initial,
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime(2100),
+                                    helpText: 'Début de la période',
+                                    cancelText: 'Annuler',
+                                    confirmText: 'Choisir',
+                                  );
+                                  if (picked == null) return;
+                                  setDialogState(() {
+                                    rangeStart = _dateOnly(picked);
+                                    if (rangeEnd == null || rangeEnd!.isBefore(rangeStart!)) rangeEnd = rangeStart;
+                                  });
+                                },
+                                icon: const Icon(Icons.event_outlined, size: 18),
+                                label: Text(rangeStart == null ? 'Date début' : _shortDate(rangeStart!)),
+                                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10)),
+                              ),
+                            ),
+                            const Padding(padding: EdgeInsets.symmetric(horizontal: 6), child: Text('→', style: TextStyle(fontWeight: FontWeight.w900))),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  final initial = rangeEnd ?? rangeStart ?? _dateOnly(DateTime.now());
+                                  final picked = await showDatePicker(
+                                    context: _navigatorKey.currentContext!,
+                                    initialDate: initial.isBefore(rangeStart ?? DateTime(2020)) ? (rangeStart ?? initial) : initial,
+                                    firstDate: rangeStart ?? DateTime(2020),
+                                    lastDate: DateTime(2100),
+                                    helpText: 'Fin de la période',
+                                    cancelText: 'Annuler',
+                                    confirmText: 'Choisir',
+                                  );
+                                  if (picked == null) return;
+                                  setDialogState(() => rangeEnd = _dateOnly(picked));
+                                },
+                                icon: const Icon(Icons.event_available_outlined, size: 18),
+                                label: Text(rangeEnd == null ? 'Date fin' : _shortDate(rangeEnd!)),
+                                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10)),
+                              ),
+                            ),
+                          ]),
+                          if (rangeStart != null && rangeEnd != null && rangeEnd!.isBefore(rangeStart!))
+                            const Padding(
+                              padding: EdgeInsets.only(top: 5),
+                              child: Text('La date de fin doit être postérieure ou égale à la date de début.', style: TextStyle(fontSize: 10.5, color: Color(0xFFB56A5A), fontWeight: FontWeight.w700)),
+                            )
+                          else if (rangeStart != null && rangeEnd != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 5),
+                              child: Text(_dateRangeLabel(Activity(id: '_tmp', name: '', emoji: '', category: category, duration: 1, frequency: 1, priority: 1, isDateRange: true, rangeStart: rangeStart, rangeEnd: rangeEnd)), style: const TextStyle(fontSize: 10.5, color: Color(0xFF6F7777), fontWeight: FontWeight.w700)),
+                            ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
                 if (draft.isSportProgram) ...[
                   const SizedBox(height: 12),
                   const Align(alignment: Alignment.centerLeft, child: Text('Durée Sport par jour', style: TextStyle(fontWeight: FontWeight.w900))),
@@ -2392,14 +3319,16 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                     onChanged: (v) => setDialogState(() => sportDailyDurations[day] = v),
                   )),
                 ],
-                const SizedBox(height: 10),
-                _StepperLine(
-                  label: category == 'Sport' ? 'Jours avec cette activité / semaine' : 'Fréquence / semaine',
-                  value: frequency,
-                  min: 1,
-                  max: 7,
-                  onChanged: (v) => setDialogState(() => frequency = v),
-                ),
+                if (!dateRangeEnabled || category == 'Sport') ...[
+                  const SizedBox(height: 10),
+                  _StepperLine(
+                    label: category == 'Sport' ? 'Jours avec cette activité / semaine' : 'Fréquence / semaine',
+                    value: frequency,
+                    min: 1,
+                    max: 7,
+                    onChanged: (v) => setDialogState(() => frequency = v),
+                  ),
+                ],
                 if (category == 'Sport')
                   const Align(
                     alignment: Alignment.centerLeft,
@@ -2488,29 +3417,31 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                     ),
                   ),
                 ],
+                if (!dateRangeEnabled) ...[
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Jours préférés', style: Theme.of(context).textTheme.labelLarge),
+                  ),
                 const SizedBox(height: 4),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Jours préférés', style: Theme.of(context).textTheme.labelLarge),
-                ),
-                const SizedBox(height: 4),
-                Wrap(
-                  spacing: 6,
-                  children: List.generate(7, (day) {
-                    final selected = preferred.contains(day);
-                    return FilterChip(
-                      selected: selected,
-                      label: Text(dayNames[day].substring(0, 3)),
-                      onSelected: (_) => setDialogState(() {
-                        if (selected) {
-                          preferred.remove(day);
-                        } else {
-                          preferred.add(day);
-                        }
-                      }),
-                    );
-                  }),
-                ),
+                  Wrap(
+                    spacing: 6,
+                    children: List.generate(7, (day) {
+                      final selected = preferred.contains(day);
+                      return FilterChip(
+                        selected: selected,
+                        label: Text(dayNames[day].substring(0, 3)),
+                        onSelected: (_) => setDialogState(() {
+                          if (selected) {
+                            preferred.remove(day);
+                          } else {
+                            preferred.add(day);
+                          }
+                        }),
+                      );
+                    }),
+                  ),
+                ],
               ],
             ),
           ),
@@ -2532,6 +3463,10 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
             FilledButton(
               onPressed: () {
                 if (name.text.trim().isEmpty) return;
+                if (dateRangeEnabled && (rangeStart == null || rangeEnd == null || rangeEnd!.isBefore(rangeStart!))) {
+                  _showFeedback('Choisis une période valide pour cette activité.');
+                  return;
+                }
                 final updated = Activity(
                   id: draft.id,
                   name: name.text.trim(),
@@ -2542,6 +3477,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                   frequency: frequency,
                   priority: priority,
                   preferredDays: preferred.toList()..sort(),
+                  isDateRange: dateRangeEnabled && category != 'Sport' && !draft.isSportProgram,
+                  rangeStart: dateRangeEnabled && category != 'Sport' && !draft.isSportProgram ? rangeStart : null,
+                  rangeEnd: dateRangeEnabled && category != 'Sport' && !draft.isSportProgram ? rangeEnd : null,
                   sportWeight: sportWeight,
                   allowMultiplePerDay: category == 'Sport' ? allowMultiplePerDay : false,
                   maxDailyOccurrences: category == 'Sport' ? maxDailyOccurrences : 2,
@@ -3306,10 +4244,11 @@ String _formatCoachDateTime(DateTime value) {
       final activity = findActivity(item.activityId!);
       return activity == null || !_isSportActivity(activity);
     }).toList();
-    final trackableItems = plan.where((p) => p.activityId != null).toList();
+    final trackableItems = plan.where((p) => p.activityId != null && !_isDateRangePlanItem(p)).toList();
     final completed = trackableItems.where((x) => x.done).length;
     final progress = trackableItems.isEmpty ? 0.0 : completed / trackableItems.length;
-    final todayDone = todayItems.where((x) => x.done).length;
+    final todayActionItems = todayItems.where((x) => !_isDateRangePlanItem(x)).toList();
+    final todayDone = todayActionItems.where((x) => x.done).length;
     final sportBudget = _sportBudgetForDay(today);
 
     Widget softCard({
@@ -3335,41 +4274,59 @@ String _formatCoachDateTime(DateTime value) {
       child: Text(text, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: fg)),
     );
 
-    Widget todayTask(PlanItem item) {
-      final activity = item.activityId == null ? null : findActivity(item.activityId!);
-      final emoji = activity?.emoji ?? (item.period == 'Matin' ? '☀️' : item.period == 'Soir' ? '🌙' : '🌿');
+    Widget todayPeriod(String period) {
+      final periodItems = todayItems.where((item) {
+        if (item.period != period) return false;
+        if (_isDateRangePlanItem(item)) return false;
+        if (item.activityId != null) {
+          final activity = findActivity(item.activityId!);
+          if (activity != null && _isSportActivity(activity)) return false;
+        }
+        return true;
+      }).toList();
+
       return Padding(
-        padding: const EdgeInsets.only(bottom: 7),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(17),
-          onTap: () => openItemActions(item),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(10, 9, 9, 9),
-            decoration: BoxDecoration(color: const Color(0xFFFFFCF8), borderRadius: BorderRadius.circular(17), border: Border.all(color: const Color(0xFFEAE0D5))),
-            child: Row(children: [
-              Container(
-                width: 38, height: 38, alignment: Alignment.center,
-                decoration: BoxDecoration(color: const Color(0xFFF7EEE3), borderRadius: BorderRadius.circular(13)),
-                child: emoji == '🧸' ? mascotChoiceAvatar(size: 30) : Text(emoji, style: const TextStyle(fontSize: 19)),
+        padding: const EdgeInsets.only(bottom: 5),
+        child: DragTarget<PlanItem>(
+          onWillAcceptWithDetails: (details) => _canDropGenericInWeeklyPeriod(details.data, today, period),
+          onAcceptWithDetails: (details) => _moveGenericActivityWeekly(details.data, today, period),
+          builder: (context, candidateData, rejectedData) {
+            final highlighted = candidateData.isNotEmpty;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              padding: EdgeInsets.all(highlighted ? 7 : 0),
+              decoration: BoxDecoration(
+                color: highlighted ? const Color(0xFFDCEBE5) : Colors.transparent,
+                borderRadius: BorderRadius.circular(13),
+                border: highlighted ? Border.all(color: const Color(0xFF8EAD9F), width: 1.5) : null,
               ),
-              const SizedBox(width: 9),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.3, fontWeight: FontWeight.w900, decoration: item.done ? TextDecoration.lineThrough : null, color: const Color(0xFF3E4A44))),
-                const SizedBox(height: 2),
-                Text('${item.period} · ${item.duration} min', style: const TextStyle(fontSize: 9.7, color: Color(0xFF777B76), fontWeight: FontWeight.w700)),
-              ])),
-              const SizedBox(width: 7),
-              Container(
-                width: 31, height: 31,
-                decoration: BoxDecoration(
-                  color: item.done ? const Color(0xFFA8C8B3) : const Color(0xFFFFF8EF),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: item.done ? const Color(0xFF8CAE9A) : const Color(0xFFE0D4C8)),
-                ),
-                child: Icon(item.done ? Icons.check_rounded : Icons.radio_button_unchecked_rounded, size: 17, color: item.done ? Colors.white : const Color(0xFFA09B94)),
-              ),
-            ]),
-          ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    decoration: BoxDecoration(color: const Color(0xFFF3F1EB), borderRadius: BorderRadius.circular(9)),
+                    child: Text(period, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF5E6D73))),
+                  ),
+                  if (highlighted) ...[
+                    const SizedBox(width: 7),
+                    const Icon(Icons.south, size: 15, color: Color(0xFF6F8E80)),
+                    const SizedBox(width: 3),
+                    const Text('Déposer ici', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
+                  ],
+                ]),
+                if (periodItems.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(9, 7, 9, 3),
+                    child: Text(
+                      highlighted ? 'Déposer l’activité ici' : 'Temps libre',
+                      style: TextStyle(fontSize: 12.5, color: highlighted ? const Color(0xFF6F8E80) : const Color(0xFF7A807D), fontWeight: highlighted ? FontWeight.w700 : FontWeight.normal),
+                    ),
+                  )
+                else
+                  ...periodItems.map(planRow),
+              ]),
+            );
+          },
         ),
       );
     }
@@ -3379,104 +4336,200 @@ String _formatCoachDateTime(DateTime value) {
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.fromLTRB(14, 9, 14, 5),
             child: softCard(
-              color: const Color(0xFFFFEFD9),
-              borderColor: const Color(0xFFF0D8B8),
-              radius: 30,
-              padding: const EdgeInsets.fromLTRB(13, 11, 11, 11),
-              child: Row(children: [
-                mascotAvatar(size: 68),
-                const SizedBox(width: 10),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Bonjour 👋', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF8D725C))),
-                  const SizedBox(height: 1),
-                  const Text('Ma Belle Semaine', style: TextStyle(fontSize: 20.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.45)),
-                  const SizedBox(height: 3),
-                  Text(dateText(), style: const TextStyle(fontSize: 10.8, color: Color(0xFF756E67))),
-                ])),
-                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  pill(version, bg: const Color(0xFFFFFBF5), fg: const Color(0xFF766E66)),
-                  const SizedBox(height: 5),
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    tooltip: 'Sauvegarde et données',
-                    onPressed: openDataManager,
-                    icon: const Icon(Icons.more_horiz_rounded, size: 22, color: Color(0xFF6F7B74)),
+              color: const Color(0xFFFFF1DE),
+              borderColor: const Color(0xFFF0D7B6),
+              radius: 28,
+              padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _homeMascotAvatar(size: 56),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    flex: 6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _userName.trim().isEmpty ? 'Bonjour 👋' : 'Bonjour ${_userName.trim()} 👋',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 18.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.4),
+                              ),
+                            ),
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
+                              tooltip: 'Personnaliser l’accueil',
+                              onPressed: _editHomeIdentity,
+                              icon: const Icon(Icons.edit_rounded, size: 16, color: Color(0xFF6F7B74)),
+                            ),
+                          ],
+                        ),
+                        Text(dateText(), style: const TextStyle(fontSize: 10.3, color: Color(0xFF756E67))),
+                        const SizedBox(height: 2),
+                        Text('${_clockText()} · ${_dayMoment()}', style: const TextStyle(fontSize: 10.8, fontWeight: FontWeight.w800, color: Color(0xFF7B705F))),
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            Text(_weatherCity.trim().isEmpty ? '🌤️' : _weatherIcon, style: const TextStyle(fontSize: 18)),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                _weatherCity.trim().isEmpty
+                                    ? 'Ajoute ta ville pour la météo'
+                                    : '${_weatherCity.trim()}${_weatherTemperature.isEmpty ? '' : ' · ${_weatherTemperature}'}${_weatherText.isEmpty ? '' : ' · ${_weatherText.toLowerCase()}'}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 9.4, fontWeight: FontWeight.w900, color: Color(0xFF536660)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ]),
-              ]),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    flex: 5,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 4, right: 2),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('💭 Pensée du jour', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF8A7555))),
+                          const SizedBox(height: 5),
+                          Text(
+                            '« $_morningThought »',
+                            maxLines: 5,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 10.6, height: 1.28, fontStyle: FontStyle.italic, color: Color(0xFF5D554B)),
+                          ),
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            child: IconButton(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
+                              tooltip: 'Changer la pensée',
+                              onPressed: refreshMorningThought,
+                              icon: const Icon(Icons.auto_awesome_rounded, size: 15, color: Color(0xFF9C8866)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  PopupMenuButton<String>(
+                    tooltip: 'Réglages',
+                    icon: const Icon(Icons.more_horiz_rounded, color: Color(0xFF6F7B74)),
+                    onSelected: (value) {
+                      if (value == 'data') openDataManager();
+                      if (value == 'identity') _editHomeIdentity();
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem<String>(
+                        value: 'data',
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.save_outlined),
+                          title: Text('Sauvegarde & données'),
+                        ),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'identity',
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.tune_rounded),
+                          title: Text('Personnaliser l’accueil'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
+        if (_cloudBackupReminderDue)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 1, 16, 5),
+              child: softCard(
+                color: const Color(0xFFF4EFE4),
+                borderColor: const Color(0xFFE4D6B9),
+                radius: 18,
+                padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
+                child: Row(
+                  children: [
+                    const Text('☁️', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 7),
+                    const Expanded(
+                      child: Text(
+                        'Pense à faire une sauvegarde iCloud : ta dernière copie confirmée date de plus de ${_cloudBackupReminderDays} jours.',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 10.4, fontWeight: FontWeight.w800, color: Color(0xFF6F624E), height: 1.2),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    TextButton(
+                      onPressed: openDataManager,
+                      child: const Text('Sauvegarder'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 1, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 1, 16, 5),
             child: softCard(
               color: const Color(0xFFEAF6EE),
               borderColor: const Color(0xFFD5E7DA),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Container(width: 42, height: 42, decoration: BoxDecoration(color: const Color(0xFFD8EBDD), borderRadius: BorderRadius.circular(14)), child: const Center(child: Text('🌱', style: TextStyle(fontSize: 23)))),
-                  const SizedBox(width: 10),
-                  const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Ma semaine avance', style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900, color: Color(0xFF40524A))),
-                    SizedBox(height: 2),
-                    Text('Un peu chaque jour, sans pression.', style: TextStyle(fontSize: 10.2, color: Color(0xFF6C7771))),
-                  ])),
-                  pill('$completed / ${trackableItems.length}', bg: const Color(0xFFF9FCF8)),
-                ]),
-                const SizedBox(height: 11),
-                ClipRRect(borderRadius: BorderRadius.circular(99), child: LinearProgressIndicator(value: progress, minHeight: 11, backgroundColor: const Color(0xFFDCE9DF), valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF88AE98)))),
-                const SizedBox(height: 6),
-                Row(children: [
-                  Expanded(child: Text('${(progress * 100).round()} % validé', style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF66736C)))),
-                  Text('${todayDone}/${todayItems.length} aujourd’hui', style: const TextStyle(fontSize: 9.8, fontWeight: FontWeight.w900, color: Color(0xFF68786E))),
-                ]),
-              ]),
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 1, 16, 8),
-            child: softCard(
-              color: const Color(0xFFFFECE8),
-              borderColor: const Color(0xFFF0D7D0),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFFFFD9D1), borderRadius: BorderRadius.circular(16)), child: Center(child: Text(_focusIcon, style: const TextStyle(fontSize: 26)))),
-                const SizedBox(width: 10),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    const Expanded(child: Text('Ton focus aujourd’hui', style: TextStyle(fontSize: 11.2, fontWeight: FontWeight.w900, color: Color(0xFF8C685F)))),
-                    pill(dayNames[today], bg: const Color(0xFFFFF9F7), fg: const Color(0xFF9D756B)),
-                  ]),
-                  const SizedBox(height: 3),
-                  Text(_todayFocus(), style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF564944), height: 1.16)),
-                  const SizedBox(height: 3),
-                  Text(_todayFocusReason(), style: const TextStyle(fontSize: 10.2, height: 1.3, color: Color(0xFF766A65))),
-                ])),
-              ]),
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 1, 16, 8),
-            child: softCard(
-              color: const Color(0xFFFFF7E6),
-              borderColor: const Color(0xFFF0E1C4),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFFFFE8AF), borderRadius: BorderRadius.circular(16)), child: Center(child: Text(_morningThoughtIcon, style: const TextStyle(fontSize: 26)))),
-                const SizedBox(width: 10),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    const Expanded(child: Text('Petite pensée du matin', style: TextStyle(fontSize: 11.2, fontWeight: FontWeight.w900, color: Color(0xFF8A7555)))),
-                    IconButton(visualDensity: VisualDensity.compact, tooltip: 'Changer la pensée', onPressed: refreshMorningThought, icon: const Icon(Icons.auto_awesome_rounded, size: 18, color: Color(0xFF9C8866))),
-                  ]),
-                  Text('« $_morningThought »', style: const TextStyle(fontSize: 14.2, height: 1.36, fontStyle: FontStyle.italic, color: Color(0xFF5D554B))),
-                ])),
-              ]),
+              radius: 20,
+              padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
+              child: Row(
+                children: [
+                  const Text('🌱', style: TextStyle(fontSize: 17)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      trackableItems.isEmpty
+                          ? 'Ma semaine démarre doucement.'
+                          : completed == trackableItems.length
+                              ? 'Ma semaine est accomplie ✨'
+                              : 'Ma semaine avance · ${trackableItems.length - completed} moment(s) restent à vivre.',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 10.1, height: 1.2, fontWeight: FontWeight.w800, color: Color(0xFF5E7168)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 72,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('${(progress * 100).round()} %', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF527061))),
+                        const SizedBox(height: 3),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(99),
+                          child: LinearProgressIndicator(value: progress, minHeight: 5, backgroundColor: const Color(0xFFDCE9DF), valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF88AE98))),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -3487,20 +4540,59 @@ String _formatCoachDateTime(DateTime value) {
               color: const Color(0xFFF0F7F3),
               borderColor: const Color(0xFFD7E6DE),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  const Text('✨', style: TextStyle(fontSize: 21)),
-                  const SizedBox(width: 7),
-                  const Expanded(child: Text('Aujourd’hui', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF3F5047)))),
-                  if (todayItems.isNotEmpty) pill('$todayDone/${todayItems.length}', bg: const Color(0xFFF9FCFA)),
-                ]),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Text(_focusIcon, style: const TextStyle(fontSize: 19)),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('FOCUS DU JOUR', style: TextStyle(fontSize: 7.7, fontWeight: FontWeight.w900, color: Color(0xFF9A7758), letterSpacing: .35)),
+                                const SizedBox(height: 1),
+                                Text(_todayFocus(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.1, fontWeight: FontWeight.w900, color: Color(0xFF564944), height: 1.12)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('✨', style: TextStyle(fontSize: 19)),
+                        const SizedBox(width: 5),
+                        const Text('Aujourd’hui', style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF3F5047))),
+                        if (todayActionItems.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          pill('$todayDone/${todayActionItems.length}', bg: const Color(0xFFF9FCFA)),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 4),
                 Text(todayItems.isEmpty ? 'Journée libre. Profite-en.' : 'Tes petits moments de la journée.', style: const TextStyle(fontSize: 10.2, color: Color(0xFF6C7771))),
                 const SizedBox(height: 9),
+                if (todayOtherItems.where(_isDateRangePlanItem).isNotEmpty)
+                  _multiDaySection(todayOtherItems.where(_isDateRangePlanItem).toList(), day: today),
                 if (sportBudget > 0 || todaySportItems.isNotEmpty) _sportDayCard(today),
-                if (todayOtherItems.isNotEmpty) ...[
-                  if (sportBudget > 0 || todaySportItems.isNotEmpty) const SizedBox(height: 5),
-                  ...todayOtherItems.map(todayTask),
-                ],
+                if (sportBudget > 0 || todaySportItems.isNotEmpty) const SizedBox(height: 5),
+                ...const ['Matin', 'Après-midi', 'Soir'].map(todayPeriod),
+                const SizedBox(height: 2),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => addUnplannedToDay(today),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Ajouter autre chose'),
+                  ),
+                ),
               ]),
             ),
           ),
@@ -3911,12 +5003,89 @@ String _formatCoachDateTime(DateTime value) {
     );
   }
 
+  DateTime _weekDateForDay(int day) {
+    return _startOfCurrentWeek().add(Duration(days: day));
+  }
+
+  String _weekDateShortLabel(int day) {
+    final date = _weekDateForDay(day);
+    final dd = date.day.toString().padLeft(2, '0');
+    final mm = date.month.toString().padLeft(2, '0');
+    return '$dd/$mm';
+  }
+
+  String _weeklyPlanningMessage(int day) {
+    final date = _weekDateForDay(day);
+    final dayLabel = dayNames[day];
+    final items = itemsForDay(day);
+    final actionable = items.where((item) => !_isDateRangePlanItem(item)).toList();
+    final rangeItems = items.where(_isDateRangePlanItem).toList();
+    final remaining = actionable.where((item) => !item.done).toList();
+    final done = actionable.length - remaining.length;
+    final uniqueActivities = <String>[];
+    final categories = <String>{};
+    for (final item in items) {
+      final activity = item.activityId == null ? null : findActivity(item.activityId!);
+      final name = activity?.name ?? item.title;
+      if (name.trim().isNotEmpty && !uniqueActivities.contains(name)) uniqueActivities.add(name);
+      final category = activity?.category;
+      if (category != null && category.trim().isNotEmpty) categories.add(category);
+    }
+
+    final isToday = day == today;
+    final dayWeather = _weatherForWeekDay(day);
+    final weatherKnown = dayWeather != null;
+    final hasOutdoor = categories.contains('Sortie') || categories.contains('Social');
+    final hasSport = categories.contains('Sport');
+    final hasCulture = categories.contains('Culture') || categories.contains('Loisir');
+
+    String message;
+    if (actionable.isNotEmpty && remaining.isEmpty) {
+      message = '$dayLabel ${date.day} ${_monthName(date.month)} : tout ce qui était prévu est déjà réalisé. Tu peux garder le reste de la journée libre.';
+    } else if (actionable.isEmpty && rangeItems.isNotEmpty) {
+      message = '$dayLabel ${date.day} ${_monthName(date.month)} accompagne une activité sur plusieurs jours. Garde de la souplesse autour de ce rendez-vous.';
+    } else if (actionable.isEmpty) {
+      message = '$dayLabel ${date.day} ${_monthName(date.month)} est encore très libre : profite de cette marge pour choisir selon ton envie.';
+    } else if (uniqueActivities.length == 1) {
+      message = '$dayLabel ${date.day} ${_monthName(date.month)} s’articule surtout autour de ${uniqueActivities.first}.';
+    } else if (uniqueActivities.length <= 3) {
+      final names = uniqueActivities.take(3).join(' · ');
+      message = '$dayLabel ${date.day} ${_monthName(date.month)} : $names. Le planning donne une direction, pas une obligation.';
+    } else {
+      message = '$dayLabel ${date.day} ${_monthName(date.month)} est bien remplie (${uniqueActivities.length} activités prévues). Laisse-toi une marge entre les moments.';
+    }
+
+    if (weatherKnown && (hasOutdoor || hasSport)) {
+      if (dayWeather!.outdoorBad) {
+        message += ' ${dayWeather.icon} ${dayWeather.text}${dayWeather.temperature.isEmpty ? '' : ' · ${dayWeather.temperature}'}. Prévois une formule intérieure ou adapte la sortie selon les conditions.';
+      } else {
+        message += ' ${dayWeather.icon} ${dayWeather.text}${dayWeather.temperature.isEmpty ? '' : ' · ${dayWeather.temperature}'}. La météo paraît favorable pour profiter de l’extérieur.';
+      }
+    } else if (isToday && hasCulture) {
+      message += ' Aujourd’hui, garde aussi un peu de temps pour ce qui te fait plaisir spontanément.';
+    }
+
+    if (done > 0 && remaining.isNotEmpty) {
+      message += ' ✓ $done déjà réalisé(s), ${remaining.length} à venir.';
+    }
+    return message;
+  }
+
+  String _monthName(int month) {
+    const months = <String>[
+      'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+      'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+    ];
+    return months[(month - 1).clamp(0, 11)];
+  }
+
   Widget buildWeek() {
     final trackable = plan.where((p) => p.activityId != null).toList();
     final totalMinutes = trackable.fold<int>(0, (sum, p) => sum + p.duration);
     final selectedDay = _weekSelectedDay >= 0 && _weekSelectedDay < 7 ? _weekSelectedDay : today;
     final selectedItems = itemsForDay(selectedDay);
-    final selectedDone = selectedItems.where((item) => item.done).length;
+    final selectedActionItems = selectedItems.where((item) => !_isDateRangePlanItem(item)).toList();
+    final selectedDone = selectedActionItems.where((item) => item.done).length;
     const periods = ['Matin', 'Après-midi', 'Soir'];
 
     return CustomScrollView(
@@ -3975,7 +5144,7 @@ String _formatCoachDateTime(DateTime value) {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: SizedBox(
-              height: 82,
+              height: 86,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 1),
@@ -3984,7 +5153,7 @@ String _formatCoachDateTime(DateTime value) {
                 itemBuilder: (context, day) {
                   final isSelected = day == selectedDay;
                   final isToday = day == today;
-                  final dayItems = itemsForDay(day);
+                  final dayItems = actionableItemsForDay(day);
                   final done = dayItems.where((item) => item.done).length;
                   return GestureDetector(
                     onTap: () => setState(() => _weekSelectedDay = day),
@@ -4015,17 +5184,26 @@ String _formatCoachDateTime(DateTime value) {
                               color: isSelected ? const Color(0xFF526B78) : const Color(0xFF727977),
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
+                          Text(
+                            _weekDateShortLabel(day),
+                            style: TextStyle(
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w800,
+                              color: isToday ? const Color(0xFFC67E67) : const Color(0xFF8A8D88),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
                           Text(
                             '${dayItems.length}',
                             style: TextStyle(
-                              fontSize: 19,
+                              fontSize: 18,
                               height: 1,
                               fontWeight: FontWeight.w900,
                               color: isSelected ? const Color(0xFF33414A) : const Color(0xFF596563),
                             ),
                           ),
-                          const SizedBox(height: 3),
+                          const SizedBox(height: 2),
                           Text(
                             done == 0 ? (isToday ? 'aujourd’hui' : 'à faire') : '$done ✓',
                             maxLines: 1,
@@ -4054,13 +5232,21 @@ String _formatCoachDateTime(DateTime value) {
                 padding: const EdgeInsets.fromLTRB(15, 14, 15, 12),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Icon(Icons.self_improvement_outlined, color: Color(0xFF6F8E80), size: 21),
-                    SizedBox(width: 10),
+                  children: [
+                    Icon(
+                      selectedDay == today && _weatherText.isNotEmpty
+                          ? (_weatherText.toLowerCase().contains('pluie') || _weatherText.toLowerCase().contains('averse') || _weatherText.toLowerCase().contains('orage') || _weatherText.toLowerCase().contains('neige')
+                              ? Icons.umbrella_outlined
+                              : Icons.self_improvement_outlined)
+                          : Icons.self_improvement_outlined,
+                      color: const Color(0xFF6F8E80),
+                      size: 21,
+                    ),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Le planning est un cadre, pas une obligation. Garde du temps pour l’envie, la météo et les imprévus.',
-                        style: TextStyle(fontSize: 12.5, height: 1.35, fontWeight: FontWeight.w600),
+                        _weeklyPlanningMessage(selectedDay),
+                        style: const TextStyle(fontSize: 12.5, height: 1.35, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -4107,6 +5293,8 @@ String _formatCoachDateTime(DateTime value) {
                         ),
                       ],
                     ),
+                    if (selectedItems.where(_isDateRangePlanItem).isNotEmpty)
+                      _multiDaySection(selectedItems.where(_isDateRangePlanItem).toList(), day: selectedDay),
                     const SizedBox(height: 2),
                     _dayMood(selectedDay),
                     const SizedBox(height: 9),
@@ -4116,7 +5304,7 @@ String _formatCoachDateTime(DateTime value) {
                           child: Text(
                             selectedItems.isEmpty
                                 ? 'Journée libre'
-                                : '$selectedDone / ${selectedItems.length} moment(s) validé(s)',
+                                : '$selectedDone / ${selectedActionItems.length} moment(s) validé(s)',
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF65706D)),
                           ),
                         ),
@@ -4135,6 +5323,7 @@ String _formatCoachDateTime(DateTime value) {
                     ...periods.map((period) {
                       final periodItems = selectedItems.where((item) {
                         if (item.period != period) return false;
+                        if (_isDateRangePlanItem(item)) return false;
                         if (item.activityId != null) {
                           final activity = findActivity(item.activityId!);
                           if (activity != null && _isSportActivity(activity)) return false;
@@ -4178,7 +5367,7 @@ String _formatCoachDateTime(DateTime value) {
                             );
                           },
                         ),
-                      );;
+                      );
                     }),
                     const SizedBox(height: 2),
                     Align(
@@ -4221,67 +5410,129 @@ String _formatCoachDateTime(DateTime value) {
     }).toList();
   }
 
+  int _historyActivityCount(Activity activity, {int days = 30}) {
+    return _recentHistory(days).where((log) => _logMatchesActivity(log, activity)).length;
+  }
+
+  double _historyPlanningScore(Activity activity, int day) {
+    // Sans historique, on conserve quasiment le comportement précédent.
+    final recent30 = _recentHistory(30)
+        .where((log) => _logMatchesActivity(log, activity))
+        .toList();
+    if (recent30.isEmpty) {
+      return activity.preferredDays.contains(day) ? 3.0 : 0.0;
+    }
+
+    final now = DateTime.now();
+    recent30.sort((a, b) => b.date.compareTo(a.date));
+    final last = recent30.first;
+    final daysSinceLast = max(0, now.difference(last.date).inDays);
+    final target30 = max(1.0, activity.frequency * 30.0 / 7.0);
+    final actual30 = recent30.length.toDouble();
+    final deficit = max(0.0, target30 - actual30);
+
+    var score = min(deficit, 7.0) * 1.8;
+
+    // Ce qui vient d’être fait remonte moins vite ; ce qui n’a pas été fait
+    // depuis un moment remonte naturellement dans le prochain planning.
+    score += min(daysSinceLast, 21) * 0.22;
+    if (daysSinceLast <= 2) score -= 2.5;
+
+    final difficult = recent30.where((l) => l.feeling == 'Difficile').length;
+    final veryGood = recent30.where((l) => l.feeling == 'Très bien').length;
+    score -= min(difficult, 3) * 1.1;
+    score += min(veryGood, 3) * 0.25;
+
+    // Tendance récente : si une activité a disparu des 7 derniers jours
+    // alors qu'elle était présente avant, elle remonte doucement. À l'inverse,
+    // une activité déjà très présente cette semaine descend un peu.
+    final recent7 = recent30.where((log) => now.difference(log.date).inDays < 7).length;
+    final previous7 = recent30.where((log) {
+      final age = now.difference(log.date).inDays;
+      return age >= 7 && age < 14;
+    }).length;
+    if (previous7 > 0 && recent7 == 0) score += 2.2;
+    if (recent7 >= 2) score -= 0.7 * (recent7 - 1);
+
+    // Le coach apprend aussi les jours réellement utilisés, sans supprimer
+    // les jours préférés définis par l’utilisateur.
+    final sameDay = recent30.where((l) => l.day == day).length;
+    final dayRatio = sameDay / recent30.length;
+    if (recent30.length >= 2) score += dayRatio * 1.8;
+    if (activity.preferredDays.contains(day)) score += 3.0;
+
+    // Une activité déjà suffisamment présente sur les 30 derniers jours ne
+    // devient pas prioritaire uniquement parce qu’elle est ancienne.
+    if (actual30 > target30 * 1.20) score -= 3.0;
+    return score;
+  }
+
   String _todayFocus() {
-    final todayItems = itemsForDay(today);
-    final todayActivities = todayItems
+    final todayItems = actionableItemsForDay(today);
+    final remaining = todayItems.where((item) => !item.done).toList();
+    final allActivities = remaining
         .map((item) => item.activityId == null ? null : findActivity(item.activityId!))
         .whereType<Activity>()
         .toList();
 
-    final hasSport = todayActivities.any((a) => a.category == 'Sport');
-    final hasPiano = todayActivities.any((a) =>
-        a.name.toLowerCase().contains('piano') ||
-        a.category == 'Culture' && a.name.toLowerCase().contains('piano'));
-    final hasCulture = todayActivities.any((a) => a.category == 'Culture');
-    final hasWellness = todayActivities.any((a) => a.category == 'Bien-être');
-    final hasOuting = todayActivities.any((a) => a.category == 'Sortie' || a.category == 'Social');
+    if (todayItems.isNotEmpty && remaining.isEmpty) {
+      return 'Journée accomplie ✨';
+    }
 
-    // Le focus part d'abord de ce qui est réellement prévu aujourd'hui, puis
-    // varie légèrement la formulation pour éviter l'impression d'un slogan fixe.
-    if (hasSport) {
-      const variants = ['Bouger avec plaisir', 'Mouvement & énergie', 'Prendre soin de son corps'];
-      return variants[_focusVariant % variants.length];
+    final weather = _weatherForWeekDay(today);
+    final hasOutdoor = allActivities.any((a) => a.category == 'Sortie' || a.category == 'Social');
+    final hasSport = allActivities.any((a) => a.category == 'Sport');
+    final hasPiano = allActivities.any((a) => a.name.toLowerCase().contains('piano'));
+    final hasWellness = allActivities.any((a) => a.category == 'Bien-être');
+
+    if (weather?.outdoorBad == true && (hasOutdoor || hasSport)) {
+      return 'Adapter la journée à la météo 🌦️';
     }
-    if (hasPiano) {
-      const variants = ['Quelques notes qui font du bien', 'Piano & plaisir', 'Un moment pour la musique'];
-      return variants[_focusVariant % variants.length];
-    }
-    if (hasWellness) {
-      const variants = ['Douceur & bien-être', 'Prendre soin de soi', 'Respirer et ralentir'];
-      return variants[_focusVariant % variants.length];
-    }
-    if (hasCulture) {
-      const variants = ['Curiosité & découverte', 'Nourrir l’esprit', 'Culture & plaisir'];
-      return variants[_focusVariant % variants.length];
-    }
-    if (hasOuting) {
-      const variants = ['Sortir & profiter', 'Découverte & plaisir', 'Une journée qui bouge'];
-      return variants[_focusVariant % variants.length];
+    // Après chaque validation, le focus bascule naturellement vers ce qui
+    // reste à vivre aujourd'hui, en privilégiant la priorité de l'activité.
+    if (allActivities.isNotEmpty) {
+      allActivities.sort((a, b) {
+        final p = b.priority.compareTo(a.priority);
+        if (p != 0) return p;
+        return a.name.compareTo(b.name);
+      });
+      final next = allActivities.first;
+      if (hasPiano && next.name.toLowerCase().contains('piano')) return 'Quelques notes qui font du bien 🎵';
+      if (hasWellness && next.category == 'Bien-être') return 'Prendre soin de soi 🌿';
+      if (hasSport && next.category == 'Sport') return weather == null ? 'Bouger avec plaisir 💪' : 'Bouger au bon moment 💪';
+      if (next.category == 'Culture') return 'Curiosité & découverte 📚';
+      if (next.category == 'Sortie' || next.category == 'Social') return 'Sortir & profiter ☀️';
+      return next.name;
     }
 
     final recent = _recentHistory(14);
     final difficult = recent.where((log) => log.feeling == 'Difficile').length;
-    if (difficult >= 2) return 'Récupération & rythme doux';
+    if (difficult >= 2) return 'Récupération & rythme doux 🌿';
     return _baseDayMood(today);
   }
 
   String _todayFocusReason() {
-    final todayItems = itemsForDay(today);
-    final todayActivities = todayItems
-        .map((item) => item.activityId == null ? null : findActivity(item.activityId!))
-        .whereType<Activity>()
-        .toList();
-    if (todayActivities.isNotEmpty) {
-      final names = todayActivities.map((a) => a.name).toSet().take(2).join(' · ');
-      if (names.isNotEmpty) {
-        return 'Le focus suit ce qui est prévu aujourd’hui : $names.';
-      }
+    final todayItems = actionableItemsForDay(today);
+    final remaining = todayItems.where((item) => !item.done).toList();
+    final done = todayItems.length - remaining.length;
+    if (todayItems.isNotEmpty && remaining.isEmpty) {
+      return 'Tous les moments actifs prévus aujourd’hui sont terminés. Le reste de la journée est à toi.';
     }
-    final recent = _recentHistory(14);
-    if (recent.isEmpty) return 'J’adapte le focus à la journée prévue, sans chercher à tout remplir.';
-    final difficult = recent.where((log) => log.feeling == 'Difficile').length;
-    if (difficult >= 2) return 'Plusieurs moments difficiles récemment : aujourd’hui, priorité à une journée plus douce.';
-    return 'Le programme est léger aujourd’hui : profite de ce temps pour avancer à ton rythme.';
+    final weather = _weatherForWeekDay(today);
+    final outdoor = remaining.any((item) {
+      final a = item.activityId == null ? null : findActivity(item.activityId!);
+      return a != null && (a.category == 'Sortie' || a.category == 'Social' || a.category == 'Sport');
+    });
+    if (weather?.outdoorBad == true && outdoor) {
+      return '${weather!.icon} ${weather.text}${weather.temperature.isEmpty ? '' : ' · ${weather.temperature}'}. Le focus s’adapte pour préserver les activités extérieures.';
+    }
+    final names = remaining.map((item) => item.title).where((s) => s.trim().isNotEmpty).take(2).join(' · ');
+    if (names.isNotEmpty) {
+      return done > 0
+          ? 'Déjà $done moment(s) validé(s). Il reste maintenant : $names.'
+          : 'Le focus suit ce qui est réellement prévu maintenant : $names.';
+    }
+    return 'J’adapte le focus à ce qui reste de la journée, sans chercher à tout remplir.';
   }
 
   Widget _dayMood(int day) {
@@ -4538,9 +5789,11 @@ String _formatCoachDateTime(DateTime value) {
                                 Text(
                                   a.isSportProgram
                                       ? 'Programme Sport · ${a.sportDailyDurations.values.where((v) => v > 0).fold<int>(0, (s, v) => s + v)} min/sem.'
-                                      : a.category == 'Sport'
-                                          ? '${a.category} · ${a.duration} min · ${a.frequency}×/sem.'
-                                          : '${a.category} · ${a.period} · ${a.frequency}×/sem.',
+                                      : a.isDateRange
+                                          ? '${a.category} · ${_dateRangeLabel(a)}'
+                                          : a.category == 'Sport'
+                                              ? '${a.category} · ${a.duration} min · ${a.frequency}×/sem.'
+                                              : '${a.category} · ${a.period} · ${a.frequency}×/sem.',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(fontSize: 11.5, color: Color(0xFF6F7777)),
@@ -5977,13 +7230,19 @@ class _InfoSheet extends StatelessWidget {
 
 class _DataPage extends StatelessWidget {
   final VoidCallback onExport;
+  final Future<void> Function() onICloudExport;
   final Future<bool> Function() onImport;
   final Future<void> Function() onReset;
+  final String cloudBackupStatus;
+  final int cloudReminderDays;
 
   const _DataPage({
     required this.onExport,
+    required this.onICloudExport,
     required this.onImport,
     required this.onReset,
+    required this.cloudBackupStatus,
+    required this.cloudReminderDays,
   });
 
   Future<void> _import(BuildContext context) async {
@@ -6044,6 +7303,32 @@ class _DataPage extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Card(
+            color: const Color(0xFFEFF4FC),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('☁️ Sauvegarde iCloud', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                const SizedBox(height: 7),
+                Text(
+                  'La sauvegarde locale est automatique. Une copie iCloud est volontaire, recommandée tous les $cloudReminderDays jours.',
+                  style: const TextStyle(height: 1.3),
+                ),
+                const SizedBox(height: 5),
+                Text(cloudBackupStatus, style: const TextStyle(fontSize: 11, color: Color(0xFF697585))),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: onICloudExport,
+                    icon: const Icon(Icons.cloud_upload_outlined),
+                    label: const Text('Sauvegarder maintenant sur iCloud'),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -6089,64 +7374,920 @@ class _DataPage extends StatelessWidget {
   }
 }
 
-class _HistorySheet extends StatelessWidget {
-  final List<ActivityLog> logs;
-  final List<String> dayNames;
 
-  const _HistorySheet({required this.logs, required this.dayNames});
+
+class _HomeMascotChoice {
+  final String kind;
+  final String emoji;
+
+  const _HomeMascotChoice({required this.kind, this.emoji = '🧸'});
+}
+
+class _HomeMascotSheet extends StatelessWidget {
+  final String currentKind;
+  final String currentEmoji;
+
+  const _HomeMascotSheet({required this.currentKind, required this.currentEmoji});
+
+  static const _emojis = [
+    '🧸', '🐼', '🐨', '🐱', '🐶', '🦊', '🐰', '🐻',
+    '🦋', '🐝', '🌿', '🌸', '🌳', '☀️', '🌈', '🎵',
+    '🎨', '📚', '🚶', '🚲', '☕', '❤️',
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final sorted = [...logs]..sort((a, b) => b.date.compareTo(a.date));
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(18, 8, 18, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Personnaliser la mascotte', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45))),
+            const SizedBox(height: 5),
+            const Text('L’Ourson reste le choix par défaut. Tu peux le remplacer par une icône ou une photo.', style: TextStyle(fontSize: 12.5, color: Color(0xFF6F7777))),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.pop(context, const _HomeMascotChoice(kind: 'ourson')),
+                icon: const Text('🧸', style: TextStyle(fontSize: 21)),
+                label: const Align(alignment: Alignment.centerLeft, child: Text('Ourson MyBestWeek')),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  side: BorderSide(color: currentKind == 'ourson' ? const Color(0xFF7D988D) : const Color(0xFFD9D5CB), width: currentKind == 'ourson' ? 1.7 : 1),
+                  backgroundColor: currentKind == 'ourson' ? const Color(0xFFEAF6EE) : null,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text('Icônes', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF5E6B65))),
+            const SizedBox(height: 7),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _emojis.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 6, crossAxisSpacing: 7, mainAxisSpacing: 7),
+              itemBuilder: (context, index) {
+                final emoji = _emojis[index];
+                final selected = currentKind == 'emoji' && currentEmoji == emoji;
+                return InkWell(
+                  onTap: () => Navigator.pop(context, _HomeMascotChoice(kind: 'emoji', emoji: emoji)),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: selected ? const Color(0xFFEAF6EE) : const Color(0xFFFFFCF7),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: selected ? const Color(0xFF7D988D) : const Color(0xFFE2DCD3), width: selected ? 1.6 : 1),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(emoji, style: const TextStyle(fontSize: 23)),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => Navigator.pop(context, const _HomeMascotChoice(kind: 'photo')),
+                icon: const Icon(Icons.photo_library_outlined),
+                label: const Text('Choisir une photo sur l’appareil'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeIdentityResult {
+  final String name;
+  final String city;
+
+  const _HomeIdentityResult({required this.name, required this.city});
+}
+
+class _HomeIdentitySheet extends StatefulWidget {
+  final String initialName;
+  final String initialCity;
+
+  const _HomeIdentitySheet({required this.initialName, required this.initialCity});
+
+  @override
+  State<_HomeIdentitySheet> createState() => _HomeIdentitySheetState();
+}
+
+class _HomeIdentitySheetState extends State<_HomeIdentitySheet> {
+  late final TextEditingController nameController;
+  late final TextEditingController cityController;
+
+  @override
+  void initState() {
+    super.initState();
+    nameController = TextEditingController(text: widget.initialName);
+    cityController = TextEditingController(text: widget.initialCity);
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    cityController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(18, 8, 18, 18 + MediaQuery.viewInsetsOf(context).bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Personnaliser l’accueil', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45))),
+            const SizedBox(height: 6),
+            const Text('Ces informations servent uniquement à personnaliser ton accueil et la météo affichée.', style: TextStyle(fontSize: 12.5, color: Color(0xFF6F7777))),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameController,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                labelText: 'Prénom ou nom affiché',
+                hintText: 'Ex. Alain',
+                prefixIcon: const Icon(Icons.person_outline_rounded),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: cityController,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                labelText: 'Ville pour la météo',
+                hintText: 'Ex. Sarlat-la-Canéda',
+                prefixIcon: const Icon(Icons.location_on_outlined),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler'))),
+                const SizedBox(width: 10),
+                Expanded(child: FilledButton(onPressed: () => Navigator.pop(context, _HomeIdentityResult(name: nameController.text.trim(), city: cityController.text.trim())), child: const Text('Enregistrer'))),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HistorySheet extends StatefulWidget {
+  final List<ActivityLog> logs;
+  final List<Activity> activities;
+  final List<String> dayNames;
+
+  const _HistorySheet({
+    required this.logs,
+    required this.activities,
+    required this.dayNames,
+  });
+
+  @override
+  State<_HistorySheet> createState() => _HistorySheetState();
+}
+
+class _HistorySheetState extends State<_HistorySheet> {
+  String _historyFilter = 'Tout';
+  String _memoryFilter = 'Toutes';
+  String _memoryType = 'Tous';
+  String _memorySort = 'Besoin';
+
+  List<ActivityLog> _filteredLogs() {
+    final now = DateTime.now();
+    DateTime? cutoff;
+    switch (_historyFilter) {
+      case '1 mois':
+        cutoff = now.subtract(const Duration(days: 30));
+        break;
+      case '3 mois':
+        cutoff = now.subtract(const Duration(days: 90));
+        break;
+      case '1 an':
+        cutoff = now.subtract(const Duration(days: 365));
+        break;
+      case 'Tout':
+      default:
+        cutoff = null;
+    }
+
+    final filtered = cutoff == null
+        ? [...widget.logs]
+        : widget.logs.where((log) => !log.date.isBefore(cutoff!)).toList();
+    filtered.sort((a, b) => b.date.compareTo(a.date));
+    return filtered;
+  }
+
+  List<ActivityLog> _logsForDays(int days) {
+    final cutoff = DateTime.now().subtract(Duration(days: days));
+    return widget.logs.where((log) => !log.date.isBefore(cutoff)).toList();
+  }
+
+  int _countFor(Activity activity, int days) =>
+      _logsForDays(days).where((log) =>
+          (log.activityId != null && log.activityId == activity.id) ||
+          (log.activityId == null &&
+              log.title.trim().toLowerCase() == activity.name.trim().toLowerCase())).length;
+
+  String _durationLabel(int minutes) {
+    if (minutes < 60) return '$minutes min';
+    final hours = minutes ~/ 60;
+    final rest = minutes % 60;
+    return rest == 0 ? '${hours} h' : '${hours} h ${rest}';
+  }
+
+  String _dayLabelFromLogs(List<ActivityLog> source) {
+    if (source.isEmpty) return '—';
+    final counts = <int, int>{};
+    for (final log in source) {
+      counts[log.day] = (counts[log.day] ?? 0) + 1;
+    }
+    final best = counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+    return best >= 0 && best < widget.dayNames.length ? widget.dayNames[best] : '—';
+  }
+
+  String _categoryLabel(List<ActivityLog> source) {
+    if (source.isEmpty) return '—';
+    final counts = <String, int>{};
+    for (final log in source) {
+      counts[log.category] = (counts[log.category] ?? 0) + 1;
+    }
+    return counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+  }
+
+  Activity? _mostFrequentActivity(List<ActivityLog> source) {
+    if (source.isEmpty) return null;
+    final counts = <String, int>{};
+    for (final log in source) {
+      final key = log.activityId ?? 'title:${log.title.trim().toLowerCase()}';
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    final bestKey = counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+    for (final a in widget.activities) {
+      if (a.id == bestKey) return a;
+    }
+    final match = source.firstWhere((l) => (l.activityId ?? 'title:${l.title.trim().toLowerCase()}') == bestKey);
+    return Activity(
+      id: 'history_${bestKey.hashCode}',
+      name: match.title,
+      emoji: match.emoji,
+      category: match.category,
+      period: match.period,
+      duration: match.plannedMinutes,
+      frequency: 1,
+      priority: 1,
+    );
+  }
+
+  List<Activity> _underTargetActivities() {
+    const days = 30;
+    final result = <Activity>[];
+    for (final activity in widget.activities) {
+      if (!activity.activeInSportRotation && activity.category == 'Sport') continue;
+      final expected = activity.frequency.clamp(1, 7) * days / 7.0;
+      final actual = _countFor(activity, days);
+      if (actual < expected * .65) result.add(activity);
+    }
+    result.sort((a, b) {
+      final da = a.frequency * days / 7.0 - _countFor(a, days);
+      final db = b.frequency * days / 7.0 - _countFor(b, days);
+      return db.compareTo(da);
+    });
+    return result.take(4).toList();
+  }
+
+  List<Activity> _wellAnchoredActivities() {
+    const days = 30;
+    final result = <Activity>[];
+    for (final activity in widget.activities) {
+      final expected = activity.frequency.clamp(1, 7) * days / 7.0;
+      final actual = _countFor(activity, days);
+      if (actual > 0 && actual >= expected * .80) result.add(activity);
+    }
+    result.sort((a, b) => _countFor(b, days).compareTo(_countFor(a, days)));
+    return result.take(4).toList();
+  }
+
+  Widget _metric(String label, String value, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(11),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F1E8),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 19, color: const Color(0xFF6F8E80)),
+            const SizedBox(height: 6),
+            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF33414A))),
+            const SizedBox(height: 2),
+            Text(label, style: const TextStyle(fontSize: 10.5, color: Color(0xFF6F7777))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _insightTile({required String title, required String text, required IconData icon}) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE5EEE9),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 17, color: const Color(0xFF6F8E80)),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(text, style: const TextStyle(fontSize: 12.3, color: Color(0xFF606B6A), height: 1.3)),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  double _adherenceFor(Activity activity, int days) {
+    final expected = activity.frequency.clamp(1, 7) * days / 7.0;
+    if (expected <= 0) return 0;
+    return (_countFor(activity, days) / expected).clamp(0.0, 1.0);
+  }
+
+  String _lastDoneLabel(Activity activity, int days) {
+    final logs = _logsForDays(days)
+        .where((log) => (log.activityId != null && log.activityId == activity.id) ||
+            (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase()))
+        .toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    if (logs.isEmpty) return 'Jamais sur cette période';
+    final age = max(0, DateTime.now().difference(logs.first.date).inDays);
+    return age == 0 ? 'Aujourd’hui' : age == 1 ? 'Hier' : 'Il y a $age j';
+  }
+
+  String _habitualDay(Activity activity, int days) {
+    final source = _logsForDays(days).where((log) =>
+        (log.activityId != null && log.activityId == activity.id) ||
+        (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase())).toList();
+    if (source.isEmpty) return '—';
+    final counts = <int, int>{};
+    for (final log in source) {
+      counts[log.day] = (counts[log.day] ?? 0) + 1;
+    }
+    final best = counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+    return best >= 0 && best < widget.dayNames.length ? widget.dayNames[best] : '—';
+  }
+
+  DateTime? _lastDateFor(Activity activity, int days) {
+    DateTime? latest;
+    for (final log in _logsForDays(days)) {
+      final matches = (log.activityId != null && log.activityId == activity.id) ||
+          (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase());
+      if (!matches) continue;
+      if (latest == null || log.date.isAfter(latest)) latest = log.date;
+    }
+    return latest;
+  }
+
+  bool _memoryMatches(Activity activity) {
+    final done = _countFor(activity, 30);
+    final adherence = _adherenceFor(activity, 30);
+    if (_memoryType != 'Tous' && activity.category != _memoryType) return false;
+    switch (_memoryFilter) {
+      case 'À surveiller':
+        return adherence < .65;
+      case 'Bien installées':
+        return done > 0 && adherence >= .80;
+      case 'Jamais réalisées':
+        return done == 0;
+      case 'Toutes':
+      default:
+        return true;
+    }
+  }
+
+  List<String> _memoryTypes() {
+    final types = widget.activities
+        .map((a) => a.category.trim())
+        .where((category) => category.isNotEmpty)
+        .toSet()
+        .toList();
+    types.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return types;
+  }
+
+  List<Activity> _memoryActivities() {
+    final visible = widget.activities.where(_memoryMatches).toList();
+    visible.sort((a, b) {
+      switch (_memorySort) {
+        case 'Dernière réalisation':
+          final ad = _lastDateFor(a, 30);
+          final bd = _lastDateFor(b, 30);
+          if (ad == null && bd == null) return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          if (ad == null) return -1;
+          if (bd == null) return 1;
+          return bd.compareTo(ad);
+        case 'Fréquence réelle':
+          final countCompare = _countFor(b, 30).compareTo(_countFor(a, 30));
+          if (countCompare != 0) return countCompare;
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        case 'Écart à l’objectif':
+          final gapA = a.frequency.clamp(1, 7) * 30 / 7.0 - _countFor(a, 30);
+          final gapB = b.frequency.clamp(1, 7) * 30 / 7.0 - _countFor(b, 30);
+          final gapCompare = gapB.compareTo(gapA);
+          if (gapCompare != 0) return gapCompare;
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        case 'Nom':
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        case 'Besoin':
+        default:
+          final adherenceCompare = _adherenceFor(a, 30).compareTo(_adherenceFor(b, 30));
+          if (adherenceCompare != 0) return adherenceCompare;
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      }
+    });
+    return visible;
+  }
+
+  Widget _activityMemoryRow(Activity activity) {
+    final done = _countFor(activity, 30);
+    final expected = activity.frequency.clamp(1, 7) * 30 / 7.0;
+    final ratio = _adherenceFor(activity, 30);
+    return InkWell(
+      onTap: () => _showActivityMemory(activity),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Row(children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: const Color(0xFFE7EDF0),
+            child: Text(activity.emoji, style: const TextStyle(fontSize: 16)),
+          ),
+          const SizedBox(width: 9),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(activity.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12.3, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(5),
+              child: LinearProgressIndicator(
+                minHeight: 6,
+                value: ratio,
+                backgroundColor: const Color(0xFFE4E5E1),
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text('$done / ${expected.round()} · ${(_adherenceFor(activity, 30) * 100).round()} % · ${_lastDoneLabel(activity, 30)}',
+                style: const TextStyle(fontSize: 10.5, color: Color(0xFF737C7B))),
+          ])),
+          const SizedBox(width: 5),
+          const Icon(Icons.chevron_right, size: 19, color: Color(0xFF8A9491)),
+        ]),
+      ),
+    );
+  }
+
+  void _showActivityMemory(Activity activity) {
+    final last30 = _logsForDays(30).where((log) =>
+        (log.activityId != null && log.activityId == activity.id) ||
+        (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase())).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    final realised = last30.fold<int>(0, (sum, log) => sum + log.realisedMinutes);
+    final planned = last30.fold<int>(0, (sum, log) => sum + log.plannedMinutes);
+    final difficult = last30.where((log) => log.feeling == 'Difficile').length;
+    final veryGood = last30.where((log) => log.feeling == 'Très bien').length;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              CircleAvatar(radius: 24, backgroundColor: const Color(0xFFE7EDF0), child: Text(activity.emoji, style: const TextStyle(fontSize: 21))),
+              const SizedBox(width: 10),
+              Expanded(child: Text(activity.name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900))),
+            ]),
+            const SizedBox(height: 14),
+            Text('Mémoire sur 30 jours', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            Text('Réalisée ${last30.length} fois · prévue environ ${ (activity.frequency.clamp(1, 7) * 30 / 7.0).round()} fois.', style: const TextStyle(fontSize: 12.3)),
+            const SizedBox(height: 5),
+            Text('Dernière réalisation : ${_lastDoneLabel(activity, 30)} · jour habituel : ${_habitualDay(activity, 30)}.', style: const TextStyle(fontSize: 12.3)),
+            const SizedBox(height: 5),
+            Text('Temps : ${_durationText(realised)} réalisés', style: const TextStyle(fontSize: 12.3)),
+            if (planned > 0) ...[
+              const SizedBox(height: 5),
+              Text('Écart sur les séances enregistrées : ${realised - planned >= 0 ? '+' : ''}${realised - planned} min.', style: const TextStyle(fontSize: 12.3)),
+            ],
+            if (difficult > 0 || veryGood > 0) ...[
+              const SizedBox(height: 5),
+              Text('Ressentis : ${veryGood > 0 ? 'Très bien $veryGood' : ''}${veryGood > 0 && difficult > 0 ? ' · ' : ''}${difficult > 0 ? 'Difficile $difficult' : ''}.', style: const TextStyle(fontSize: 12.3)),
+            ],
+            const SizedBox(height: 14),
+            SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Fermer'))),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  String _durationText(int minutes) {
+    if (minutes < 60) return '$minutes min';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    return m == 0 ? '${h} h' : '${h} h ${m.toString().padLeft(2, '0')}';
+  }
+
+  Widget _analysisCard() {
+    final last7 = _logsForDays(7);
+    final last30 = _logsForDays(30);
+    final minutes7 = last7.fold<int>(0, (sum, log) => sum + log.realisedMinutes);
+    final minutes30 = last30.fold<int>(0, (sum, log) => sum + log.realisedMinutes);
+    final activeDays = last7.map((l) => l.date.year * 10000 + l.date.month * 100 + l.date.day).toSet().length;
+    final avgWeek = (last30.length * 7 / 30).toStringAsFixed(1).replaceAll('.', ',');
+    final busiestDay = _dayLabelFromLogs(last30);
+    final topCategory = _categoryLabel(last30);
+    final topActivity = _mostFrequentActivity(last30);
+    final under = _underTargetActivities();
+    final anchored = _wellAnchoredActivities();
+
+    return Column(
+      children: [
+        Card(
+          color: const Color(0xFFE9EEE9),
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Text('🧸', style: TextStyle(fontSize: 23)),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Ce que ton historique apprend', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+              ]),
+              const SizedBox(height: 11),
+              Row(children: [
+                _metric('moments · 7 j', '${last7.length}', Icons.check_circle_outline),
+                const SizedBox(width: 7),
+                _metric('temps · 7 j', _durationLabel(minutes7), Icons.timer_outlined),
+                const SizedBox(width: 7),
+                _metric('jours actifs · 7 j', '$activeDays/7', Icons.calendar_month_outlined),
+              ]),
+              const SizedBox(height: 7),
+              Text('Sur 30 jours : ${last30.length} moments · ${_durationLabel(minutes30)} · $avgWeek moments/semaine en moyenne.', style: const TextStyle(fontSize: 11.7, color: Color(0xFF65706F))),
+              const SizedBox(height: 5),
+              Text('Tu réalises surtout tes activités le $busiestDay et la catégorie la plus présente est « $topCategory ».', style: const TextStyle(fontSize: 12.1, height: 1.3)),
+              if (topActivity != null) ...[
+                const SizedBox(height: 5),
+                Text('Ton activité la plus régulière sur 30 jours : ${topActivity.name}.', style: const TextStyle(fontSize: 12.1, fontWeight: FontWeight.w700)),
+              ],
+            ]),
+          ),
+        ),
+        const SizedBox(height: 9),
+        Card(
+          color: const Color(0xFFF3EEE4),
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.tune_outlined, color: Color(0xFFC67E67)),
+                const SizedBox(width: 8),
+                Text('À faire évoluer', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+              ]),
+              const SizedBox(height: 6),
+              if (under.isEmpty)
+                const Text('Aucune activité ne présente un écart important sur les 30 derniers jours.', style: TextStyle(fontSize: 12.2, color: Color(0xFF697271)))
+              else
+                ...under.map((a) => _insightTile(
+                      title: '${a.emoji} ${a.name}',
+                      text: 'Prévue ${a.frequency}×/sem. · réalisée ${_countFor(a, 30)}× sur 30 jours. Elle mérite d’être davantage visible dans le planning.',
+                      icon: Icons.trending_down_outlined,
+                    )),
+              if (anchored.isNotEmpty) ...[
+                const SizedBox(height: 11),
+                const Text('Bien ancrées', style: TextStyle(fontWeight: FontWeight.w900)),
+                ...anchored.map((a) => _insightTile(
+                      title: '${a.emoji} ${a.name}',
+                      text: 'Rythme bien installé : ${_countFor(a, 30)} réalisation(s) sur les 30 derniers jours.',
+                      icon: Icons.check_circle_outline,
+                    )),
+              ],
+            ]),
+          ),
+        ),
+        const SizedBox(height: 9),
+        Card(
+          color: const Color(0xFFF7F3EA),
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.auto_graph_outlined, color: Color(0xFF7D988D)),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Mémoire par activité', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                Text('${_memoryActivities().length}/${widget.activities.length}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF77746D))),
+              ]),
+              const SizedBox(height: 7),
+              const Text('Toutes tes activités ont une mémoire. Touche une ligne pour voir le détail sur 30 jours.', style: TextStyle(fontSize: 11.7, color: Color(0xFF687271), height: 1.3)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: ['Toutes', 'À surveiller', 'Bien installées', 'Jamais réalisées'].map((value) => ChoiceChip(
+                      label: Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                      selected: _memoryFilter == value,
+                      onSelected: (_) => setState(() => _memoryFilter = value),
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    )).toList(),
+              ),
+              const SizedBox(height: 8),
+              const Text('Type d’activité', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF606B6A))),
+              const SizedBox(height: 5),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final value in <String>['Tous', ..._memoryTypes()])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ChoiceChip(
+                          label: Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                          selected: _memoryType == value,
+                          onSelected: (_) => setState(() => _memoryType = value),
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 7),
+              Row(
+                children: [
+                  const Text('Trier par', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF606B6A))),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _memorySort,
+                        isDense: true,
+                        items: const [
+                          DropdownMenuItem(value: 'Besoin', child: Text('Besoin')),
+                          DropdownMenuItem(value: 'Dernière réalisation', child: Text('Dernière réalisation')),
+                          DropdownMenuItem(value: 'Fréquence réelle', child: Text('Fréquence réelle')),
+                          DropdownMenuItem(value: 'Écart à l’objectif', child: Text('Écart à l’objectif')),
+                          DropdownMenuItem(value: 'Nom', child: Text('Nom')),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) setState(() => _memorySort = value);
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              ..._memoryActivities().map(_activityMemoryRow),
+              if (_memoryActivities().isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text('Aucune activité dans ce filtre.', style: TextStyle(fontSize: 12, color: Color(0xFF6F7777))),
+                ),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 9),
+        Card(
+          color: const Color(0xFFE7EDF0),
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.psychology_outlined, color: Color(0xFF526B78)),
+                const SizedBox(width: 8),
+                Text('Ce que le coach retient', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+              ]),
+              const SizedBox(height: 8),
+              const Text(
+                'Le prochain planning tient compte de la mémoire des 30 derniers jours : délai depuis la dernière réalisation, fréquence réelle, jours où l’activité est habituellement réalisée et ressentis difficiles ou très positifs.',
+                style: TextStyle(fontSize: 12.2, height: 1.35),
+              ),
+              const SizedBox(height: 7),
+              const Text(
+                'Le coach ne remplace pas tes priorités ni tes jours préférés : l’historique sert à départager les possibilités et à éviter les répétitions inutiles.',
+                style: TextStyle(fontSize: 11.8, color: Color(0xFF687372), height: 1.3),
+              ),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _historyLogCard(ActivityLog log) {
+    final date = log.date;
+    final dateLabel =
+        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} · ${date.hour.toString().padLeft(2, '0')}h${date.minute.toString().padLeft(2, '0')}';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Card(
+        child: InkWell(
+          onTap: () {
+            Activity? activity;
+            if (log.activityId != null) {
+              for (final a in widget.activities) {
+                if (a.id == log.activityId) {
+                  activity = a;
+                  break;
+                }
+              }
+            }
+            activity ??= _mostFrequentActivity([log]);
+            if (activity != null) _showActivityMemory(activity);
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: const Color(0xFFE7EDF0),
+                  child: Text(log.emoji, style: const TextStyle(fontSize: 19)),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              log.title,
+                              style: const TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                          if (log.unplanned)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1E3DC),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'IMPRÉVU',
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF9A634F),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${widget.dayNames[log.day]} · ${log.period} · $dateLabel',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF697271)),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '✓ Validé · ${log.realisedMinutes} min',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF526B78),
+                        ),
+                      ),
+                      if (log.feeling.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          'Ressenti : ${log.feeling}',
+                          style: const TextStyle(fontSize: 11.5, color: Color(0xFF707A79)),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sorted = _filteredLogs();
+
     return DraggableScrollableSheet(
       expand: false,
-      initialChildSize: .78,
-      minChildSize: .45,
-      maxChildSize: .95,
+      initialChildSize: .92,
+      minChildSize: .55,
+      maxChildSize: .98,
       builder: (_, controller) => SafeArea(
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Historique', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
-            const SizedBox(height: 4),
-            Text(sorted.isEmpty ? 'Aucune activité enregistrée pour le moment.' : 'Les moments réalisés, prévus ou ajoutés en chemin.'),
-            const SizedBox(height: 14),
+            Row(children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Historique', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 4),
+                  Text(widget.logs.isEmpty
+                      ? 'Aucune activité enregistrée pour le moment.'
+                      : 'L’historique sert maintenant à comprendre ton rythme et à aider le coach.'),
+                ]),
+              ),
+            ]),
+            const SizedBox(height: 12),
             Expanded(
-              child: sorted.isEmpty
-                  ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: const [Icon(Icons.history, size: 42, color: Color(0xFF879197)), SizedBox(height: 10), Text('L’historique se remplira au fil de la semaine.')]))
-                  : ListView.separated(
-                      controller: controller,
-                      itemCount: sorted.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (_, index) {
-                        final log = sorted[index];
-                        final date = log.date;
-                        final dateLabel = '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} · ${date.hour.toString().padLeft(2, '0')}h${date.minute.toString().padLeft(2, '0')}';
-                        return Card(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              CircleAvatar(radius: 22, backgroundColor: const Color(0xFFE7EDF0), child: Text(log.emoji, style: const TextStyle(fontSize: 19))),
-                              const SizedBox(width: 11),
-                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Row(children: [
-                                  Expanded(child: Text(log.title, style: const TextStyle(fontWeight: FontWeight.w800))),
-                                  if (log.unplanned) Container(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3), decoration: BoxDecoration(color: const Color(0xFFF1E3DC), borderRadius: BorderRadius.circular(8)), child: const Text('IMPRÉVU', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF9A634F)))),
-                                ]),
-                                const SizedBox(height: 3),
-                                Text('${dayNames[log.day]} · ${log.period} · $dateLabel', style: const TextStyle(fontSize: 12, color: Color(0xFF697271))),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '✓ Validé · ${log.plannedMinutes} min',
-                                  style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF526B78)),
-                                ),
-                              ])),
-                            ]),
-                          ),
-                        );
+              child: ListView(
+                controller: controller,
+                children: [
+                  _analysisCard(),
+                  const SizedBox(height: 14),
+                  Text('Journal des activités', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment<String>(value: '1 mois', label: Text('1 mois')),
+                        ButtonSegment<String>(value: '3 mois', label: Text('3 mois')),
+                        ButtonSegment<String>(value: '1 an', label: Text('1 an')),
+                        ButtonSegment<String>(value: 'Tout', label: Text('Tout')),
+                      ],
+                      selected: <String>{_historyFilter},
+                      onSelectionChanged: (selection) {
+                        if (selection.isEmpty) return;
+                        setState(() => _historyFilter = selection.first);
                       },
                     ),
+                  ),
+                  const SizedBox(height: 10),
+                  if (widget.logs.isNotEmpty)
+                    Text(
+                      '${sorted.length} activité${sorted.length > 1 ? 's' : ''} affichée${sorted.length > 1 ? 's' : ''}',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF697271)),
+                    ),
+                  const SizedBox(height: 8),
+                  if (sorted.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 35),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.history, size: 42, color: Color(0xFF879197)),
+                          SizedBox(height: 10),
+                          Text('Aucune activité dans cette période.'),
+                        ],
+                      ),
+                    )
+                  else
+                    Column(
+                      children: sorted.map(_historyLogCard).toList(),
+                    ),
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
           ]),
         ),
@@ -6154,7 +8295,6 @@ class _HistorySheet extends StatelessWidget {
     );
   }
 }
-
 
 class _NewMomentResult {
   final String title;
