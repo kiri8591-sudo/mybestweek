@@ -286,7 +286,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V8.06';
+  static const version = 'V8.08';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -328,6 +328,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   static const String _localStateKey = 'ma_belle_semaine_local_state_v2';
   static const int _cloudBackupReminderDays = 7;
   bool _persistenceQueued = false;
+  bool _isHydratingLocalState = true;
   DateTime? _lastICloudBackupAt;
   String _userName = '';
   String _weatherCity = '';
@@ -346,6 +347,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   final List<_CustomActivityIcon> _customActivityIcons = [];
   DateTime _clockNow = DateTime.now();
   Timer? _clockTimer;
+  StreamSubscription? _visibilitySubscription;
+  StreamSubscription? _pageHideSubscription;
 
   bool get _cloudBackupReminderDue =>
       _lastICloudBackupAt == null ||
@@ -488,6 +491,18 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() => _clockNow = DateTime.now());
     });
+
+    // iPhone / Safari / PWA : sauvegarde synchrone dès que la page passe
+    // en arrière-plan ou qu'elle est masquée. Cela complète la sauvegarde
+    // immédiate faite après chaque modification de données.
+    _visibilitySubscription = html.document.onVisibilityChange.listen((_) {
+      if (html.document.visibilityState == 'hidden') {
+        _persistLocalState();
+      }
+    });
+    _pageHideSubscription = html.window.onPageHide.listen((_) {
+      _persistLocalState();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _loadLocalState();
       if (mounted && _weatherCity.trim().isNotEmpty) {
@@ -523,6 +538,10 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   }
 
   void _persistLocalState() {
+    // Au tout premier démarrage, le planning par défaut est construit avant
+    // que l'ancienne sauvegarde ait été lue. Il ne faut surtout pas écrire
+    // cette version intermédiaire et écraser la sauvegarde précédente.
+    if (_isHydratingLocalState) return;
     try {
       final root = jsonDecode(_backupJson()) as Map<String, dynamic>;
       root['weekKey'] = _currentWeekKey();
@@ -535,6 +554,13 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   }
 
   void _queueLocalStatePersist() {
+    // IMPORTANT : ne plus attendre le frame suivant pour la sauvegarde
+    // principale. Sur iPhone, l'application peut être terminée avant
+    // l'exécution d'un addPostFrameCallback.
+    _persistLocalState();
+
+    // Une seconde écriture après le frame protège les mutations réalisées
+    // dans des enchaînements UI complexes et garde le coût raisonnable.
     if (_persistenceQueued) return;
     _persistenceQueued = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -557,9 +583,14 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         });
         generateWeek(showSnack: false);
       }
-      _queueLocalStatePersist();
     } catch (_) {
       // On repart simplement avec les données de démarrage.
+    } finally {
+      // La phase de lecture est terminée : à partir de maintenant toute
+      // mutation est sauvegardée immédiatement. Cela évite de perdre les
+      // dernières modifications lors de la fermeture définitive de l'iPhone.
+      _isHydratingLocalState = false;
+      if (mounted) _persistLocalState();
     }
   }
 
@@ -2188,6 +2219,10 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
 
   @override
   void dispose() {
+    // Dernière tentative synchrone avant destruction du State.
+    _persistLocalState();
+    _visibilitySubscription?.cancel();
+    _pageHideSubscription?.cancel();
     _clockTimer?.cancel();
     super.dispose();
   }
