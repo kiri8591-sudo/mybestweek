@@ -278,6 +278,97 @@ class SportCoachLog {
   });
 }
 
+class _ActivityLearningProfile {
+  final int realisedCount;
+  final int skippedCount;
+  final int recent7Count;
+  final Map<int, int> dayCounts;
+  final Map<int, int> skippedDayCounts;
+  final Map<String, int> periodCounts;
+  final Map<String, int> skippedPeriodCounts;
+  final Map<int, int> movedToDayCounts;
+  final int difficultCount;
+  final int veryGoodCount;
+  final int realisedMinutes;
+  final int plannedMinutes;
+  final int movedFromCount;
+  final int movedToCount;
+
+  const _ActivityLearningProfile({
+    required this.realisedCount,
+    required this.skippedCount,
+    required this.recent7Count,
+    required this.dayCounts,
+    required this.skippedDayCounts,
+    required this.periodCounts,
+    required this.skippedPeriodCounts,
+    required this.movedToDayCounts,
+    required this.difficultCount,
+    required this.veryGoodCount,
+    required this.realisedMinutes,
+    required this.plannedMinutes,
+    required this.movedFromCount,
+    required this.movedToCount,
+  });
+
+  bool get hasEnoughData => realisedCount >= 3;
+
+  int get observedCount => realisedCount + skippedCount;
+
+  double get completionRate => observedCount <= 0 ? 0 : realisedCount / observedCount;
+
+  int get bestDay {
+    if (dayCounts.isEmpty) return -1;
+    return dayCounts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+  }
+
+  String? get bestPeriod {
+    if (periodCounts.isEmpty) return null;
+    return periodCounts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+  }
+
+  double dayShare(int day) => realisedCount <= 0 ? 0 : (dayCounts[day] ?? 0) / realisedCount;
+
+  double dayCompletionRate(int day) {
+    final observed = (dayCounts[day] ?? 0) + (skippedDayCounts[day] ?? 0);
+    return observed <= 0 ? 0 : (dayCounts[day] ?? 0) / observed;
+  }
+
+  double periodCompletionRate(String period) {
+    final observed = (periodCounts[period] ?? 0) + (skippedPeriodCounts[period] ?? 0);
+    return observed <= 0 ? 0 : (periodCounts[period] ?? 0) / observed;
+  }
+
+  int get bestMovedToDay {
+    if (movedToDayCounts.isEmpty) return -1;
+    return movedToDayCounts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
+  }
+
+  double get bestMovedToDayShare {
+    if (movedToCount <= 0 || movedToDayCounts.isEmpty) return 0;
+    return movedToDayCounts.values.reduce((a, b) => a >= b ? a : b).toDouble() / movedToCount;
+  }
+
+  double get durationRatio => averagePlannedMinutes <= 0 ? 1 : averageRealisedMinutes / averagePlannedMinutes;
+
+  double get durationGapRatio => (durationRatio - 1).abs();
+
+  double get bestDayShare {
+    if (realisedCount <= 0 || dayCounts.isEmpty) return 0;
+    return dayCounts.values.reduce((a, b) => a >= b ? a : b).toDouble() / realisedCount;
+  }
+
+  double periodShare(String period) => realisedCount <= 0 ? 0 : (periodCounts[period] ?? 0) / realisedCount;
+
+  double get averageRealisedMinutes => realisedCount <= 0 ? 0 : realisedMinutes / realisedCount;
+
+  double get averagePlannedMinutes => realisedCount <= 0 ? 0 : plannedMinutes / realisedCount;
+
+  double get difficultRate => realisedCount <= 0 ? 0 : difficultCount / realisedCount;
+
+  double get veryGoodRate => realisedCount <= 0 ? 0 : veryGoodCount / realisedCount;
+}
+
 class MaBelleSemaineApp extends StatefulWidget {
   const MaBelleSemaineApp({super.key});
 
@@ -286,7 +377,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V8.18';
+  static const version = 'V8.26';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -337,9 +428,12 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   bool _generationBalanceLoad = true;
   bool _generationRespectPreferredDays = true;
   bool _generationAlternateActivities = true;
+  bool _generationLearnHabits = true;
   String _lastPlanningRegeneratedWeekKey = '';
   List<int> _lastPlanningRegeneratedDays = [];
   DateTime? _lastPlanningRegeneratedAt;
+  String _lastPlanningCoachExplanation = '';
+  List<String> _lastPlanningDecisionDetails = [];
   final Map<String, String> _generationActivityRules = {};
   // Budgets Sport temporaires attribués à des jours futurs lors d'une
   // régénération, lorsque les jours Sport configurés sont déjà passés.
@@ -622,7 +716,13 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   String _backupJson() {
     final data = <String, dynamic>{
       'format': 'ma_belle_semaine_backup',
-      'formatVersion': 1,
+      'formatVersion': 2,
+      'backupStats': {
+        'activities': activities.length,
+        'planItems': plan.length,
+        'logs': logs.length,
+        'moves': activityMoveLogs.length,
+      },
       'appVersion': version,
       'createdAt': DateTime.now().toIso8601String(),
       'lastICloudBackupAt': _lastICloudBackupAt?.toIso8601String(),
@@ -655,7 +755,10 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         'balanceLoad': _generationBalanceLoad,
         'respectPreferredDays': _generationRespectPreferredDays,
         'alternateActivities': _generationAlternateActivities,
+        'learnHabits': _generationLearnHabits,
       },
+      'lastPlanningCoachExplanation': _lastPlanningCoachExplanation,
+      'lastPlanningDecisionDetails': [..._lastPlanningDecisionDetails],
       'weeklyNote': weeklyNote,
       'sportCoachLastAnalysis': sportCoachLastAnalysis,
       'sportCoachLastAnalysisAt': sportCoachLastAnalysisAt?.toIso8601String(),
@@ -759,8 +862,11 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
 
   bool restoreBackup(String raw) {
     try {
+      if (raw.length > 12 * 1024 * 1024) return false;
       final root = jsonDecode(raw);
       if (root is! Map || root['format'] != 'ma_belle_semaine_backup') return false;
+      final formatVersion = _asInt(root['formatVersion'], 1);
+      if (formatVersion < 1 || formatVersion > 2) return false;
       final activityData = root['activities'];
       final planData = root['plan'];
       final logData = root['logs'];
@@ -986,7 +1092,16 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           _generationBalanceLoad = _asBool(rawCriteria['balanceLoad'], true);
           _generationRespectPreferredDays = _asBool(rawCriteria['respectPreferredDays'], true);
           _generationAlternateActivities = _asBool(rawCriteria['alternateActivities'], true);
+          _generationLearnHabits = _asBool(rawCriteria['learnHabits'], true);
         }
+        _lastPlanningCoachExplanation = _asString(root['lastPlanningCoachExplanation']) ?? '';
+        _lastPlanningDecisionDetails = root['lastPlanningDecisionDetails'] is List
+            ? (root['lastPlanningDecisionDetails'] as List)
+                .map((v) => '$v')
+                .where((v) => v.trim().isNotEmpty)
+                .take(30)
+                .toList()
+            : <String>[];
         final thought = _asString(root['morningThought']);
         if (thought != null && thought.isNotEmpty) _morningThought = thought;
       });
@@ -1049,9 +1164,12 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       _generationBalanceLoad = true;
       _generationRespectPreferredDays = true;
       _generationAlternateActivities = true;
+      _generationLearnHabits = true;
       _lastPlanningRegeneratedWeekKey = '';
       _lastPlanningRegeneratedDays = [];
       _lastPlanningRegeneratedAt = null;
+      _lastPlanningCoachExplanation = '';
+      _lastPlanningDecisionDetails = [];
       _generationActivityRules.clear();
       _regeneratedSportBudgets.clear();
       _mondayRegenPromptDismissed = false;
@@ -1187,6 +1305,25 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
 
   int _sportTargetFrequency(Activity activity) =>
       activity.sportGroupFrequency ?? activity.frequency;
+
+  int _currentWeekSportKeyRealisedCount(String key, List<Activity> source) {
+    final start = _startOfCurrentWeek();
+    final end = start.add(const Duration(days: 7));
+    final ids = source.where((a) => _sportRotationKey(a) == key).map((a) => a.id).toSet();
+    return logs.where((log) =>
+        !log.date.isBefore(start) &&
+        log.date.isBefore(end) &&
+        log.activityId != null &&
+        ids.contains(log.activityId)).length;
+  }
+
+  int _preservedFutureSportKeyCount(String key, List<Activity> source) {
+    final ids = source.where((a) => _sportRotationKey(a) == key).map((a) => a.id).toSet();
+    return plan.where((item) =>
+        item.day > today &&
+        ids.contains(item.activityId) &&
+        (item.activityId == null || item.manualPlacement || item.fixedInWeeklyTemplate)).length;
+  }
 
   bool _logMatchesActivity(ActivityLog log, Activity activity) {
     if (log.activityId != null) return log.activityId == activity.id;
@@ -1326,6 +1463,21 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       score += recent14.where((l) => l.feeling == 'Très bien').length * 0.8;
     }
 
+    // Apprentissage personnel du Sport : à partir de 3 réalisations, le coach
+    // apprend les jours où cette activité est réellement pratiquée et utilise
+    // ce signal pour départager les jours disponibles. Il tient aussi compte
+    // d'une tendance répétée de ressenti difficile/Très bien.
+    if (_generationLearnHabits) {
+      final profile = _activityLearning(activity);
+      if (profile.hasEnoughData) {
+        score += profile.dayShare(day) * 7.0;
+        if (day == profile.bestDay && profile.bestDayShare >= .55) score += 2.5;
+        if (profile.difficultRate >= .50) score -= 1.8;
+        if (profile.veryGoodRate >= .50) score += 1.0;
+        if (profile.recent7Count >= 2) score -= .8;
+      }
+    }
+
     // Évite de remettre deux jours de suite exactement la même activité.
     if (_generationAlternateActivities && selectedToday.contains(activity.id)) score -= 100.0;
 
@@ -1343,7 +1495,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     final available = candidates.where((a) =>
         a.activeInSportRotation &&
         (remaining[_sportRotationKey(a)] ?? 0) > 0 &&
-        a.duration <= budget).toList();
+        _sportGenerationDuration(a) <= budget).toList();
     if (available.isEmpty) return [];
 
     // IMPORTANT : lorsqu'une activité est configurée « plusieurs fois par
@@ -1358,7 +1510,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       final weeklyRemaining = remaining[_sportRotationKey(a)] ?? 0;
       return dailyCount >= 2 &&
           weeklyRemaining > 0 &&
-          a.duration * dailyCount <= budget;
+          _sportGenerationDuration(a) * dailyCount <= budget;
     }).toList();
 
     if (repeatCandidates.isNotEmpty) {
@@ -1371,7 +1523,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       final repeated = repeatCandidates.first;
       final count = repeated.maxDailyOccurrences.clamp(2, 3).toInt();
       final selected = List<Activity>.filled(count, repeated);
-      var usedMinutes = repeated.duration * count;
+      var usedMinutes = _sportGenerationDuration(repeated) * count;
 
       // On peut ensuite compléter le budget avec d'autres activités, mais
       // jamais ajouter une troisième occurrence lorsque l'utilisateur a
@@ -1383,7 +1535,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       final fillerCandidates = available.where((a) {
         if (_sportRotationKey(a) == repeatKey) return false;
         return (tempRemaining[_sportRotationKey(a)] ?? 0) > 0 &&
-            usedMinutes + a.duration <= budget;
+            usedMinutes + _sportGenerationDuration(a) <= budget;
       }).toList();
 
       // Petit remplissage glouton : la priorité reste la variété et le score
@@ -1397,9 +1549,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       for (final activity in fillerCandidates) {
         final key = _sportRotationKey(activity);
         final remainingForKey = tempRemaining[key] ?? 0;
-        if (remainingForKey <= 0 || usedMinutes + activity.duration > budget) continue;
+        if (remainingForKey <= 0 || usedMinutes + _sportGenerationDuration(activity) > budget) continue;
         selected.add(activity);
-        usedMinutes += activity.duration;
+        usedMinutes += _sportGenerationDuration(activity);
         tempRemaining[key] = remainingForKey - 1;
       }
       return selected;
@@ -1430,7 +1582,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       );
       final snapshot = Map<int, _SportChoice>.from(dp);
       for (final entry in snapshot.entries) {
-        final newMinutes = entry.key + activity.duration;
+        final newMinutes = entry.key + _sportGenerationDuration(activity);
         if (newMinutes > budget) continue;
         final sameKey = entry.value.activities
             .where((a) => _sportRotationKey(a) == _sportRotationKey(activity))
@@ -1491,7 +1643,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       var used = generated.where((item) => item.day == day)
           .fold<int>(0, (sum, item) => sum + item.duration);
       var seq = 0;
-      while (needed > 0 && used + activity.duration <= budget) {
+      final generationDuration = _sportGenerationDuration(activity);
+      while (needed > 0 && used + generationDuration <= budget) {
         generated.add(PlanItem(
           id: 'sport_repeat_${DateTime.now().microsecondsSinceEpoch}_${day}_$seq',
           day: day,
@@ -1499,13 +1652,13 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           timeLabel: null,
           activityId: activity.id,
           title: activity.name,
-          details: 'Sport · ${budget} min disponibles ce jour · occurrence supplémentaire demandée.',
-          duration: activity.duration,
+          details: 'Sport · ${budget} min disponibles ce jour · occurrence supplémentaire demandée par ta fiche.',
+          duration: generationDuration,
           optional: false,
           userAdded: false,
           fixedInWeeklyTemplate: false,
         ));
-        used += activity.duration;
+        used += generationDuration;
         needed--;
         seq++;
       }
@@ -1575,18 +1728,25 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   List<int> _futureSportGenerationDays() {
     final future = <int>{..._sportDays().where((d) => d > today)};
     final targetDays = _sportDayCount();
-    final preservedSportDays = <int>{
-      for (final item in plan)
-        if (item.day <= today && item.activityId != null)
-          if (item.activityId != null && _isSportPlanItem(item)) item.day,
-    };
+
+    // Un jour Sport passé ne « consomme » la fréquence hebdomadaire que s’il
+    // a réellement été réalisé. Un jour simplement planifié mais non fait
+    // doit donc pouvoir être reporté sur un jour futur lors d’une régénération.
+    final realisedPastSportDays = <int>{};
+    for (var day = 0; day <= today; day++) {
+      if (_sportItemsForDay(day).any((item) => item.done && (item.realisedMinutes ?? 0) > 0)) {
+        realisedPastSportDays.add(day);
+      }
+    }
+
     final preservedFutureManualSportDays = <int>{
       for (final item in plan)
         if (item.day > today && (item.activityId == null || item.manualPlacement || item.fixedInWeeklyTemplate))
           if (item.activityId != null && _isSportPlanItem(item)) item.day,
     };
 
-    var remaining = max(0, targetDays - preservedSportDays.length - preservedFutureManualSportDays.length);
+    var fulfilledDays = realisedPastSportDays.length + preservedFutureManualSportDays.length;
+    var remaining = max(0, targetDays - fulfilledDays);
     if (remaining <= future.length) {
       return future.toList()..sort();
     }
@@ -1601,6 +1761,16 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       _regeneratedSportBudgets[day] = fallbackBudget;
       remaining--;
     }
+
+    // Sécurité : s'il reste une séance à reporter et qu'aucun jour futur
+    // n'était configuré, le prochain jour disponible devient un jour Sport
+    // exceptionnel pour cette semaine uniquement.
+    if (future.isEmpty && remaining > 0 && fallbackBudget > 0 && today < 6) {
+      final nextDay = today + 1;
+      future.add(nextDay);
+      _regeneratedSportBudgets[nextDay] = fallbackBudget;
+    }
+
     return future.toList()..sort();
   }
 
@@ -1637,8 +1807,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
 
       var used = _sportItemsForDayMutable(day)
           .fold<int>(0, (sum, item) => sum + item.duration);
+      final generationDuration = _sportGenerationDuration(activity);
       var seq = 0;
-      while (needed > 0 && used + activity.duration <= budget) {
+      while (needed > 0 && used + generationDuration <= budget) {
         plan.add(PlanItem(
           id: 'sport_repeat_${DateTime.now().microsecondsSinceEpoch}_${day}_$seq',
           day: day,
@@ -1647,12 +1818,12 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           activityId: activity.id,
           title: activity.name,
           details: 'Sport · ${budget} min disponibles ce jour · occurrence supplémentaire demandée.',
-          duration: activity.duration,
+          duration: generationDuration,
           optional: false,
           userAdded: false,
           fixedInWeeklyTemplate: false,
         ));
-        used += activity.duration;
+        used += generationDuration;
         needed--;
         seq++;
       }
@@ -1668,8 +1839,11 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     _sortPlan();
   }
 
-  void _generateSportPart(List<PlanItem> generated, int seqStart, {int startDay = 0}) {
-    final sportActivities = activities.where((a) => _isSportActivity(a) && a.activeInSportRotation && !_generationShouldAvoid(a)).toList();
+  void _generateSportPart(List<PlanItem> generated, int seqStart,
+      {int startDay = 0, List<String>? decisionDetails}) {
+    final sportActivities = activities
+        .where((a) => _isSportActivity(a) && a.activeInSportRotation && !_generationShouldAvoid(a))
+        .toList();
     if (sportActivities.isEmpty || _sportProgram == null) return;
 
     final days = _futureSportGenerationDays();
@@ -1677,14 +1851,17 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     var seq = seqStart;
     Set<String> previousDayIds = {};
 
-    // Toutes les activités Sport sont des sous-items du programme générique.
-    // Leur somme quotidienne est strictement plafonnée par la durée Sport
-    // définie pour ce jour. Il n'y a plus de « séances Sport extra » hors budget.
     final compositeActivities = sportActivities.toList();
-    final remaining = <String, int>{
-      for (final a in compositeActivities)
-        _sportRotationKey(a): _effectiveGenerationFrequency(a),
-    };
+    final remaining = <String, int>{};
+    for (final activity in compositeActivities) {
+      final key = _sportRotationKey(activity);
+      if (remaining.containsKey(key)) continue;
+      final group = compositeActivities.where((a) => _sportRotationKey(a) == key).toList();
+      final target = group.map(_effectiveGenerationFrequency).reduce(max);
+      final realised = _currentWeekSportKeyRealisedCount(key, group);
+      final protectedFuture = _preservedFutureSportKeyCount(key, group);
+      remaining[key] = max(0, target - realised - protectedFuture);
+    }
 
     for (final day in days.where((d) => d >= startDay)) {
       final budget = _sportBudgetForDay(day);
@@ -1695,7 +1872,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       final selectedIds = selected.map((a) => a.id).toSet();
       var usedMinutes = 0;
       for (final activity in selected) {
-        if (usedMinutes + activity.duration > budget) continue;
+        final generationDuration = _sportGenerationDuration(activity);
+        if (usedMinutes + generationDuration > budget) continue;
+        final decisionReason = _sportDecisionReason(activity, day, budget, selectedIds);
         generated.add(PlanItem(
           id: 'sport_${DateTime.now().microsecondsSinceEpoch}_$seq',
           day: day,
@@ -1703,26 +1882,25 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           timeLabel: null,
           activityId: activity.id,
           title: activity.name,
-          details: 'Sport · ${budget} min disponibles ce jour · rotation selon historique, poids et fréquence.',
-          duration: activity.duration,
+          details: 'Coach : $decisionReason',
+          duration: generationDuration,
           optional: false,
           userAdded: false,
           fixedInWeeklyTemplate: false,
         ));
-        usedMinutes += activity.duration;
+        usedMinutes += generationDuration;
         generatedCount[activity.id] = (generatedCount[activity.id] ?? 0) + 1;
+        if (decisionDetails != null && decisionDetails.length < 30) {
+          decisionDetails.add(_sportDecisionReason(activity, day, budget, selectedIds));
+        }
         seq++;
       }
 
-      // La fréquence/rotation consomme un seul jour par activité retenue,
-      // même lorsque plusieurs occurrences ont été créées ce jour-là.
       for (final activity in selected.toSet()) {
         final key = _sportRotationKey(activity);
         remaining[key] = max(0, (remaining[key] ?? 0) - 1);
       }
 
-      // Si une activité sélectionnée est autorisée plusieurs fois par jour,
-      // complète immédiatement les occurrences manquantes.
       _completeGeneratedSportRepeats(generated, day, budget);
       previousDayIds = selectedIds;
     }
@@ -1743,6 +1921,144 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   }
 
   bool _generationShouldAvoid(Activity activity) => _generationActivityRule(activity.id) == 'avoid';
+
+  bool _isOutdoorPlanningActivity(Activity activity) {
+    if (activity.category == 'Sortie') return true;
+    final name = activity.name.trim().toLowerCase();
+    const outdoorWords = [
+      'marche', 'randonnée', 'randonnee', 'plein air', 'nature',
+      'marché', 'marche ', 'promenade', 'balade', 'jardin', 'extérieur', 'exterieur',
+    ];
+    return outdoorWords.any(name.contains);
+  }
+
+  double _weatherPlanningScore(Activity activity, int day) {
+    if (!_generationUseHistory || !_isOutdoorPlanningActivity(activity)) return 0;
+    final weather = _weatherForWeekDay(day);
+    if (weather == null) return 0;
+    if (weather.outdoorBad) return -5.0;
+    return 1.8;
+  }
+
+  String _weatherBrief(_DayWeather weather) {
+    final temperature = weather.temperature.isEmpty ? '' : ' · ${weather.temperature}';
+    return '${weather.icon} ${weather.text.toLowerCase()}$temperature';
+  }
+
+  int _compareGenerationDays(
+    Activity activity,
+    int a,
+    int b, {
+    required List<PlanItem> preservedPastAndToday,
+    required List<PlanItem> preservedFutureManual,
+    required List<PlanItem> generated,
+    required Set<int> usedDays,
+    bool includeWeather = true,
+  }) {
+    if (_generationRespectPreferredDays) {
+      final aPreferred = activity.preferredDays.contains(a) ? 0 : 1;
+      final bPreferred = activity.preferredDays.contains(b) ? 0 : 1;
+      if (aPreferred != bPreferred) return aPreferred.compareTo(bPreferred);
+    }
+
+    if (includeWeather && _generationUseHistory && _isOutdoorPlanningActivity(activity)) {
+      final weatherCompare = _weatherPlanningScore(activity, b).compareTo(_weatherPlanningScore(activity, a));
+      if (weatherCompare != 0) return weatherCompare;
+    }
+
+    if (_generationAlternateActivities) {
+      final aSameActivity = usedDays.contains(a) ? 1 : 0;
+      final bSameActivity = usedDays.contains(b) ? 1 : 0;
+      if (aSameActivity != bSameActivity) return aSameActivity.compareTo(bSameActivity);
+    }
+
+    if (_generationUseHistory) {
+      // L’appelant passe ici les mêmes jours disponibles que pour la vraie
+      // génération : on reproduit donc l’arbitrage exact, avec ou sans météo.
+      final historyCompare = _historyPlanningScore(activity, b).compareTo(_historyPlanningScore(activity, a));
+      if (historyCompare != 0) return historyCompare;
+    }
+
+    if (_generationBalanceLoad) {
+      final loadCompare = _generationDayLoad(preservedPastAndToday, preservedFutureManual, generated, a)
+          .compareTo(_generationDayLoad(preservedPastAndToday, preservedFutureManual, generated, b));
+      if (loadCompare != 0) return loadCompare;
+    }
+    return a.compareTo(b);
+  }
+
+  String _weatherInfluenceReason(
+    Activity activity,
+    int day,
+    List<int>? candidates, {
+    Set<int>? excludedDays,
+    List<PlanItem>? preservedPastAndToday,
+    List<PlanItem>? preservedFutureManual,
+    List<PlanItem>? generated,
+  }) {
+    // La météo n’est signalée comme « décisive » que si elle a réellement
+    // changé le résultat du même arbitrage. Une prévision simplement disponible
+    // ne déclenche aucun message de cause.
+    if (!_isOutdoorPlanningActivity(activity)) return '';
+    if (candidates == null || candidates.length < 2) return '';
+    final excluded = excludedDays ?? const <int>{};
+    final available = candidates.where((d) => !excluded.contains(d)).toList();
+    if (available.length < 2) return '';
+
+    final past = preservedPastAndToday ?? const <PlanItem>[];
+    final manual = preservedFutureManual ?? const <PlanItem>[];
+    final generatedItems = generated ?? const <PlanItem>[];
+
+    final withWeather = List<int>.from(available)
+      ..sort((a, b) => _compareGenerationDays(
+        activity, a, b,
+        preservedPastAndToday: past,
+        preservedFutureManual: manual,
+        generated: generatedItems,
+        usedDays: excluded,
+        includeWeather: true,
+      ));
+    final withoutWeather = List<int>.from(available)
+      ..sort((a, b) => _compareGenerationDays(
+        activity, a, b,
+        preservedPastAndToday: past,
+        preservedFutureManual: manual,
+        generated: generatedItems,
+        usedDays: excluded,
+        includeWeather: false,
+      ));
+
+    // Nous voulons une vraie causalité : le choix réel doit être celui obtenu
+    // avec météo, tandis que le choix contrefactuel doit être différent sans elle.
+    if (withWeather.isEmpty || withoutWeather.isEmpty) return '';
+    if (withWeather.first != day || withoutWeather.first == day) return '';
+
+    final alternative = withoutWeather.first;
+    final selectedWeather = _weatherForWeekDay(day);
+    final alternativeWeather = _weatherForWeekDay(alternative);
+    if (selectedWeather == null || alternativeWeather == null) return '';
+
+    final selectedScore = _weatherPlanningScore(activity, day);
+    final alternativeScore = _weatherPlanningScore(activity, alternative);
+    if (selectedScore <= alternativeScore) return '';
+
+    final contrast = selectedWeather.outdoorBad
+        ? 'conditions moins défavorables'
+        : alternativeWeather.outdoorBad
+            ? 'conditions plus favorables'
+            : 'conditions plus adaptées';
+
+    return '🌦️ Météo décisive : sans la météo, j’aurais choisi ${dayNames[alternative].toLowerCase()} ; j’ai préféré ${dayNames[day].toLowerCase()} grâce à des $contrast (${_weatherBrief(selectedWeather)} contre ${_weatherBrief(alternativeWeather)}).';
+  }
+
+  String _weatherAvailableButNotDecisiveSummary(List<PlanItem> generated) {
+    if (_weatherForecast.isEmpty) return '';
+    final influenced = generated.where((item) => item.details?.contains('🌦️ Météo décisive') ?? false).length;
+    if (influenced > 0) {
+      return '🌦️ La météo a réellement modifié $influenced choix${influenced > 1 ? ' futurs' : ' futur'} ; les choix concernés indiquent précisément lesquels et pourquoi.';
+    }
+    return '🌦️ J’avais les prévisions météo, mais elles n’ont finalement modifié aucun choix du planning futur.';
+  }
 
   String _generationActivityRuleLabel(String rule) {
     switch (rule) {
@@ -1787,10 +2103,250 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     if (_generationBalanceLoad) labels.add('équilibre');
     if (_generationRespectPreferredDays) labels.add('jours préférés');
     if (_generationAlternateActivities) labels.add('alternance');
+    if (_generationLearnHabits) labels.add('mes habitudes');
+    final hasWeather = _weatherForecast.isNotEmpty;
+    if (hasWeather) labels.add('météo extérieure');
     if (labels.isEmpty) return 'les critères essentiels';
     if (labels.length == 1) return labels.first;
     if (labels.length == 2) return '${labels[0]} et ${labels[1]}';
     return '${labels.sublist(0, labels.length - 1).join(', ')} et ${labels.last}';
+  }
+
+  int _currentWeekRealisedCount(Activity activity) {
+    final start = _startOfCurrentWeek();
+    final end = start.add(const Duration(days: 7));
+    return logs.where((log) =>
+        !log.date.isBefore(start) &&
+        log.date.isBefore(end) &&
+        _logMatchesActivity(log, activity)).length;
+  }
+
+  int _preservedFutureCount(Activity activity, List<PlanItem> preservedFutureManual) {
+    return preservedFutureManual.where((item) => item.activityId == activity.id).length;
+  }
+
+  int _generationWeeklyTarget(Activity activity) => _effectiveGenerationFrequency(activity);
+
+  int _generationRemainingOccurrences(Activity activity, List<PlanItem> preservedFutureManual) {
+    final target = _generationWeeklyTarget(activity);
+    final alreadyRealised = _currentWeekRealisedCount(activity);
+    final alreadyProtected = _preservedFutureCount(activity, preservedFutureManual);
+    return max(0, target - alreadyRealised - alreadyProtected);
+  }
+
+  int _learnedDurationForGeneration(Activity activity) {
+    final base = max(5, activity.duration);
+    if (!_generationLearnHabits) return base;
+    final profile = _activityLearning(activity);
+    if (!profile.hasEnoughData || profile.averageRealisedMinutes <= 0 || profile.averagePlannedMinutes <= 0) return base;
+    if (profile.durationGapRatio < .20) return base;
+    final learned = (profile.averageRealisedMinutes / 5).round() * 5;
+    // Le coach apprend la durée réellement vécue, mais reste volontairement
+    // proche de la durée de référence de la fiche pour éviter un emballement
+    // après quelques séances atypiques.
+    return learned.clamp(5, max(5, base + 15)).toInt();
+  }
+
+  int _sportGenerationDuration(Activity activity) =>
+      _isSportActivity(activity) ? _learnedDurationForGeneration(activity) : max(5, activity.duration);
+
+  int _generationDayLoad(List<PlanItem> preservedPastAndToday, List<PlanItem> preservedFutureManual,
+      List<PlanItem> generated, int day) {
+    return preservedPastAndToday.where((p) => p.day == day).fold<int>(0, (sum, p) => sum + p.duration) +
+        preservedFutureManual.where((p) => p.day == day).fold<int>(0, (sum, p) => sum + p.duration) +
+        generated.where((p) => p.day == day).fold<int>(0, (sum, p) => sum + p.duration);
+  }
+
+  String _generationDecisionReason(Activity activity, int day, int target, int alreadyRealised,
+      List<PlanItem> preservedPastAndToday, List<PlanItem> preservedFutureManual, List<PlanItem> generated,
+      {int? selectedDuration, List<int>? candidates, Set<int>? excludedDaysForDecision}) {
+    final reasons = <String>[];
+    final rule = _generationActivityRule(activity.id);
+    if (rule == 'prioritize') reasons.add('consigne « Prioritaire »');
+    if (rule == 'more') reasons.add('consigne « Plus de »');
+    if (rule == 'less') reasons.add('consigne « Moins de »');
+    if (_generationRespectPriorities && activity.priority >= 4) reasons.add('priorité ${activity.priority}/5');
+    if (_generationRespectPreferredDays && activity.preferredDays.contains(day)) {
+      reasons.add('${dayNames[day]} fait partie de tes jours préférés');
+    }
+    final weatherReason = _weatherInfluenceReason(
+      activity,
+      day,
+      candidates,
+      excludedDays: excludedDaysForDecision,
+      preservedPastAndToday: preservedPastAndToday,
+      preservedFutureManual: preservedFutureManual,
+      generated: generated,
+    );
+    final hasWeatherInfluence = weatherReason.isNotEmpty;
+    if (hasWeatherInfluence) reasons.add(weatherReason);
+
+    final profile = _activityLearning(activity);
+    if (_generationLearnHabits && profile.hasEnoughData) {
+      if (profile.bestDay == day && profile.bestDayShare >= .55) {
+        reasons.add('c’est le jour où tu la réalises le plus souvent');
+      }
+      if (profile.bestPeriod != null && profile.periodShare(profile.bestPeriod!) >= .60) {
+        reasons.add('le coach a appris que tu la fais surtout ${profile.bestPeriod!.toLowerCase()}');
+      }
+      if (profile.movedToCount >= 2 && profile.bestMovedToDay == day && profile.bestMovedToDayShare >= .50) {
+        reasons.add('tu la déplaces souvent vers ${dayNames[day].toLowerCase()}');
+      }
+      if (profile.difficultRate >= .50 && profile.difficultCount >= 2) {
+        reasons.add('tes derniers ressentis invitent à ne pas la concentrer davantage');
+      }
+      final learnedDuration = _learnedDurationForGeneration(activity);
+      if (learnedDuration != activity.duration) {
+        reasons.add('durée ajustée à tes réalisations réelles ($learnedDuration min)');
+      }
+    }
+
+    if (_generationUseHistory) {
+      final matches = logs.where((l) => _logMatchesActivity(l, activity)).toList()
+        ..sort((a, b) => b.date.compareTo(a.date));
+      if (matches.isNotEmpty) {
+        final since = DateTime.now().difference(matches.first.date).inDays;
+        if (since >= 7) reasons.add('elle n’a pas été réalisée depuis $since jours');
+        final alreadyPlannedByCoach = generated.where((p) => p.activityId == activity.id).length;
+        final remainingAfterChoice = max(0, target - alreadyRealised - alreadyPlannedByCoach - 1);
+        reasons.add(remainingAfterChoice > 0
+            ? 'ce créneau couvre une partie de la fréquence restante ; il restera $remainingAfterChoice occurrence(s)'
+            : 'ce créneau couvre la dernière occurrence nécessaire cette semaine');
+      } else {
+        reasons.add('aucune réalisation récente : le coach lui redonne une place');
+      }
+    } else if (alreadyRealised < target) {
+      reasons.add('il reste ${target - alreadyRealised} réalisation(s) à couvrir cette semaine');
+    }
+
+    if (_generationBalanceLoad) {
+      final selectedLoad = _generationDayLoad(preservedPastAndToday, preservedFutureManual, generated, day);
+      final futureDays = List<int>.generate(7 - (today + 1), (i) => today + 1 + i);
+      if (futureDays.isNotEmpty) {
+        final loads = futureDays.map((d) => _generationDayLoad(preservedPastAndToday, preservedFutureManual, generated, d)).toList();
+        final minLoad = loads.reduce(min);
+        if (selectedLoad <= minLoad) reasons.add('la charge prévue est parmi les plus légères');
+      }
+    }
+
+    if (candidates != null && candidates.length > 1) {
+      final alternative = candidates.firstWhere((d) => d != day, orElse: () => -1);
+      if (alternative >= 0) {
+        final selectedPreferred = activity.preferredDays.contains(day);
+        final alternativePreferred = activity.preferredDays.contains(alternative);
+        if (selectedPreferred != alternativePreferred) {
+          reasons.add(selectedPreferred
+              ? 'ce jour a été préféré à ${dayNames[alternative].toLowerCase()} car il est configuré comme préféré'
+              : '${dayNames[alternative]} restait moins adapté selon les critères actifs');
+        } else if (_generationBalanceLoad) {
+          final chosenLoad = _generationDayLoad(preservedPastAndToday, preservedFutureManual, generated, day);
+          final altLoad = _generationDayLoad(preservedPastAndToday, preservedFutureManual, generated, alternative);
+          if (chosenLoad < altLoad) reasons.add('ce jour a été préféré à ${dayNames[alternative].toLowerCase()} car il est moins chargé');
+        }
+      }
+    }
+
+    if (reasons.isEmpty) reasons.add('arbitrage entre fréquence, historique et place disponible');
+    // Une influence météo ne doit jamais être perdue à cause de la limite
+    // d'affichage des raisons : lorsqu'elle est réelle, elle est toujours
+    // affichée en premier, puis complétée par trois autres raisons.
+    final selectedReasons = <String>[];
+    if (hasWeatherInfluence) {
+      selectedReasons.add(weatherReason);
+      selectedReasons.addAll(
+        reasons.where((reason) => reason != weatherReason).take(3),
+      );
+    } else {
+      selectedReasons.addAll(reasons.take(4));
+    }
+    final selected = selectedReasons.join(' · ');
+    final duration = selectedDuration ?? _learnedDurationForGeneration(activity);
+    return '${dayNames[day]} · ${_generationPeriod(activity, day)} · ${activity.name} (${duration} min) — $selected.';
+  }
+
+  String _sportDecisionReason(Activity activity, int day, int budget, Set<String> selectedIds) {
+    final reasons = <String>[];
+    final profile = _activityLearning(activity);
+    if (_generationRespectPriorities && activity.priority >= 4) reasons.add('priorité ${activity.priority}/5');
+    if (_generationRespectPreferredDays && activity.preferredDays.contains(day)) reasons.add('jour préféré');
+    if (_generationUseHistory) {
+      final matches = logs.where((l) => _logMatchesActivity(l, activity)).toList()
+        ..sort((a, b) => b.date.compareTo(a.date));
+      if (matches.isEmpty) reasons.add('peu/pas de réalisation récente');
+      else {
+        final since = DateTime.now().difference(matches.first.date).inDays;
+        if (since >= 7) reasons.add('$since jours depuis la dernière réalisation');
+      }
+    }
+    if (_generationLearnHabits && profile.hasEnoughData) {
+      if (profile.bestDay == day && profile.bestDayShare >= .55) reasons.add('jour habituel appris');
+      if (profile.movedToCount >= 2 && profile.bestMovedToDay == day && profile.bestMovedToDayShare >= .50) reasons.add('souvent déplacée vers ce jour');
+      if (profile.durationGapRatio >= .20) reasons.add('durée ajustée selon tes réalisations réelles');
+    }
+    if (selectedIds.length > 1 && selectedIds.any((id) => id != activity.id)) reasons.add('complète la séance sans dépasser le budget');
+    if (reasons.isEmpty) reasons.add('rotation et équilibre du jour');
+    final duration = _sportGenerationDuration(activity);
+    return '${dayNames[day]} · Sport : ${activity.name} · $duration min — ${reasons.take(3).join(' · ')}.';
+  }
+
+  String _generatedPlanSignature(Iterable<PlanItem> items) {
+    final values = items.map((p) => '${p.activityId ?? p.title}|${p.day}|${p.period}|${p.duration}').toList()..sort();
+    return values.join('§');
+  }
+
+  void openPlanningCoachDecisions() {
+    showModalBottomSheet<void>(
+      context: _navigatorKey.currentContext!,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: .76,
+        minChildSize: .48,
+        maxChildSize: .94,
+        builder: (_, controller) => SafeArea(
+          child: ListView(
+            controller: controller,
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+            children: [
+              Row(children: [
+                mascotAvatarInline(size: 38),
+                const SizedBox(width: 10),
+                Expanded(child: Text('Pourquoi ces choix ?', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900))),
+              ]),
+              const SizedBox(height: 8),
+              Text(_lastPlanningCoachExplanation.isEmpty
+                  ? 'Je n’ai pas encore de décision récente à expliquer. Dès la prochaine génération, je détaillerai mes arbitrages.'
+                  : _lastPlanningCoachExplanation,
+                  style: const TextStyle(fontSize: 12.5, height: 1.35)),
+              const SizedBox(height: 14),
+              if (_lastPlanningDecisionDetails.isEmpty)
+                const Card(child: Padding(padding: EdgeInsets.all(14), child: Text('Aucun détail de décision disponible pour le moment.')))
+              else
+                ..._lastPlanningDecisionDetails.take(18).map((detail) => Padding(
+                  padding: const EdgeInsets.only(bottom: 7),
+                  child: Card(
+                    color: const Color(0xFFF7F4EC),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        const Icon(Icons.arrow_forward_rounded, size: 17, color: Color(0xFF6F8E80)),
+                        const SizedBox(width: 7),
+                        Expanded(child: Text(detail, style: const TextStyle(fontSize: 11.8, height: 1.3))),
+                      ]),
+                    ),
+                  ),
+                )),
+              const SizedBox(height: 6),
+              const Text('Principes : le passé et aujourd’hui ne sont jamais réécrits par « Repenser ». Le coach utilise tes réglages, ton historique, tes réalisations réelles, tes déplacements, tes ressentis et l’équilibre de charge pour départager les jours futurs.',
+                  style: TextStyle(fontSize: 11.5, color: Color(0xFF697370), height: 1.3)),
+              const SizedBox(height: 12),
+              FilledButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.check), label: const Text('Fermer')),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> openGenerationCriteria() async {
@@ -1804,6 +2360,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         var balance = _generationBalanceLoad;
         var preferred = _generationRespectPreferredDays;
         var alternate = _generationAlternateActivities;
+        var learnHabits = _generationLearnHabits;
         final localRules = <String, String>{..._generationActivityRules};
         final ordered = [...activities]
           ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -1832,6 +2389,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                 criterion(title: 'Équilibre de la charge', subtitle: 'Éviter de concentrer trop de minutes sur une même journée.', value: balance, onChanged: (v) => setSheetState(() => balance = v)),
                 criterion(title: 'Jours préférés', subtitle: 'Favoriser les jours choisis dans les fiches activités.', value: preferred, onChanged: (v) => setSheetState(() => preferred = v)),
                 criterion(title: 'Alternance', subtitle: 'Éviter de répéter inutilement la même activité.', value: alternate, onChanged: (v) => setSheetState(() => alternate = v)),
+                criterion(title: 'Apprendre mes habitudes', subtitle: 'Utiliser les jours et moments où tu réalises réellement tes activités.', value: learnHabits, onChanged: (v) => setSheetState(() => learnHabits = v)),
                 const SizedBox(height: 10),
                 const Text('Consignes par activité', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 3),
@@ -1884,6 +2442,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                       'balance': balance,
                       'preferred': preferred,
                       'alternate': alternate,
+                      'learnHabits': learnHabits,
                       'activityRules': localRules,
                     }),
                     icon: const Icon(Icons.auto_awesome_outlined),
@@ -1904,6 +2463,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       _generationBalanceLoad = result['balance'] ?? true;
       _generationRespectPreferredDays = result['preferred'] ?? true;
       _generationAlternateActivities = result['alternate'] ?? true;
+      _generationLearnHabits = result['learnHabits'] ?? true;
       _generationActivityRules
         ..clear()
         ..addAll(Map<String, String>.from((result['activityRules'] as Map?)?.map((k, v) => MapEntry(k.toString(), v.toString())) ?? {}));
@@ -1926,30 +2486,44 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
 
   void generateWeek({bool showSnack = true, bool markAsRegenerated = false}) {
     // « Repenser » ne réécrit jamais le passé ni aujourd’hui.
-    // Seuls les jours futurs sont régénérés. Une modification manuelle
-    // effectuée sur un jour passé reste donc une trace du vécu et ne peut
-    // être remplacée par le moteur de génération.
     final cutoffDay = today;
     _regeneratedSportBudgets.removeWhere((day, _) => day > cutoffDay);
-    final preservedPastAndToday = plan
-        .where((p) => p.day <= cutoffDay)
-        .map((p) => p)
-        .toList();
+    final preservedPastAndToday = plan.where((p) => p.day <= cutoffDay).toList();
 
     // Les éléments explicitement placés/manuels des jours futurs sont conservés.
-    final preservedFutureManual = plan
-        .where((p) => p.day > cutoffDay && (p.activityId == null || p.manualPlacement || p.fixedInWeeklyTemplate))
-        .toList();
+    final preservedFutureManual = plan.where((p) =>
+        p.day > cutoffDay &&
+        (p.activityId == null || p.manualPlacement || p.fixedInWeeklyTemplate)).toList();
+
+    // On garde une empreinte du planning automatique précédent afin que le
+    // coach puisse dire explicitement lorsqu'une génération n'a rien changé.
+    final previousGeneratedFuture = plan.where((p) =>
+        p.day > cutoffDay &&
+        !(p.activityId == null || p.manualPlacement || p.fixedInWeeklyTemplate)).toList();
+    final previousGeneratedSignature = _generatedPlanSignature(previousGeneratedFuture);
 
     final generated = <PlanItem>[];
+    final decisionDetails = <String>[];
     var seq = 0;
 
-    // 1) Sport : on ne régénère que les occurrences futures. Les occurrences
-    // passées et celles d'aujourd'hui restent intactes.
-    _generateSportPart(generated, seq, startDay: cutoffDay + 1);
+    // Une décision négative doit elle aussi être explicable : « À éviter »
+    // signifie réellement qu'aucune nouvelle occurrence ne sera créée.
+    for (final activity in activities.where((a) => _generationActivityRule(a.id) == 'avoid')) {
+      if (decisionDetails.length >= 30) break;
+      decisionDetails.add('${activity.name} — non planifiée : consigne « À éviter » active pour les jours futurs.');
+    }
+
+    // 1) Sport : uniquement les occurrences futures.
+    _generateSportPart(
+      generated,
+      seq,
+      startDay: cutoffDay + 1,
+      decisionDetails: decisionDetails,
+    );
     seq = generated.length;
 
-    // 2) Activités ordinaires : uniquement pour les jours futurs.
+    // 2) Activités ordinaires : le coach cherche ce qu'il reste réellement à
+    // couvrir cette semaine avant de créer de nouvelles occurrences.
     final normalActivities = activities
         .where((a) => !_isSportActivity(a) && !a.isSportProgram && !_generationShouldAvoid(a))
         .toList();
@@ -1962,7 +2536,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         final ar = _generationActivityRule(a.id);
         final br = _generationActivityRule(b.id);
         if (ar != br) {
-          final rank = {'prioritize': 0, 'more': 1, 'normal': 2, 'less': 3, 'avoid': 4};
+          const rank = {'prioritize': 0, 'more': 1, 'normal': 2, 'less': 3, 'avoid': 4};
           final cmp = (rank[ar] ?? 2).compareTo(rank[br] ?? 2);
           if (cmp != 0) return cmp;
         }
@@ -1971,8 +2545,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           if (priorityCompare != 0) return priorityCompare;
         }
         if (_generationUseHistory) {
-          final historyCompare = _historyPlanningScore(b, today)
-              .compareTo(_historyPlanningScore(a, today));
+          final historyCompare = _historyPlanningScore(b, today).compareTo(_historyPlanningScore(a, today));
           if (historyCompare != 0) return historyCompare;
         }
         return b.frequency.compareTo(a.frequency);
@@ -1983,97 +2556,126 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       if (futureDays.isEmpty) break;
 
       if (activity.isDateRange) {
-        final rangeDays = _dateRangeDaysForCurrentWeek(activity)
-            .where((day) => day > cutoffDay);
+        final rangeDays = _dateRangeDaysForCurrentWeek(activity).where((day) => day > cutoffDay);
         for (final day in rangeDays) {
           generated.add(PlanItem(
             id: 'range_${activity.id}_${DateTime.now().microsecondsSinceEpoch}_$seq',
             day: day,
-            period: _periodForActivity(activity, day),
+            period: _generationPeriod(activity, day),
             timeLabel: null,
             activityId: activity.id,
             title: activity.name,
-            details: 'Activité quotidienne · ${_dateRangeLabel(activity)}',
+            details: 'Activité quotidienne · ${_dateRangeLabel(activity)} · inscrite car la période est active.',
             duration: activity.duration,
             optional: false,
             userAdded: true,
             fixedInWeeklyTemplate: false,
           ));
+          if (decisionDetails.length < 30) {
+            decisionDetails.add('${dayNames[day]} · ${activity.name} — période active : je la place automatiquement ce jour, sans compter cette activité comme une séance répétitive.');
+          }
           seq++;
         }
         continue;
       }
 
-      final target = _effectiveGenerationFrequency(activity);
+      final alreadyRealised = _currentWeekRealisedCount(activity);
+      final protectedFuture = _preservedFutureCount(activity, preservedFutureManual);
+      final target = _generationWeeklyTarget(activity);
+      final remainingOccurrences = _generationRemainingOccurrences(activity, preservedFutureManual);
+
+      if (remainingOccurrences <= 0) {
+        if (decisionDetails.length < 30 &&
+            (_generationActivityRule(activity.id) != 'normal' || activity.priority >= 4 || alreadyRealised > 0)) {
+          final protectedText = protectedFuture > 0 ? ' et $protectedFuture déjà prévue(s) et protégée(s)' : '';
+          decisionDetails.add('${activity.name} — pas de nouvelle occurrence : $alreadyRealised/${target} déjà réalisée(s) cette semaine$protectedText.');
+        }
+        continue;
+      }
+
       var generatedForActivity = 0;
-      for (var occurrence = 0; occurrence < target && generatedForActivity < futureDays.length; occurrence++) {
+      for (var occurrence = 0; occurrence < remainingOccurrences && generatedForActivity < futureDays.length; occurrence++) {
         final candidates = List<int>.from(futureDays)
-          ..sort((a, b) {
-            if (_generationRespectPreferredDays) {
-              final aPreferred = activity.preferredDays.contains(a) ? 0 : 1;
-              final bPreferred = activity.preferredDays.contains(b) ? 0 : 1;
-              if (aPreferred != bPreferred) return aPreferred.compareTo(bPreferred);
-            }
-
-            if (_generationAlternateActivities) {
-              final aSameActivity = usedByActivity[activity.id]!.contains(a) ? 1 : 0;
-              final bSameActivity = usedByActivity[activity.id]!.contains(b) ? 1 : 0;
-              if (aSameActivity != bSameActivity) return aSameActivity.compareTo(bSameActivity);
-            }
-
-            if (_generationUseHistory) {
-              final historyCompare = _historyPlanningScore(activity, b)
-                  .compareTo(_historyPlanningScore(activity, a));
-              if (historyCompare != 0) return historyCompare;
-            }
-
-            if (_generationBalanceLoad) {
-              int load(int day) {
-                return preservedPastAndToday
-                    .where((p) => p.day == day)
-                    .fold<int>(0, (sum, p) => sum + p.duration)
-                  + preservedFutureManual
-                    .where((p) => p.day == day)
-                    .fold<int>(0, (sum, p) => sum + p.duration)
-                  + generated
-                    .where((p) => p.day == day)
-                    .fold<int>(0, (sum, p) => sum + p.duration);
-              }
-              final loadCompare = load(a).compareTo(load(b));
-              if (loadCompare != 0) return loadCompare;
-            }
-            return a.compareTo(b);
-          });
+          ..sort((a, b) => _compareGenerationDays(
+            activity,
+            a,
+            b,
+            preservedPastAndToday: preservedPastAndToday,
+            preservedFutureManual: preservedFutureManual,
+            generated: generated,
+            usedDays: usedByActivity[activity.id]!,
+            includeWeather: true,
+          ));
 
         final chosenDay = candidates.firstWhere(
           (day) => !usedByActivity[activity.id]!.contains(day),
           orElse: () => candidates.first,
         );
-        usedByActivity[activity.id]!.add(chosenDay);
 
+        final period = _generationPeriod(activity, chosenDay);
+        final generationDuration = _learnedDurationForGeneration(activity);
+        final decisionReason = _generationDecisionReason(
+          activity,
+          chosenDay,
+          target,
+          alreadyRealised,
+          preservedPastAndToday,
+          preservedFutureManual,
+          generated,
+          selectedDuration: generationDuration,
+          candidates: candidates,
+          excludedDaysForDecision: usedByActivity[activity.id]!,
+        );
+        usedByActivity[activity.id]!.add(chosenDay);
         generated.add(PlanItem(
           id: 'gen_${DateTime.now().microsecondsSinceEpoch}_$seq',
           day: chosenDay,
-          period: _periodForActivity(activity, chosenDay),
+          period: period,
           timeLabel: null,
           activityId: activity.id,
           title: activity.name,
-          details: 'Créneau généré à partir de ta fiche activité.',
-          duration: activity.duration,
+          details: 'Coach : $decisionReason',
+          duration: generationDuration,
           optional: false,
           userAdded: false,
           fixedInWeeklyTemplate: false,
         ));
+        if (decisionDetails.length < 30) {
+          decisionDetails.add(decisionReason);
+        }
         seq++;
         generatedForActivity++;
       }
+      if (generatedForActivity < remainingOccurrences && decisionDetails.length < 30) {
+        final left = remainingOccurrences - generatedForActivity;
+        decisionDetails.add('${activity.name} — $left occurrence(s) n’ont pas été ajoutée(s) : la semaine ne laisse plus assez de jours futurs distincts après les contraintes déjà appliquées.');
+      }
     }
+
+    final newGeneratedSignature = _generatedPlanSignature(generated);
+    final noChange = previousGeneratedSignature == newGeneratedSignature;
+    final planningCoachExplanation = _buildPlanningCoachExplanation(
+      generated,
+      noChange: noChange,
+      preservedFutureManual: preservedFutureManual.length,
+    );
 
     setState(() {
       if (markAsRegenerated) {
         _lastPlanningRegeneratedWeekKey = _currentWeekKey();
-        _lastPlanningRegeneratedDays = List<int>.generate(7 - (cutoffDay + 1), (i) => cutoffDay + 1 + i);
+        _lastPlanningRegeneratedDays = List<int>.generate(
+          max(0, 7 - (cutoffDay + 1)),
+          (i) => cutoffDay + 1 + i,
+        );
         _lastPlanningRegeneratedAt = DateTime.now();
+        _lastPlanningCoachExplanation = planningCoachExplanation;
+        final savedDetails = decisionDetails.take(30).toList();
+        if (savedDetails.isEmpty) {
+          savedDetails.add(noChange
+              ? 'Aucun changement : les contraintes actives ne nécessitaient pas de déplacer ou de recréer les occurrences futures.'
+              : 'Aucune nouvelle occurrence n’a pu être ajoutée avec les critères actuels.');
+        }
+        _lastPlanningDecisionDetails = savedDetails;
         _mondayRegenPromptDismissed = true;
       }
       plan
@@ -2106,11 +2708,10 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       final criteria = _generationCriteriaSummary();
       final activityRules = _generationActivityRulesSummary();
       final ruleMessage = activityRules.isEmpty ? '' : ' Consignes : $activityRules.';
-      final sportMessage = sportDays == 0
-          ? ''
-          : ' Sport : $sportDays jour(s) futur(s) · $totalSportMinutes min.';
+      final sportMessage = sportDays == 0 ? '' : ' Sport : $sportDays jour(s) futur(s) · $totalSportMinutes min.';
+      final decisionMessage = noChange ? ' Aucun changement automatique n’était nécessaire.' : '';
       _scaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(content: Text('Planning futur repensé ($futureDaysCount jour(s)) selon $criteria.$ruleMessage$sportMessage')),
+        SnackBar(content: Text('Planning futur repensé ($futureDaysCount jour(s)) selon $criteria.$ruleMessage$sportMessage$decisionMessage')),
       );
     }
   }
@@ -3245,6 +3846,67 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     return logs.where((log) => !log.date.isBefore(start) && log.date.isBefore(end)).toList();
   }
 
+  String _coachWeeklySummary() {
+    final weekLogs = _currentWeekLogs();
+    final trackedUntilToday = plan.where((p) => p.activityId != null && p.day <= today && !_isDateRangePlanItem(p)).toList();
+    final completed = trackedUntilToday.where((p) => p.done).length;
+    final planned = trackedUntilToday.length;
+    final completion = planned == 0 ? 0.0 : completed / planned;
+    final realisedMinutes = weekLogs.fold<int>(0, (sum, l) => sum + l.realisedMinutes);
+    final difficult = weekLogs.where((l) => _normalizeFeeling(l.feeling) == 'Difficile').length;
+    final veryGood = weekLogs.where((l) => _normalizeFeeling(l.feeling) == 'Très bien').length;
+    final moves = activityMoveLogs.where((m) {
+      final start = _startOfCurrentWeek();
+      return !m.date.isBefore(start) && m.date.isBefore(start.add(const Duration(days: 7)));
+    }).length;
+    final parts = <String>[];
+    if (planned == 0) {
+      parts.add('La semaine n’a pas encore assez de moments passés pour tirer une conclusion solide.');
+    } else {
+      parts.add('J’ai constaté $completed moment(s) réalisé(s) sur $planned déjà passés cette semaine (${(completion * 100).round()} %).');
+    }
+    if (realisedMinutes > 0) parts.add('Cela représente $realisedMinutes min réellement vécues.');
+    if (moves > 0) parts.add('$moves déplacement(s) me montrent que la souplesse du planning reste utile.');
+    if (difficult >= 2) {
+      parts.add('$difficult ressentis « Difficile » sont un signal de charge à surveiller pour la suite.');
+    } else if (veryGood >= 2) {
+      parts.add('$veryGood ressentis « Très bien » montrent des moments bien installés dans ton rythme actuel.');
+    }
+    if (parts.isEmpty) return 'Je continue d’observer ton rythme avant de renforcer mes conclusions.';
+    return parts.join(' ');
+  }
+
+  List<String> _coachWeeklyInsights() {
+    final weekLogs = _currentWeekLogs();
+    final insights = <String>[];
+    final difficult = weekLogs.where((l) => _normalizeFeeling(l.feeling) == 'Difficile').length;
+    final veryGood = weekLogs.where((l) => _normalizeFeeling(l.feeling) == 'Très bien').length;
+    final movedThisWeek = activityMoveLogs.where((m) {
+      final start = _startOfCurrentWeek();
+      return !m.date.isBefore(start) && m.date.isBefore(start.add(const Duration(days: 7)));
+    }).length;
+
+    final activeProfiles = activities
+        .map((a) => MapEntry(a, _activityLearning(a)))
+        .where((e) => e.value.hasEnoughData)
+        .toList();
+    activeProfiles.sort((a, b) => b.value.realisedCount.compareTo(a.value.realisedCount));
+
+    if (difficult >= 2) insights.add('Charge : je tiendrai davantage compte des ressentis difficiles lors de la prochaine génération.');
+    if (veryGood >= 2) insights.add('Confort : je conserve les rythmes qui donnent régulièrement un ressenti « Très bien », sans les multiplier artificiellement.');
+    if (movedThisWeek >= 2) insights.add('Souplesse : comme plusieurs moments ont bougé cette semaine, j’augmenterai le poids des habitudes de déplacement quand elles sont répétées.');
+    for (final entry in activeProfiles.take(3)) {
+      final activity = entry.key;
+      final profile = entry.value;
+      final learned = _learningSentence(activity);
+      if (learned.isNotEmpty) insights.add(learned);
+    }
+    if (insights.isEmpty) {
+      insights.add('Le coach continue l’apprentissage : les habitudes ne deviennent des signaux forts qu’après plusieurs réalisations.');
+    }
+    return insights.take(5).toList();
+  }
+
   void openWeeklyReview() {
     _navigatorKey.currentState?.push(
       MaterialPageRoute(builder: (_) => _WeeklyReviewPage(
@@ -3261,6 +3923,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         onReplan: () {
           openGenerationCriteria();
         },
+        coachSummary: _coachWeeklySummary(),
+        coachInsights: _coachWeeklyInsights(),
+        onOpenCoachDecisions: openPlanningCoachDecisions,
       )),
     );
   }
@@ -3270,7 +3935,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       context: _navigatorKey.currentContext!,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (sheetContext) => _HistorySheet(logs: logs, activities: activities, dayNames: dayNames),
+      builder: (sheetContext) => _HistorySheet(logs: logs, activities: activities, dayNames: dayNames, onOpenGenerationCriteria: openGenerationCriteria),
     );
   }
 
@@ -5420,15 +6085,43 @@ String _formatCoachDateTime(DateTime value) {
                 borderColor: const Color(0xFFD2E0D6),
                 radius: 18,
                 padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
-                child: Row(children: [
-                  const Icon(Icons.autorenew_rounded, size: 18, color: Color(0xFF6F8E80)),
-                  const SizedBox(width: 7),
-                  Expanded(child: Text(
-                    'Planning régénéré : ${_regeneratedDaysMessage()}. Le passé et aujourd’hui ont été conservés.',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 10.3, fontWeight: FontWeight.w800, color: Color(0xFF526A5E), height: 1.2),
-                  )),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Icon(Icons.autorenew_rounded, size: 18, color: Color(0xFF6F8E80)),
+                    const SizedBox(width: 7),
+                    Expanded(child: Text(
+                      'Planning régénéré : ${_regeneratedDaysMessage()}. Le passé et aujourd’hui ont été conservés.',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 10.3, fontWeight: FontWeight.w800, color: Color(0xFF526A5E), height: 1.2),
+                    )),
+                  ]),
+                  if (_lastPlanningCoachExplanation.isNotEmpty) ...[
+                    const SizedBox(height: 5),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 25),
+                      child: Text(
+                        _lastPlanningCoachExplanation,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 9.8, color: Color(0xFF6A756F), height: 1.2),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 2),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: openPlanningCoachDecisions,
+                      icon: const Icon(Icons.psychology_outlined, size: 15),
+                      label: const Text('Pourquoi ?'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        minimumSize: const Size(0, 30),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
                 ]),
               ),
             ),
@@ -6145,10 +6838,14 @@ String _formatCoachDateTime(DateTime value) {
                 color: const Color(0xFFE8F0EA),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
-                  child: Row(children: [
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                     const Icon(Icons.autorenew_rounded, size: 18, color: Color(0xFF6F8E80)),
                     const SizedBox(width: 7),
                     Expanded(child: Text('Régénération : ${_regeneratedDaysMessage()}. Le passé et aujourd’hui restent inchangés.', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF526A5E)))),
+                    TextButton(
+                      onPressed: openPlanningCoachDecisions,
+                      child: const Text('Pourquoi ?'),
+                    ),
                   ]),
                 ),
               ),
@@ -6436,13 +7133,189 @@ String _formatCoachDateTime(DateTime value) {
     return _recentHistory(days).where((log) => _logMatchesActivity(log, activity)).length;
   }
 
+  _ActivityLearningProfile _activityLearning(Activity activity, {int days = 60}) {
+    final now = DateTime.now();
+    final cutoff = now.subtract(Duration(days: days));
+    final matched = logs.where((log) {
+      if (log.date.isBefore(cutoff) || !_logMatchesActivity(log, activity)) return false;
+      return !log.date.isAfter(now);
+    }).toList();
+
+    final dayCounts = <int, int>{};
+    final periodCounts = <String, int>{};
+    var recent7Count = 0;
+    var difficultCount = 0;
+    var veryGoodCount = 0;
+    var realisedMinutes = 0;
+    var plannedMinutes = 0;
+
+    final skippedDayCounts = <int, int>{};
+    final skippedPeriodCounts = <String, int>{};
+    var skippedCount = 0;
+
+    for (final item in plan) {
+      if (item.day >= DateTime.now().weekday - 1) continue;
+      if (item.activityId != activity.id || item.done) continue;
+      if (item.day < 0 || item.day > 6) continue;
+      skippedCount++;
+      skippedDayCounts[item.day] = (skippedDayCounts[item.day] ?? 0) + 1;
+      final period = item.period == 'Midi' ? 'Après-midi' : item.period;
+      skippedPeriodCounts[period] = (skippedPeriodCounts[period] ?? 0) + 1;
+    }
+
+    for (final log in matched) {
+      dayCounts[log.day] = (dayCounts[log.day] ?? 0) + 1;
+      final period = log.period == 'Midi' ? 'Après-midi' : log.period;
+      periodCounts[period] = (periodCounts[period] ?? 0) + 1;
+      final age = now.difference(log.date).inDays;
+      if (age < 7) recent7Count++;
+      final feeling = _normalizeFeeling(log.feeling);
+      if (feeling == 'Difficile') difficultCount++;
+      if (feeling == 'Très bien') veryGoodCount++;
+      realisedMinutes += max(0, log.realisedMinutes);
+      plannedMinutes += max(0, log.plannedMinutes);
+    }
+
+    var movedFromCount = 0;
+    var movedToCount = 0;
+    final movedToDayCounts = <int, int>{};
+    for (final move in activityMoveLogs) {
+      if (move.date.isBefore(cutoff) || move.date.isAfter(now)) continue;
+      final matches = move.activityId == activity.id ||
+          (move.activityId == null && move.activityName.trim().toLowerCase() == activity.name.trim().toLowerCase());
+      if (!matches) continue;
+      movedFromCount++;
+      movedToCount++;
+      if (move.toDay >= 0 && move.toDay <= 6) {
+        movedToDayCounts[move.toDay] = (movedToDayCounts[move.toDay] ?? 0) + 1;
+      }
+    }
+
+    return _ActivityLearningProfile(
+      realisedCount: matched.length,
+      skippedCount: skippedCount,
+      recent7Count: recent7Count,
+      dayCounts: dayCounts,
+      skippedDayCounts: skippedDayCounts,
+      periodCounts: periodCounts,
+      skippedPeriodCounts: skippedPeriodCounts,
+      movedToDayCounts: movedToDayCounts,
+      difficultCount: difficultCount,
+      veryGoodCount: veryGoodCount,
+      realisedMinutes: realisedMinutes,
+      plannedMinutes: plannedMinutes,
+      movedFromCount: movedFromCount,
+      movedToCount: movedToCount,
+    );
+  }
+
+  String? _learnedPeriodForGeneration(Activity activity) {
+    if (!_generationLearnHabits || _isSportActivity(activity) || activity.isSportProgram) return null;
+    final profile = _activityLearning(activity);
+    if (!profile.hasEnoughData || profile.bestPeriod == null) return null;
+    final period = profile.bestPeriod!;
+    return profile.periodShare(period) >= .60 ? period : null;
+  }
+
+  String _generationPeriod(Activity activity, int day) {
+    final learned = _learnedPeriodForGeneration(activity);
+    return learned ?? _periodForActivity(activity, day);
+  }
+
+  String _learningSentence(Activity activity) {
+    if (!_generationLearnHabits) return '';
+    final profile = _activityLearning(activity);
+    if (!profile.hasEnoughData) return '';
+    final parts = <String>[];
+    if (profile.bestDay >= 0 && profile.bestDayShare >= .55) {
+      parts.add('souvent réalisée le ${dayNames[profile.bestDay].toLowerCase()} (${profile.dayCounts[profile.bestDay]}/${profile.realisedCount})');
+    }
+    if (profile.bestPeriod != null && profile.periodShare(profile.bestPeriod!) >= .60) {
+      parts.add('surtout ${profile.bestPeriod!.toLowerCase()}');
+    }
+    if (profile.averageRealisedMinutes > 0 && profile.averagePlannedMinutes > 0) {
+      final deltaRatio = (profile.averageRealisedMinutes - profile.averagePlannedMinutes).abs() / profile.averagePlannedMinutes;
+      if (deltaRatio >= .20) {
+        parts.add('en pratique ${profile.averageRealisedMinutes.round()} min en moyenne');
+      }
+    }
+    if (profile.movedToCount >= 2 && profile.bestMovedToDay >= 0 && profile.bestMovedToDayShare >= .50) {
+      parts.add('souvent déplacée vers le ${dayNames[profile.bestMovedToDay].toLowerCase()}');
+    }
+    if (profile.skippedCount >= 2 && profile.completionRate < .60) {
+      parts.add('parfois laissée de côté (${(profile.completionRate * 100).round()} % réalisée)');
+    }
+    if (profile.difficultRate >= .50 && profile.difficultCount >= 2) {
+      parts.add('avec plusieurs ressentis difficiles');
+    }
+    if (parts.isEmpty) return '';
+    return '${activity.name} : ${parts.join(' · ')}.';
+  }
+
+  String _buildPlanningCoachExplanation(List<PlanItem> generated, {bool noChange = false, int preservedFutureManual = 0}) {
+    final parts = <String>[];
+    final futureGeneratedDays = generated.map((p) => p.day).toSet().length;
+    if (noChange) {
+      parts.add('Je n’ai pas changé les créneaux automatiques futurs : après comparaison entre fréquence restante, historique, habitudes apprises, jours préférés et charge, le planning actuel reste cohérent.');
+    } else {
+      parts.add('J’ai reconstruit ${generated.length} moment(s) futur(s) sur $futureGeneratedDays jour(s), sans toucher au passé ni à aujourd’hui.');
+    }
+    if (preservedFutureManual > 0) {
+      parts.add('$preservedFutureManual moment(s) futur(s) que tu avais placé(s) manuellement ont été conservé(s).');
+    }
+    final weatherSummary = _weatherAvailableButNotDecisiveSummary(generated);
+    if (weatherSummary.isNotEmpty) parts.add(weatherSummary);
+    final weatherReasons = generated
+        .map((item) => item.details ?? '')
+        .where((detail) => detail.contains('🌦️ Météo décisive'))
+        .take(3)
+        .toList();
+    if (weatherReasons.isNotEmpty) {
+      parts.add('Les décisions météo sont signalées directement dans les activités concernées.');
+    }
+    final ids = <String>[];
+    for (final item in generated) {
+      final id = item.activityId;
+      if (id != null && !ids.contains(id)) ids.add(id);
+    }
+    final learned = <String>[];
+    for (final id in ids) {
+      final activity = findActivity(id);
+      if (activity == null) continue;
+      final sentence = _learningSentence(activity);
+      if (sentence.isNotEmpty) learned.add(sentence);
+      if (learned.length >= 3) break;
+    }
+    if (learned.isNotEmpty) {
+      parts.add('Ce que j’ai appris : ${learned.join(' ')}');
+    } else if (logs.isEmpty) {
+      parts.add('Je commence avec tes réglages de fiche ; mes habitudes deviendront progressivement plus précises après quelques réalisations.');
+    } else if (_generationLearnHabits) {
+      parts.add('Je continue d’apprendre ton rythme ; je n’utilise une habitude comme signal fort qu’après au moins 3 réalisations d’une activité.');
+    }
+    if (!_generationBalanceLoad) parts.add('L’équilibre de charge a été désactivé pour cette génération.');
+    if (!_generationUseHistory) parts.add('L’historique a été désactivé : les choix reposent alors surtout sur tes réglages de fiche.');
+    if (!_generationLearnHabits) parts.add('L’apprentissage personnel a été désactivé : aucune habitude apprise n’a pesé dans les choix.');
+    return parts.join(' ');
+  }
+
   double _historyPlanningScore(Activity activity, int day) {
     // Sans historique, on conserve quasiment le comportement précédent.
     final recent30 = _recentHistory(30)
         .where((log) => _logMatchesActivity(log, activity))
         .toList();
     if (recent30.isEmpty) {
-      return activity.preferredDays.contains(day) ? 3.0 : 0.0;
+      var score = activity.preferredDays.contains(day) ? 3.0 : 0.0;
+      if (_generationLearnHabits) {
+        final profile = _activityLearning(activity);
+        if (profile.hasEnoughData) {
+          score += profile.dayShare(day) * 5.0;
+          if (day == profile.bestDay && profile.bestDayShare >= .55) score += 1.5;
+          if (profile.difficultRate >= .50) score -= 1.2;
+          if (profile.veryGoodRate >= .50) score += .6;
+        }
+      }
+      return score;
     }
 
     final now = DateTime.now();
@@ -6454,6 +7327,11 @@ String _formatCoachDateTime(DateTime value) {
     final deficit = max(0.0, target30 - actual30);
 
     var score = min(deficit, 7.0) * 1.8;
+
+    // La météo n'est volontairement PAS intégrée ici : elle est ajoutée
+    // séparément dans _compareGenerationDays(). Cela permet au coach de
+    // comparer exactement le même arbitrage avec et sans météo et donc de
+    // savoir si la météo a réellement changé sa décision.
 
     // Ce qui vient d’être fait remonte moins vite ; ce qui n’a pas été fait
     // depuis un moment remonte naturellement dans le prochain planning.
@@ -6486,6 +7364,57 @@ String _formatCoachDateTime(DateTime value) {
     // Une activité déjà suffisamment présente sur les 30 derniers jours ne
     // devient pas prioritaire uniquement parce qu’elle est ancienne.
     if (actual30 > target30 * 1.20) score -= 3.0;
+
+    // Apprentissage personnel : avec au moins 3 réalisations, le coach
+    // apprend progressivement les vrais jours de réalisation, sans supprimer
+    // les jours préférés définis par l’utilisateur. Les déplacements réels
+    // donnent un signal complémentaire mais restent volontairement modérés.
+    if (_generationLearnHabits) {
+      final profile = _activityLearning(activity);
+      if (profile.hasEnoughData) {
+        final learnedDayShare = profile.dayShare(day);
+        score += learnedDayShare * 6.0;
+        if (day == profile.bestDay && profile.bestDayShare >= .55) score += 2.0;
+        if (profile.difficultRate >= .50) score -= 1.7;
+        if (profile.veryGoodRate >= .50) score += 0.9;
+        if (profile.recent7Count >= 2) score -= .8;
+
+        // Si l’activité a souvent été prévue mais non réalisée ce jour-là,
+        // on évite doucement de la remettre au même endroit.
+        final dayCompletion = profile.dayCompletionRate(day);
+        final dayObserved = (profile.dayCounts[day] ?? 0) + (profile.skippedDayCounts[day] ?? 0);
+        if (dayObserved >= 2 && dayCompletion < .50) score -= 3.0;
+        if (dayObserved >= 3 && dayCompletion >= .80) score += 1.5;
+
+        // Lorsqu’une activité est régulièrement déplacée vers un autre jour,
+        // le coach apprend ce comportement et favorise ce jour pour l’avenir.
+        if (profile.movedToCount >= 2 && profile.bestMovedToDay == day && profile.bestMovedToDayShare >= .50) score += 2.5;
+
+        // Un écart durable entre durée prévue et durée réelle ne change pas la
+        // durée de référence de la fiche, mais devient un signal de charge.
+        if (profile.realisedCount >= 3 && profile.durationGapRatio >= .20) {
+          if (profile.durationRatio < .80) score += 1.0;
+          if (profile.durationRatio > 1.20) score -= 0.6;
+        }
+
+        // Un déplacement répété vers un autre usage du jour est un signal
+        // faible : on l’utilise pour départager des jours proches.
+        final moveToDay = activityMoveLogs.where((move) {
+          final age = now.difference(move.date).inDays;
+          final matches = move.activityId == activity.id ||
+              (move.activityId == null && move.activityName.trim().toLowerCase() == activity.name.trim().toLowerCase());
+          return age >= 0 && age < 60 && matches && move.toDay == day;
+        }).length;
+        final moveFromDay = activityMoveLogs.where((move) {
+          final age = now.difference(move.date).inDays;
+          final matches = move.activityId == activity.id ||
+              (move.activityId == null && move.activityName.trim().toLowerCase() == activity.name.trim().toLowerCase());
+          return age >= 0 && age < 60 && matches && move.fromDay == day;
+        }).length;
+        score += min(moveToDay, 3) * .45;
+        score -= min(moveFromDay, 3) * .35;
+      }
+    }
     return score;
   }
 
@@ -6848,6 +7777,9 @@ class _WeeklyReviewPage extends StatefulWidget {
   final ValueChanged<String> onSaveNote;
   final VoidCallback onOpenHistory;
   final VoidCallback onReplan;
+  final String coachSummary;
+  final List<String> coachInsights;
+  final VoidCallback onOpenCoachDecisions;
 
   const _WeeklyReviewPage({
     required this.plan,
@@ -6858,6 +7790,9 @@ class _WeeklyReviewPage extends StatefulWidget {
     required this.onSaveNote,
     required this.onOpenHistory,
     required this.onReplan,
+    required this.coachSummary,
+    required this.coachInsights,
+    required this.onOpenCoachDecisions,
   });
 
   @override
@@ -6892,17 +7827,18 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
     final monday = DateTime(currentWeekStart.year, currentWeekStart.month, currentWeekStart.day).subtract(Duration(days: currentWeekStart.weekday - 1));
     final nextMonday = monday.add(const Duration(days: 7));
     final weekMoves = widget.moveLogs.where((m) => !m.date.isBefore(monday) && m.date.isBefore(nextMonday)).toList()..sort((a,b) => b.date.compareTo(a.date));
-    final validatedMinutes = widget.logs.fold<int>(0, (sum, log) => sum + log.realisedMinutes);
-    final unplanned = widget.logs.where((log) => log.unplanned).length;
-    final pianoMinutes = widget.logs
+    final weekLogs = widget.logs.where((log) => !log.date.isBefore(monday) && log.date.isBefore(nextMonday)).toList();
+    final validatedMinutes = weekLogs.fold<int>(0, (sum, log) => sum + log.realisedMinutes);
+    final unplanned = weekLogs.where((log) => log.unplanned).length;
+    final pianoMinutes = weekLogs
         .where((log) => log.title.toLowerCase().contains('piano'))
         .fold<int>(0, (sum, log) => sum + log.realisedMinutes);
-    final sportMinutes = widget.logs
+    final sportMinutes = weekLogs
         .where((log) => log.category == 'Sport')
         .fold<int>(0, (sum, log) => sum + log.realisedMinutes);
-    final veryGood = widget.logs.where((log) => log.feeling == 'Très bien').length;
-    final good = widget.logs.where((log) => log.feeling == 'Bien').length;
-    final difficult = widget.logs.where((log) => log.feeling == 'Difficile').length;
+    final veryGood = weekLogs.where((log) => log.feeling == 'Très bien').length;
+    final good = weekLogs.where((log) => log.feeling == 'Bien').length;
+    final difficult = weekLogs.where((log) => log.feeling == 'Difficile').length;
 
     return Scaffold(
       appBar: AppBar(
@@ -6949,6 +7885,36 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                   ]),
                   const SizedBox(height: 12),
                   LinearProgressIndicator(value: completionRate, minHeight: 9, borderRadius: BorderRadius.circular(20)),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              color: const Color(0xFFE8F0EA),
+              child: Padding(
+                padding: const EdgeInsets.all(15),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    const Icon(Icons.psychology_outlined, color: Color(0xFF6F8E80)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('Le regard du coach', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Pourquoi ces choix ?',
+                      onPressed: widget.onOpenCoachDecisions,
+                      icon: const Icon(Icons.help_outline_rounded, size: 19),
+                    ),
+                  ]),
+                  const SizedBox(height: 7),
+                  Text(widget.coachSummary, style: const TextStyle(fontSize: 12.1, height: 1.35)),
+                  const SizedBox(height: 8),
+                  ...widget.coachInsights.take(5).map((text) => Padding(
+                    padding: const EdgeInsets.only(bottom: 5),
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text('• ', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF6F8E80))),
+                      Expanded(child: Text(text, style: const TextStyle(fontSize: 11.6, color: Color(0xFF5E6B65), height: 1.25))),
+                    ]),
+                  )),
                 ]),
               ),
             ),
@@ -8784,11 +9750,13 @@ class _HistorySheet extends StatefulWidget {
   final List<ActivityLog> logs;
   final List<Activity> activities;
   final List<String> dayNames;
+  final VoidCallback onOpenGenerationCriteria;
 
   const _HistorySheet({
     required this.logs,
     required this.activities,
     required this.dayNames,
+    required this.onOpenGenerationCriteria,
   });
 
   @override
@@ -9142,8 +10110,24 @@ class _HistorySheetState extends State<_HistorySheet> {
             Text('Mémoire sur 30 jours', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
             const SizedBox(height: 8),
             Text('Réalisée ${last30.length} fois · prévue environ ${ (activity.frequency.clamp(1, 7) * 30 / 7.0).round()} fois.', style: const TextStyle(fontSize: 12.3)),
-            const SizedBox(height: 5),
+            const SizedBox(height: 9),
+            Container(
+              padding: const EdgeInsets.fromLTRB(11, 9, 11, 9),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1EEE6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Tes réglages', style: TextStyle(fontSize: 11.4, fontWeight: FontWeight.w900, color: Color(0xFF6C756F))),
+                const SizedBox(height: 4),
+                Text('${activity.frequency}×/semaine · ${activity.duration} min · priorité ${activity.priority}/5 · jours préférés : ${activity.preferredDays.isEmpty ? 'aucun' : activity.preferredDays.map((d) => d >= 0 && d < widget.dayNames.length ? widget.dayNames[d] : '').where((v) => v.isNotEmpty).join(', ')}',
+                    style: const TextStyle(fontSize: 11.3, height: 1.3)),
+              ]),
+            ),
+            const SizedBox(height: 8),
             Text('Dernière réalisation : ${_lastDoneLabel(activity, 30)} · jour habituel : ${_habitualDay(activity, 30)}.', style: const TextStyle(fontSize: 12.3)),
+            const SizedBox(height: 5),
+            Text('Habitude apprise : ${_learnedMemorySentence(activity)}', style: const TextStyle(fontSize: 12.1, color: Color(0xFF5F6E68))),
             const SizedBox(height: 5),
             Text('Temps : ${_durationText(realised)} réalisés', style: const TextStyle(fontSize: 12.3)),
             if (planned > 0) ...[
@@ -9162,11 +10146,78 @@ class _HistorySheetState extends State<_HistorySheet> {
     );
   }
 
+  String _learnedMemorySentence(Activity activity) {
+    final now = DateTime.now();
+    final cutoff = now.subtract(const Duration(days: 60));
+    final matched = widget.logs.where((log) =>
+        !log.date.isBefore(cutoff) &&
+        ((log.activityId != null && log.activityId == activity.id) ||
+            (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase()))).toList();
+    if (matched.length < 3) return 'encore en apprentissage (moins de 3 réalisations sur 60 jours).';
+    final dayCounts = <int, int>{};
+    final periodCounts = <String, int>{};
+    var realised = 0;
+    for (final log in matched) {
+      dayCounts[log.day] = (dayCounts[log.day] ?? 0) + 1;
+      final period = log.period == 'Midi' ? 'Après-midi' : log.period;
+      periodCounts[period] = (periodCounts[period] ?? 0) + 1;
+      realised += log.realisedMinutes;
+    }
+    final bestDayEntry = dayCounts.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    final bestPeriodEntry = periodCounts.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    final pieces = <String>[];
+    if (bestDayEntry.value / matched.length >= .55 && bestDayEntry.key >= 0 && bestDayEntry.key < widget.dayNames.length) {
+      pieces.add('surtout le ${widget.dayNames[bestDayEntry.key].toLowerCase()}');
+    }
+    if (bestPeriodEntry.value / matched.length >= .60) {
+      pieces.add('plutôt ${bestPeriodEntry.key.toLowerCase()}');
+    }
+    if (realised > 0) pieces.add('${(realised / matched.length).round()} min réellement en moyenne');
+    return pieces.isEmpty ? 'pas encore de tendance assez nette.' : '${pieces.join(' · ')}.';
+  }
+
   String _durationText(int minutes) {
     if (minutes < 60) return '$minutes min';
     final h = minutes ~/ 60;
     final m = minutes % 60;
     return m == 0 ? '${h} h' : '${h} h ${m.toString().padLeft(2, '0')}';
+  }
+
+  String _learningOverviewText() {
+    final candidates = <String>[];
+    for (final activity in widget.activities) {
+      final now = DateTime.now();
+      final cutoff = now.subtract(const Duration(days: 60));
+      final matched = widget.logs.where((log) =>
+          !log.date.isBefore(cutoff) &&
+          ((log.activityId != null && log.activityId == activity.id) ||
+              (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase()))).toList();
+      if (matched.length < 3) continue;
+      final dayCounts = <int, int>{};
+      final periodCounts = <String, int>{};
+      var realised = 0;
+      for (final log in matched) {
+        dayCounts[log.day] = (dayCounts[log.day] ?? 0) + 1;
+        final period = log.period == 'Midi' ? 'Après-midi' : log.period;
+        periodCounts[period] = (periodCounts[period] ?? 0) + 1;
+        realised += log.realisedMinutes;
+      }
+      final bestDay = dayCounts.entries.reduce((a, b) => a.value >= b.value ? a : b);
+      final bestPeriod = periodCounts.entries.reduce((a, b) => a.value >= b.value ? a : b);
+      final notes = <String>[];
+      if (bestDay.value / matched.length >= .55 && bestDay.key >= 0 && bestDay.key < widget.dayNames.length) {
+        notes.add('souvent ${widget.dayNames[bestDay.key].toLowerCase()}');
+      }
+      if (bestPeriod.value / matched.length >= .60) notes.add('plutôt ${bestPeriod.key.toLowerCase()}');
+      if (notes.isNotEmpty) candidates.add('${activity.name} est ${notes.join(' et ')}');
+      if (candidates.length >= 3) break;
+    }
+    if (candidates.isEmpty) {
+      return widget.logs.isEmpty
+          ? 'Je commence avec les règles de ta fiche. Dès que tu auras quelques réalisations, j’apprendrai progressivement tes jours, tes moments et tes durées habituels.'
+          : 'J’apprends progressivement tes habitudes. À partir de 3 réalisations d’une activité, je peux commencer à identifier ses jours et moments réellement favorables.';
+    }
+    return 'Je tiens progressivement compte de tes habitudes : ${candidates.join(' · ')}.';
   }
 
   Widget _analysisCard() {
@@ -9242,6 +10293,28 @@ class _HistorySheetState extends State<_HistorySheet> {
                       icon: Icons.check_circle_outline,
                     )),
               ],
+            ]),
+          ),
+        ),
+        const SizedBox(height: 9),
+        Card(
+          color: const Color(0xFFE8F0EA),
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Icon(Icons.psychology_outlined, color: Color(0xFF6F8E80)),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Apprentissage du coach', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+              ]),
+              const SizedBox(height: 6),
+              Text(_learningOverviewText(), style: const TextStyle(fontSize: 11.9, color: Color(0xFF5E6B65), height: 1.3)),
+              const SizedBox(height: 9),
+              OutlinedButton.icon(
+                onPressed: widget.onOpenGenerationCriteria,
+                icon: const Icon(Icons.tune_rounded, size: 17),
+                label: const Text('Modifier les consignes du coach'),
+              ),
             ]),
           ),
         ),
