@@ -432,7 +432,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V8.57';
+  static const version = 'V8.62';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -6976,46 +6976,80 @@ String _formatCoachDateTime(DateTime value) {
               color: const Color(0xFFFFF1DE),
               borderColor: const Color(0xFFF0D7B6),
               radius: 28,
-              padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
+              padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _homeMascotAvatar(size: 52),
+                  _homeMascotAvatar(size: 48),
                   const SizedBox(width: 8),
                   Expanded(
-                    flex: 7,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(
-                          width: double.infinity,
-                          child: FittedBox(
-                            alignment: Alignment.centerLeft,
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              _userName.trim().isEmpty ? 'Bonjour 👋' : 'Bonjour ${_userName.trim()} 👋',
-                              maxLines: 1,
-                              softWrap: false,
-                              style: const TextStyle(fontSize: 18.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.4),
-                            ),
-                          ),
-                        ),
-                        Text(dateText(), style: const TextStyle(fontSize: 10.3, color: Color(0xFF756E67))),
-                        const SizedBox(height: 2),
-                        Text('${_clockText()} · ${_dayMoment()}', style: const TextStyle(fontSize: 10.8, fontWeight: FontWeight.w800, color: Color(0xFF7B705F))),
-                        const SizedBox(height: 5),
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(_weatherCity.trim().isEmpty ? '🌤️' : _weatherIcon, style: const TextStyle(fontSize: 18)),
+                            Expanded(
+                              child: FittedBox(
+                                alignment: Alignment.centerLeft,
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  _userName.trim().isEmpty ? 'Bonjour 👋' : 'Bonjour ${_userName.trim()} 👋',
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: const TextStyle(fontSize: 17.0, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.35),
+                                ),
+                              ),
+                            ),
                             const SizedBox(width: 5),
+                            Flexible(
+                              child: Text(
+                                '${dateText()} · ${_clockText()} · ${_dayMoment()}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(fontSize: 8.7, fontWeight: FontWeight.w800, color: Color(0xFF756E67)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(_weatherCity.trim().isEmpty ? '🌤️' : _weatherIcon, style: const TextStyle(fontSize: 15)),
+                            const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 _weatherCity.trim().isEmpty
                                     ? 'Ajoute ta ville pour la météo'
                                     : '${_weatherCity.trim()}${_weatherTemperature.isEmpty ? '' : ' · ${_weatherTemperature}'}${_weatherText.isEmpty ? '' : ' · ${_weatherText.toLowerCase()}'}',
-                                maxLines: 2,
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 9.4, fontWeight: FontWeight.w900, color: Color(0xFF536660)),
+                                style: const TextStyle(fontSize: 9.0, fontWeight: FontWeight.w900, color: Color(0xFF536660)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 1),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text('💭', style: TextStyle(fontSize: 10.0)),
+                            const SizedBox(width: 3),
+                            Expanded(
+                              child: Text(
+                                '$_morningThought',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 8.9, height: 1.0, fontStyle: FontStyle.italic, color: Color(0xFF5D554B)),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: refreshMorningThought,
+                              child: const Padding(
+                                padding: EdgeInsets.only(left: 3),
+                                child: Icon(Icons.auto_awesome_rounded, size: 12, color: Color(0xFF9C8866)),
                               ),
                             ),
                           ],
@@ -7023,37 +7057,7 @@ String _formatCoachDateTime(DateTime value) {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 11),
-                  Expanded(
-                    flex: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 4, right: 2),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('💭 Pensée du jour', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF8A7555))),
-                          const SizedBox(height: 5),
-                          Text(
-                            '« $_morningThought »',
-                            softWrap: true,
-                            style: const TextStyle(fontSize: 10.3, height: 1.2, fontStyle: FontStyle.italic, color: Color(0xFF5D554B)),
-                          ),
-                          Align(
-                            alignment: Alignment.bottomRight,
-                            child: IconButton(
-                              visualDensity: VisualDensity.compact,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
-                              tooltip: 'Changer la pensée',
-                              onPressed: refreshMorningThought,
-                              icon: const Icon(Icons.auto_awesome_rounded, size: 15, color: Color(0xFF9C8866)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 2),
+                  const SizedBox(width: 6),
                   IconButton(
                     tooltip: 'Repenser le planning',
                     visualDensity: VisualDensity.compact,
@@ -7679,78 +7683,91 @@ String _formatCoachDateTime(DateTime value) {
         : _sportItemsForDay(item.day).where((p) => p.activityId == item.activityId).toList();
     final occurrence = sameDay.indexWhere((p) => p.id == item.id) + 1;
     final repeated = sameDay.length > 1;
+    final titleStyle = _detailMetaStyle().copyWith(
+      fontWeight: FontWeight.w900,
+      color: const Color(0xFF3F4B45),
+    );
 
     return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Row(children: [
-        _activityIconWidget(emoji, size: 27),
-        const SizedBox(width: 6),
-        Expanded(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: activity == null ? null : () => addOrEditActivity(original: activity),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(children: [
-                Expanded(
-                  child: Text(
-                    item.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                      fontFamily: GoogleFonts.nunitoSans().fontFamily,
-                      color: const Color(0xFF3F4B45),
-                      height: 1.18,
-                      decoration: item.done ? TextDecoration.lineThrough : null,
-                    ),
+      padding: const EdgeInsets.only(top: 7),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(4, 5, 2, 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7FAF8),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              _activityIconWidget(emoji, size: 25),
+              const SizedBox(width: 6),
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: activity == null ? null : () => addOrEditActivity(original: activity),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(children: [
+                      Expanded(
+                        child: Text(
+                          item.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: titleStyle.copyWith(decoration: item.done ? TextDecoration.lineThrough : null),
+                        ),
+                      ),
+                      if (repeated) ...[
+                        const SizedBox(width: 5),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEAF2ED),
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Text(
+                            '$occurrence/${sameDay.length}',
+                            style: _detailMetaStyle().copyWith(fontSize: 9.5, fontWeight: FontWeight.w900, color: const Color(0xFF6F8E80)),
+                          ),
+                        ),
+                      ],
+                    ]),
                   ),
                 ),
-                if (repeated) ...[
-                  const SizedBox(width: 5),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FBF9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '$occurrence/${sameDay.length}',
-                      style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF6F8E80)),
-                    ),
-                  ),
+              ),
+              IconButton(
+                tooltip: 'Retirer du jour',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                onPressed: () => _removePlanOccurrence(item),
+                icon: const Icon(Icons.remove_circle_outline, size: 17, color: Color(0xFFC27D68)),
+              ),
+            ]),
+            const SizedBox(height: 1),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min',
+                  style: _detailMetaStyle(),
+                ),
+                const SizedBox(width: 5),
+                if (activity != null) ...[
+                  _sportWeeklyIndicator(activity),
+                  const SizedBox(width: 4),
                 ],
-              ]),
+                Checkbox(
+                  value: item.done,
+                  onChanged: (_) => openPlanItem(item),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ],
             ),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min'
-                  : '${item.duration} min',
-              style: _detailMetaStyle(),
-            ),
-            const SizedBox(height: 3),
-            if (activity != null) _sportWeeklyIndicator(activity),
           ],
         ),
-        const SizedBox(width: 5),
-        Checkbox(
-          value: item.done,
-          onChanged: (_) => openPlanItem(item),
-          visualDensity: VisualDensity.compact,
-        ),
-        IconButton(
-          tooltip: 'Retirer du jour',
-          visualDensity: VisualDensity.compact,
-          onPressed: () => _removePlanOccurrence(item),
-          icon: const Icon(Icons.remove_circle_outline, size: 18, color: Color(0xFFC27D68)),
-        ),
-      ]),
+      ),
     );
   }
 
@@ -9789,6 +9806,80 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     return _activityIconWidget(widget.getSportProgram()?.emoji ?? '🏃', size: size);
   }
 
+  /// Indicateur 7 jours utilisé dans la page Sport.
+  /// La version précédente appelait le helper de l'état principal, qui
+  /// n'est pas accessible depuis _SportWeekPageState. Cette copie s'appuie
+  /// uniquement sur les données exposées par widget.getPlan().
+  Widget _sportWeeklyIndicator(Activity activity) {
+    const labels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    final currentPlan = widget.getPlan();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(7, (day) {
+        PlanItem? item;
+        for (final candidate in currentPlan) {
+          if (candidate.day == day && candidate.activityId == activity.id) {
+            item = candidate;
+            break;
+          }
+        }
+        final active = item?.done == true;
+        final planned = item != null && !item!.done;
+        return Padding(
+          padding: const EdgeInsets.only(right: 3),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                labels[day],
+                style: const TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF6F7777),
+                ),
+              ),
+              const SizedBox(height: 1),
+              InkWell(
+                onTap: () => widget.onToggleDay(activity, day),
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: active
+                        ? const Color(0xFF7D988D)
+                        : planned
+                            ? const Color(0xFFE5EEE9)
+                            : const Color(0xFFF7FAF8),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: active
+                          ? const Color(0xFF6C887A)
+                          : const Color(0xFFBFCFC7),
+                    ),
+                  ),
+                  child: active
+                      ? const Icon(Icons.check, size: 11, color: Colors.white)
+                      : planned
+                          ? const Text(
+                              '•',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF526B78),
+                              ),
+                            )
+                          : null,
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
   List<PlanItem> _itemsFor(Activity activity, int day) {
     return widget.getPlan().where((item) {
       if (item.day != day || item.activityId != activity.id) return false;
@@ -10217,47 +10308,68 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         else
           ...items.map((item) {
             final activity = item.activityId == null ? null : _allSportActivities().firstWhere((a) => a.id == item.activityId, orElse: () => _allSportActivities().first);
+            final titleStyle = _detailMetaStyle().copyWith(fontWeight: FontWeight.w900, color: const Color(0xFF3F4B45));
             return Padding(
-              padding: const EdgeInsets.only(top: 3),
-              child: Row(children: [
-                _activityIconWidget(_planItemIconValue(item, widget.getActivities()), size: 16),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: activity == null ? null : () => widget.onOpenActivity(activity),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, decoration: item.done ? TextDecoration.lineThrough : null)),
+              padding: const EdgeInsets.only(top: 5),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  _activityIconWidget(_planItemIconValue(item, widget.getActivities()), size: 22),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: activity == null ? null : () => widget.onOpenActivity(activity),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Text(
+                          item.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: titleStyle.copyWith(decoration: item.done ? TextDecoration.lineThrough : null),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                Text(item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF526B78))),
-                const SizedBox(width: 5),
-                InkWell(
-                  onTap: () {
-                    if (activity == null) return;
-                    setState(() => widget.onToggleDay(activity, day));
-                  },
-                  borderRadius: BorderRadius.circular(7),
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: item.done ? const Color(0xFF7D988D) : const Color(0xFFF8F7F2),
+                  IconButton(
+                    tooltip: 'Retirer du jour',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    onPressed: () => widget.onRemoveItem(item),
+                    icon: const Icon(Icons.remove_circle_outline, size: 17, color: Color(0xFFC27D68)),
+                  ),
+                ]),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min',
+                      style: _detailMetaStyle(),
+                    ),
+                    const SizedBox(width: 5),
+                    if (activity != null) ...[
+                      _sportWeeklyIndicator(activity),
+                      const SizedBox(width: 4),
+                    ],
+                    InkWell(
+                      onTap: () {
+                        if (activity == null) return;
+                        setState(() => widget.onToggleDay(activity, day));
+                      },
                       borderRadius: BorderRadius.circular(7),
-                      border: Border.all(color: item.done ? const Color(0xFF6C887A) : const Color(0xFFCFCBC2)),
+                      child: Container(
+                        width: 23,
+                        height: 23,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: item.done ? const Color(0xFF7D988D) : const Color(0xFFF8F7F2),
+                          borderRadius: BorderRadius.circular(7),
+                          border: Border.all(color: item.done ? const Color(0xFF6C887A) : const Color(0xFFCFCBC2)),
+                        ),
+                        child: item.done ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+                      ),
                     ),
-                    child: item.done ? const Icon(Icons.check, size: 15, color: Colors.white) : null,
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Retirer du jour',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () => widget.onRemoveItem(item),
-                  icon: const Icon(Icons.remove_circle_outline, size: 18, color: Color(0xFFC27D68)),
+                  ],
                 ),
               ]),
             );
@@ -10422,72 +10534,61 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     final planned = _plannedCount(activity);
     final done = _doneCount(activity);
     final target = _target(activity);
+    final labelStyle = _detailMetaStyle().copyWith(fontWeight: FontWeight.w900, color: const Color(0xFF3F4B45));
 
     return Container(
       margin: const EdgeInsets.only(bottom: 5),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+      padding: const EdgeInsets.fromLTRB(7, 6, 7, 5),
       decoration: BoxDecoration(
         color: missing ? const Color(0xFFF8E7DF) : const Color(0xFFFFFDF9),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: missing ? const Color(0xFFE3AA95) : const Color(0xFFE8E4DB),
-          width: activity.category == 'Sport'
-              ? (missing ? 1.2 : 1.0)
-              : (missing ? 0.8 : 0.55),
+          width: activity.category == 'Sport' ? (missing ? 1.2 : 1.0) : (missing ? 0.8 : 0.55),
         ),
       ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 109,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          _activityIconWidget(activity.emoji, size: 23),
+          const SizedBox(width: 6),
+          Expanded(
             child: InkWell(
               borderRadius: BorderRadius.circular(9),
               onTap: () => widget.onOpenActivity(activity),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  children: [
-                    _activityIconWidget(activity.emoji, size: 28),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  activity.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11.5),
-                                ),
-                              ),
-                              if (missing)
-                                const Padding(
-                                  padding: EdgeInsets.only(left: 2),
-                                  child: Icon(Icons.warning_amber_rounded, size: 13, color: Color(0xFFAA624B)),
-                                ),
-                            ],
-                          ),
-                          Text(
-                            '$done/$planned · cible ${target}×',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 8.5, color: Color(0xFF7A7770)),
-                          ),
-                        ],
-                      ),
+                padding: const EdgeInsets.symmetric(vertical: 1),
+                child: Row(children: [
+                  Expanded(
+                    child: Text(
+                      activity.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: labelStyle,
                     ),
-                  ],
-                ),
+                  ),
+                  if (missing) const Padding(
+                    padding: EdgeInsets.only(left: 3),
+                    child: Icon(Icons.warning_amber_rounded, size: 13, color: Color(0xFFAA624B)),
+                  ),
+                ]),
               ),
             ),
           ),
+        ]),
+        const SizedBox(height: 3),
+        Row(children: [
+          SizedBox(
+            width: 115,
+            child: Text(
+              '$done/$planned · cible ${target}×',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: _detailMetaStyle().copyWith(fontSize: 10.2, fontWeight: FontWeight.w700, color: const Color(0xFF7A7770)),
+            ),
+          ),
           ..._trackingDayIndices().map((day) => _compactDayCell(activity, day)),
-        ],
-      ),
+        ]),
+      ]),
     );
   }
 
