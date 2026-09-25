@@ -96,6 +96,28 @@ class _DayWeather {
 final Map<String, String> _customActivityIconData = {};
 final Map<String, Uint8List> _customActivityIconBytes = {};
 
+
+// Registre global des icônes d'interface. Les écrans secondaires peuvent ainsi
+// respecter les personnalisations définies dans « Système » sans dupliquer la logique.
+final Map<String, String> _systemUiIconOverrides = {};
+
+String _uiIconValue(String key, String fallback) =>
+    _systemUiIconOverrides[key] ?? fallback;
+
+Widget _uiIcon(
+  String key,
+  IconData fallback, {
+  String? fallbackEmoji,
+  double size = 18,
+  Color color = const Color(0xFF66736D),
+}) {
+  final override = _systemUiIconOverrides[key];
+  if (override != null && override.isNotEmpty) {
+    return _activityIconWidget(override, size: size);
+  }
+  return Icon(fallback, size: size, color: color);
+}
+
 Uint8List? _decodeCustomIconData(String data) {
   try {
     final comma = data.indexOf(',');
@@ -432,7 +454,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 }
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V8.62';
+  static const version = 'V8.65';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -1144,7 +1166,10 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         _systemIconOverrides
           ..clear()
           ..addAll(((root['systemIconOverrides'] is Map) ? Map<String, dynamic>.from(root['systemIconOverrides']) : <String, dynamic>{})
-              .map((key, value) => MapEntry(key, '\${value}')));
+              .map((key, value) => MapEntry(key, '${value}')));
+        _systemUiIconOverrides
+          ..clear()
+          ..addAll(_systemIconOverrides);
         _todayNameday = _asString(root['todayNameday']) ?? '';
         _todayNamedayDateKey = _asString(root['todayNamedayDateKey']) ?? '';
         weeklyNote = _asString(root['weeklyNote']) ?? '';
@@ -1277,6 +1302,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       _homeMascotEmoji = '🧸';
       _homeMascotImageData = '';
       _systemIconOverrides.clear();
+      _systemUiIconOverrides.clear();
       categoryFilter = 'Toutes';
       tab = 0;
       _morningThought = freshThought;
@@ -2571,7 +2597,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Icon(Icons.arrow_forward_rounded, size: 17, color: Color(0xFF6F8E80)),
+                        _uiIcon('coach', Icons.arrow_forward_rounded, size: 17, color: const Color(0xFF6F8E80)),
                         const SizedBox(width: 7),
                         Expanded(child: Text(detail, style: const TextStyle(fontSize: 11.8, height: 1.3))),
                       ]),
@@ -2582,7 +2608,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
               const Text('Le premier motif affiché est le facteur réellement décisif dans l’ordre des arbitrages. Une météo simplement consultée, une habitude secondaire ou un signal faible ne sont pas présentés comme cause principale. Le passé et aujourd’hui ne sont jamais réécrits par « Repenser ».',
                   style: TextStyle(fontSize: 11.5, color: Color(0xFF697370), height: 1.3)),
               const SizedBox(height: 12),
-              FilledButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.check), label: const Text('Fermer')),
+              FilledButton.icon(onPressed: () => Navigator.pop(context), icon: _uiIcon('confirm', Icons.check, size: 18, color: const Color(0xFF60786B)), label: const Text('Fermer')),
             ],
           ),
         ),
@@ -2686,7 +2712,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                       'learnHabits': learnHabits,
                       'activityRules': localRules,
                     }),
-                    icon: const Icon(Icons.auto_awesome_outlined),
+                    icon: _uiIcon('coach', Icons.auto_awesome_outlined, size: 18, color: const Color(0xFF9C8866)),
                     label: const Text('Générer le planning futur'),
                   ),
                 ),
@@ -3367,7 +3393,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                 shape: BoxShape.circle,
                 border: Border.all(color: const Color(0xFFE0D5C8)),
               ),
-              child: const Icon(Icons.edit_rounded, size: 10, color: Color(0xFF6F7B74)),
+              child: _uiIcon('edit', Icons.edit_rounded, size: 10, color: const Color(0xFF6F7B74)),
             ),
           ),
         ],
@@ -3596,13 +3622,13 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                   tooltip: 'Modifier l’activité',
                   visualDensity: VisualDensity.compact,
                   onPressed: activity == null ? null : () => addOrEditActivity(original: activity),
-                  icon: const Icon(Icons.edit_outlined, size: 19, color: Color(0xFF7A6D5D)),
+                  icon: _uiIcon('edit', Icons.edit_outlined, size: 18, color: const Color(0xFF7A6D5D)),
                 ),
                 IconButton(
                   tooltip: 'Retirer ce jour',
                   visualDensity: VisualDensity.compact,
                   onPressed: () => _removeDateRangeOccurrence(item),
-                  icon: const Icon(Icons.remove_circle_outline, size: 19, color: Color(0xFFC27D68)),
+                  icon: _uiIcon('remove', Icons.remove_circle_outline, size: 18, color: const Color(0xFFC27D68)),
                 ),
               ]),
             );
@@ -4082,7 +4108,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                       Navigator.pop(sheetContext);
                       _recordAdditionalRealisation(activity);
                     },
-                    icon: const Icon(Icons.add_task_outlined),
+                    icon: _uiIcon('add', Icons.add_task_outlined, size: 18),
                     label: const Text('Réaliser encore aujourd’hui'),
                   ),
                 ),
@@ -4095,7 +4121,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                     Navigator.pop(sheetContext);
                     editPlanItem(item);
                   },
-                  icon: const Icon(Icons.edit_outlined),
+                  icon: _uiIcon('edit', Icons.edit_outlined, size: 18),
                   label: const Text('Modifier ce moment'),
                 ),
               ),
@@ -4111,7 +4137,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                       SnackBar(content: Text('« ${item.title} » retiré de la semaine.')),
                     );
                   },
-                  icon: const Icon(Icons.delete_outline),
+                  icon: _uiIcon('delete', Icons.delete_outline, size: 18, color: const Color(0xFFC27D68)),
                   label: const Text('Retirer de la semaine'),
                 ),
               ),
@@ -5188,7 +5214,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                             final value = await _pickCustomActivityIconImage();
                             if (value != null && pickerContext.mounted) Navigator.pop(pickerContext, value);
                           },
-                          icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                          icon: _uiIcon('photo', Icons.add_photo_alternate_outlined, size: 18),
                           label: const Text('Image'),
                         ),
                       ),
@@ -5199,7 +5225,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                             final value = await _addCustomActivityEmoji();
                             if (value != null && pickerContext.mounted) Navigator.pop(pickerContext, value);
                           },
-                          icon: const Icon(Icons.emoji_emotions_outlined, size: 18),
+                          icon: _uiIcon('emoji', Icons.emoji_emotions_outlined, size: 18),
                           label: const Text('Emoji'),
                         ),
                       ),
@@ -5210,7 +5236,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                           await _manageCustomActivityIcons();
                           if (pickerContext.mounted) setPickerState(() {});
                         },
-                        icon: const Icon(Icons.tune_rounded),
+                        icon: _uiIcon('manageIcons', Icons.tune_rounded, size: 18),
                       ),
                     ]),
                     const SizedBox(height: 8),
@@ -5328,7 +5354,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                                           });
                                           _queueLocalStatePersist();
                                         },
-                                  icon: const Icon(Icons.delete_outline),
+                                  icon: _uiIcon('delete', Icons.delete_outline, size: 18, color: const Color(0xFFC27D68)),
                                 ),
                               ),
                             );
@@ -5352,7 +5378,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                                     setDialogState(() => _customActivityEmojis.removeWhere((e) => e.value == entry.value));
                                     _queueLocalStatePersist();
                                   },
-                                  icon: const Icon(Icons.delete_outline),
+                                  icon: _uiIcon('delete', Icons.delete_outline, size: 18, color: const Color(0xFFC27D68)),
                                 ),
                               ),
                             );
@@ -5557,7 +5583,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                                             final value = await _pickCustomActivityIconImage();
                                             if (value != null && pickerContext.mounted) Navigator.pop(pickerContext, value);
                                           },
-                                          icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                                          icon: _uiIcon('photo', Icons.add_photo_alternate_outlined, size: 18),
                                           label: const Text('Importer une image'),
                                         ),
                                       ),
@@ -5568,7 +5594,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                                             final value = await _addCustomActivityEmoji();
                                             if (value != null && pickerContext.mounted) Navigator.pop(pickerContext, value);
                                           },
-                                          icon: const Icon(Icons.emoji_emotions_outlined, size: 18),
+                                          icon: _uiIcon('emoji', Icons.emoji_emotions_outlined, size: 18),
                                           label: const Text('Ajouter un emoji'),
                                         ),
                                       ),
@@ -5582,7 +5608,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                                         await _manageCustomActivityIcons();
                                         if (pickerContext.mounted) setPickerState(() {});
                                       },
-                                      icon: const Icon(Icons.tune, size: 16),
+                                      icon: _uiIcon('manageIcons', Icons.tune, size: 16),
                                       label: const Text('Gérer mes icônes'),
                                     ),
                                   ),
@@ -5708,7 +5734,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                                     if (rangeEnd == null || rangeEnd!.isBefore(rangeStart!)) rangeEnd = rangeStart;
                                   });
                                 },
-                                icon: const Icon(Icons.event_outlined, size: 18),
+                                icon: _uiIcon('calendar', Icons.event_outlined, size: 18),
                                 label: Text(rangeStart == null ? 'Date début' : _shortDate(rangeStart!)),
                                 style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10)),
                               ),
@@ -5730,7 +5756,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                                   if (picked == null) return;
                                   setDialogState(() => rangeEnd = _dateOnly(picked));
                                 },
-                                icon: const Icon(Icons.event_available_outlined, size: 18),
+                                icon: _uiIcon('calendar', Icons.event_available_outlined, size: 18),
                                 label: Text(rangeEnd == null ? 'Date fin' : _shortDate(rangeEnd!)),
                                 style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10)),
                               ),
@@ -5784,11 +5810,11 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                 if (category == 'Sport') ...[
                   Row(children: [
                     Expanded(child: _StepperLine(label: 'Priorité', value: priority, min: 1, max: 5, onChanged: (v) => setDialogState(() => priority = v))),
-                    IconButton(icon: const Icon(Icons.info_outline, size: 19), tooltip: 'Expliquer la priorité', onPressed: () => showSportHelp('Priorité', 'La priorité indique l’importance de cette activité dans tes choix Sport. Plus elle est élevée, plus le coach la favorise lorsqu’il doit arbitrer entre plusieurs possibilités.')),
+                    IconButton(icon: _uiIcon('help', Icons.info_outline, size: 18), tooltip: 'Expliquer la priorité', onPressed: () => showSportHelp('Priorité', 'La priorité indique l’importance de cette activité dans tes choix Sport. Plus elle est élevée, plus le coach la favorise lorsqu’il doit arbitrer entre plusieurs possibilités.')),
                   ]),
                   Row(children: [
                     Expanded(child: _StepperLine(label: 'Poids dans la rotation sport', value: sportWeight, min: 1, max: 10, onChanged: (v) => setDialogState(() => sportWeight = v))),
-                    IconButton(icon: const Icon(Icons.info_outline, size: 19), tooltip: 'Expliquer le poids', onPressed: () => showSportHelp('Poids dans la rotation', 'Le poids est un réglage plus fin du choix automatique. Un poids élevé donne davantage de préférence à cette activité, sans imposer qu’elle soit choisie à chaque fois.')),
+                    IconButton(icon: _uiIcon('help', Icons.info_outline, size: 18), tooltip: 'Expliquer le poids', onPressed: () => showSportHelp('Poids dans la rotation', 'Le poids est un réglage plus fin du choix automatique. Un poids élevé donne davantage de préférence à cette activité, sans imposer qu’elle soit choisie à chaque fois.')),
                   ]),
                   Container(
                     margin: const EdgeInsets.only(top: 8),
@@ -5797,7 +5823,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Row(children: [
                         const Expanded(child: Text('Plusieurs fois dans la même journée', style: TextStyle(fontWeight: FontWeight.w800))),
-                        IconButton(icon: const Icon(Icons.info_outline, size: 19), tooltip: 'Expliquer', onPressed: () => showSportHelp('Plusieurs fois par jour', 'Cette option demande à la même activité Sport d’apparaître plusieurs fois le même jour. Le nombre d’occurrences est réglable de 2 à 3 et chaque séance reste indépendante. Si le budget du jour ne suffit pas, le planning ne peut pas toutes les placer.')),
+                        IconButton(icon: _uiIcon('help', Icons.info_outline, size: 18), tooltip: 'Expliquer', onPressed: () => showSportHelp('Plusieurs fois par jour', 'Cette option demande à la même activité Sport d’apparaître plusieurs fois le même jour. Le nombre d’occurrences est réglable de 2 à 3 et chaque séance reste indépendante. Si le budget du jour ne suffit pas, le planning ne peut pas toutes les placer.')),
                         Switch.adaptive(value: allowMultiplePerDay, onChanged: (v) => setDialogState(() => allowMultiplePerDay = v)),
                       ]),
                       if (allowMultiplePerDay) ...[
@@ -5819,11 +5845,11 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
                       ),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Row(children: [
-                          const Icon(Icons.repeat_rounded, size: 20, color: Color(0xFF7A6A59)),
+                          _uiIcon('repeat', Icons.repeat_rounded, size: 18, color: const Color(0xFF7A6A59)),
                           const SizedBox(width: 8),
                           const Expanded(child: Text('Plusieurs réalisations dans la même journée', style: TextStyle(fontWeight: FontWeight.w800))),
                           IconButton(
-                            icon: const Icon(Icons.info_outline, size: 19),
+                            icon: _uiIcon('help', Icons.info_outline, size: 18),
                             tooltip: 'Expliquer',
                             onPressed: () => showSportHelp(
                               'Plusieurs réalisations par jour',
@@ -6662,6 +6688,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           onSurface: const Color(0xFF3B4842),
         ),
         scaffoldBackgroundColor: const Color(0xFFFFF8EF),
+        iconTheme: const IconThemeData(size: 18, color: Color(0xFF66736D)),
         pageTransitionsTheme: PageTransitionsTheme(
           builders: {
             TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
@@ -6699,6 +6726,39 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
             side: const BorderSide(color: Color(0xFFE8DED2)),
           ),
         ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: const Color(0xFFFFFCF7),
+          surfaceTintColor: Colors.transparent,
+          elevation: 8,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          titleTextStyle: TextStyle(
+            fontFamily: GoogleFonts.lora().fontFamily,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF33414A),
+          ),
+          contentTextStyle: const TextStyle(
+            fontSize: 13,
+            height: 1.35,
+            color: Color(0xFF4D5954),
+          ),
+        ),
+        bottomSheetTheme: const BottomSheetThemeData(
+          backgroundColor: Color(0xFFFFFBF5),
+          modalBackgroundColor: Color(0xFFFFFBF5),
+          surfaceTintColor: Colors.transparent,
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          showDragHandle: true,
+        ),
+        listTileTheme: const ListTileThemeData(
+          minVerticalPadding: 7,
+          contentPadding: EdgeInsets.symmetric(horizontal: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+        ),
         iconButtonTheme: const IconButtonThemeData(
           style: ButtonStyle(
             minimumSize: WidgetStatePropertyAll(Size(44, 44)),
@@ -6707,29 +6767,63 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 44),
-            padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 11),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-            textStyle: const TextStyle(fontWeight: FontWeight.w800),
+            minimumSize: const Size(0, 46),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(0, 44),
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-            side: const BorderSide(color: Color(0xFFE0D5C8)),
-            textStyle: const TextStyle(fontWeight: FontWeight.w800),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            side: const BorderSide(color: Color(0xFFDCCFC1)),
+            textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            minimumSize: const Size(0, 42),
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: const Color(0xFFFFFCF7),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 17, vertical: 15),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: Color(0xFFD9D5CB))),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: Color(0xFFD9D5CB))),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFF526B78), width: 1.6)),
-          labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+          isDense: false,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFDCD5CC)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFDCD5CC)),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFE8E1D8)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFF789082), width: 1.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFD98F72), width: 1.2),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFD98F72), width: 1.5),
+          ),
+          labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF68736F)),
+          floatingLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF60786B)),
+          hintStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: Color(0xFF9A9D99)),
+          helperStyle: const TextStyle(fontSize: 10.5, height: 1.2, color: Color(0xFF848A87)),
+          errorStyle: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFFC47B68)),
         ),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: const Color(0xFFFFFBF5),
@@ -6741,11 +6835,17 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
           labelTextStyle: WidgetStatePropertyAll(GoogleFonts.nunitoSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF52616A))),
         ),
         chipTheme: ChipThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          side: const BorderSide(color: Color(0xFFD9D5CB)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          side: const BorderSide(color: Color(0xFFE0D8CF)),
           backgroundColor: const Color(0xFFFAF8F3),
           selectedColor: const Color(0xFFDCE5E7),
-          labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          labelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+        ),
+        checkboxTheme: CheckboxThemeData(
+          materialTapTargetSize: MaterialTapTargetSize.padded,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          side: const BorderSide(color: Color(0xFFB8B9B4), width: 1.3),
         ),
       ),
       home: Scaffold(
@@ -7064,7 +7164,7 @@ String _formatCoachDateTime(DateTime value) {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
                     onPressed: openGenerationCriteria,
-                    icon: const Icon(Icons.autorenew_rounded, size: 19, color: Color(0xFF6F8E80)),
+                    icon: _uiIcon('refresh', Icons.autorenew_rounded, size: 18, color: const Color(0xFF6F8E80)),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
@@ -7074,25 +7174,25 @@ String _formatCoachDateTime(DateTime value) {
                   const SizedBox(width: 3),
                   PopupMenuButton<String>(
                     tooltip: 'Réglages',
-                    icon: const Icon(Icons.more_horiz_rounded, color: Color(0xFF6F7B74)),
+                    icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 18, color: const Color(0xFF6F7B74)),
                     onSelected: (value) {
                       if (value == 'data') openDataManager();
                       if (value == 'identity') _editHomeIdentity();
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem<String>(
+                      PopupMenuItem<String>(
                         value: 'data',
                         child: ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: Icon(Icons.save_outlined),
+                          leading: _uiIcon('save', Icons.save_outlined, size: 18),
                           title: Text('Sauvegarde & données'),
                         ),
                       ),
-                      const PopupMenuItem<String>(
+                      PopupMenuItem<String>(
                         value: 'identity',
                         child: ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: Icon(Icons.tune_rounded),
+                          leading: _uiIcon('settings', Icons.tune_rounded, size: 18),
                           title: Text('Personnaliser l’accueil'),
                         ),
                       ),
@@ -7159,7 +7259,7 @@ String _formatCoachDateTime(DateTime value) {
                     const SizedBox(width: 5),
                     FilledButton.tonalIcon(
                       onPressed: openGenerationCriteria,
-                      icon: const Icon(Icons.auto_awesome_outlined, size: 15),
+                      icon: _uiIcon('coach', Icons.auto_awesome_outlined, size: 15),
                       label: const Text('Repenser'),
                       style: ButtonStyle(
                         minimumSize: const WidgetStatePropertyAll(Size(0, 38)),
@@ -7170,7 +7270,7 @@ String _formatCoachDateTime(DateTime value) {
                       tooltip: 'Pas maintenant',
                       visualDensity: VisualDensity.compact,
                       onPressed: _dismissMondayRegenerationPrompt,
-                      icon: const Icon(Icons.close_rounded, size: 17),
+                      icon: _uiIcon('close', Icons.close_rounded, size: 17),
                     ),
                   ],
                 ),
@@ -7188,7 +7288,7 @@ String _formatCoachDateTime(DateTime value) {
                 padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Icon(Icons.autorenew_rounded, size: 18, color: Color(0xFF6F8E80)),
+                    _uiIcon('refresh', Icons.autorenew_rounded, size: 18, color: const Color(0xFF6F8E80)),
                     const SizedBox(width: 7),
                     Expanded(child: Text(
                       'Planning régénéré : ${_regeneratedDaysMessage()}. Le passé et aujourd’hui ont été conservés.',
@@ -7214,7 +7314,7 @@ String _formatCoachDateTime(DateTime value) {
                     alignment: Alignment.centerRight,
                     child: TextButton.icon(
                       onPressed: openPlanningCoachDecisions,
-                      icon: const Icon(Icons.psychology_outlined, size: 15),
+                      icon: _uiIcon('coach', Icons.psychology_outlined, size: 15, color: const Color(0xFF6F8E80)),
                       label: const Text('Pourquoi ?'),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
@@ -7327,7 +7427,7 @@ String _formatCoachDateTime(DateTime value) {
                   alignment: Alignment.centerLeft,
                   child: TextButton.icon(
                     onPressed: () => addUnplannedToDay(today),
-                    icon: const Icon(Icons.add, size: 18),
+                    icon: _uiIcon('add', Icons.add, size: 18),
                     label: const Text('Ajouter autre chose'),
                   ),
                 ),
@@ -7346,7 +7446,7 @@ String _formatCoachDateTime(DateTime value) {
                   mascotAvatar(size: 42),
                   const SizedBox(width: 9),
                   const Expanded(child: Text('Coach Sport', style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900, color: Color(0xFF4A5864)))),
-                  IconButton(visualDensity: VisualDensity.compact, tooltip: 'Journal du coach Sport', onPressed: openSportCoachJournal, icon: const Icon(Icons.menu_book_rounded, size: 18, color: Color(0xFF6B7884))),
+                  IconButton(visualDensity: VisualDensity.compact, tooltip: 'Journal du coach Sport', onPressed: openSportCoachJournal, icon: _uiIcon('history', Icons.menu_book_rounded, size: 18, color: const Color(0xFF6B7884))),
                 ]),
                 const SizedBox(height: 4),
                 Text(sportCoachLastAnalysis.isEmpty ? 'Je veille à garder une semaine souple et agréable.' : sportCoachLastAnalysis, style: const TextStyle(fontSize: 10.8, height: 1.34, color: Color(0xFF596670), fontWeight: FontWeight.w600)),
@@ -7360,7 +7460,7 @@ String _formatCoachDateTime(DateTime value) {
                       const SizedBox(width: 6),
                       Expanded(child: Text(sportCoachSuggestion, style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF52616B)))),
                       const SizedBox(width: 5),
-                      FilledButton.tonalIcon(onPressed: applySportCoachSuggestion, icon: const Icon(Icons.bolt_rounded, size: 14), label: const Text('Appliquer'), style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap)),
+                      FilledButton.tonalIcon(onPressed: applySportCoachSuggestion, icon: _uiIcon('apply', Icons.bolt_rounded, size: 14, color: const Color(0xFF60786B)), label: const Text('Appliquer'), style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap)),
                     ]),
                   ),
                 ],
@@ -7521,13 +7621,13 @@ String _formatCoachDateTime(DateTime value) {
                 tooltip: 'Pourquoi le coach a choisi ce moment ?',
                 visualDensity: VisualDensity.compact,
                 onPressed: () => _showPlanItemCoachReason(item),
-                icon: const Icon(Icons.psychology_alt_outlined, size: 18, color: Color(0xFF789082)),
+                icon: _uiIcon('coach', Icons.psychology_alt_outlined, size: 18, color: const Color(0xFF789082)),
               ),
             IconButton(
               tooltip: _isGenericActivityItem(item) ? 'Déplacer' : 'Voir / modifier',
               visualDensity: VisualDensity.compact,
               onPressed: () { final a = item.activityId == null ? null : findActivity(item.activityId!); if (a != null && _isSportActivity(a)) { addOrEditActivity(original: a); } else if (_isGenericActivityItem(item)) { _movePlanItemDay(item); } else { openItemActions(item); } },
-              icon: Icon(_isGenericActivityItem(item) ? Icons.event_outlined : Icons.chevron_right, size: 20),
+              icon: _isGenericActivityItem(item) ? _uiIcon('calendar', Icons.event_outlined, size: 18) : const Icon(Icons.chevron_right_rounded, size: 20),
             ),
             IconButton(
               tooltip: 'Retirer du jour',
@@ -7586,7 +7686,7 @@ String _formatCoachDateTime(DateTime value) {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                const Icon(Icons.psychology_alt_rounded, size: 22, color: Color(0xFF60786B)),
+                _uiIcon('coach', Icons.psychology_alt_rounded, size: 21, color: const Color(0xFF60786B)),
                 const SizedBox(width: 8),
                 Expanded(child: Text('Pourquoi ce choix ?', style: GoogleFonts.lora(fontSize: 19, fontWeight: FontWeight.w700, color: const Color(0xFF3B4842)))),
               ]),
@@ -7651,7 +7751,7 @@ String _formatCoachDateTime(DateTime value) {
           Expanded(child: Text('Sport · $planned / $target min prévus · $validated min validés', style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF526B78)))),
           TextButton.icon(
             onPressed: () => _addSportActivityToDay(day),
-            icon: const Icon(Icons.add_circle_outline, size: 18),
+            icon: _uiIcon('add', Icons.add_circle_outline, size: 18),
             label: const Text('Ajouter', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900)),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
@@ -7663,7 +7763,7 @@ String _formatCoachDateTime(DateTime value) {
             visualDensity: VisualDensity.compact,
             tooltip: 'Semaine Sport',
             onPressed: openSportWeekOverview,
-            icon: const Icon(Icons.calendar_view_week_outlined, size: 19),
+            icon: _uiIcon('week', Icons.calendar_view_week_outlined, size: 18),
           ),
         ]),
         const SizedBox(height: 8),
@@ -7741,7 +7841,7 @@ String _formatCoachDateTime(DateTime value) {
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
                 onPressed: () => _removePlanOccurrence(item),
-                icon: const Icon(Icons.remove_circle_outline, size: 17, color: Color(0xFFC27D68)),
+                icon: _uiIcon('remove', Icons.remove_circle_outline, size: 17, color: const Color(0xFFC27D68)),
               ),
             ]),
             const SizedBox(height: 1),
@@ -7836,7 +7936,7 @@ String _formatCoachDateTime(DateTime value) {
                           tooltip: 'Modifier l’icône',
                           visualDensity: VisualDensity.compact,
                           onPressed: () => _editActivityIcon(activity),
-                          icon: const Icon(Icons.edit_outlined, size: 17),
+                          icon: _uiIcon('edit', Icons.edit_outlined, size: 17),
                         ),
                         Icon(canAdd ? Icons.add_circle_outline : Icons.block_outlined),
                       ],
@@ -8125,7 +8225,7 @@ String _formatCoachDateTime(DateTime value) {
                         color: const Color(0xFFE7EDF0),
                         borderRadius: BorderRadius.circular(13),
                       ),
-                      child: const Icon(Icons.event_note_outlined, color: Color(0xFF526B78), size: 21),
+                      child: _uiIcon('calendar', Icons.event_note_outlined, size: 20, color: const Color(0xFF526B78)),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -8140,7 +8240,7 @@ String _formatCoachDateTime(DateTime value) {
                     ),
                     FilledButton.tonalIcon(
                       onPressed: openWeeklyReview,
-                      icon: const Icon(Icons.insights_outlined, size: 17),
+                      icon: _uiIcon('insights', Icons.insights_outlined, size: 17),
                       label: const Text('Bilan'),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
@@ -8163,7 +8263,7 @@ String _formatCoachDateTime(DateTime value) {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
                   child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                    const Icon(Icons.autorenew_rounded, size: 18, color: Color(0xFF6F8E80)),
+                    _uiIcon('refresh', Icons.autorenew_rounded, size: 18, color: const Color(0xFF6F8E80)),
                     const SizedBox(width: 7),
                     Expanded(child: Text('Régénération : ${_regeneratedDaysMessage()}. Le passé et aujourd’hui restent inchangés.', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF526A5E)))),
                     TextButton(
@@ -8332,7 +8432,7 @@ String _formatCoachDateTime(DateTime value) {
                         IconButton(
                           tooltip: 'Ajouter un moment',
                           onPressed: () => addUnplannedToDay(selectedDay),
-                          icon: const Icon(Icons.add_circle_outline, color: Color(0xFF526B78)),
+                          icon: _uiIcon('add', Icons.add_circle_outline, size: 18, color: const Color(0xFF526B78)),
                         ),
                       ],
                     ),
@@ -8433,7 +8533,7 @@ String _formatCoachDateTime(DateTime value) {
                       alignment: Alignment.centerLeft,
                       child: TextButton.icon(
                         onPressed: () => addUnplannedToDay(selectedDay),
-                        icon: const Icon(Icons.add, size: 18),
+                        icon: _uiIcon('add', Icons.add, size: 18),
                         label: const Text('Ajouter autre chose'),
                       ),
                     ),
@@ -8859,10 +8959,10 @@ String _formatCoachDateTime(DateTime value) {
     );
   }
 
-  String _systemIconValue(String key, String fallback) => _systemIconOverrides[key] ?? fallback;
+  String _systemIconValue(String key, String fallback) => _uiIconValue(key, fallback);
 
   Widget _systemIconWidget(String key, {required String fallback, double size = 22}) {
-    return _activityIconWidget(_systemIconValue(key, fallback), size: size);
+    return _activityIconWidget(_uiIconValue(key, fallback), size: size);
   }
 
   Future<void> _editSystemIcon(String key, String label, String fallback) async {
@@ -8872,7 +8972,7 @@ String _formatCoachDateTime(DateTime value) {
       current: _systemIconValue(key, fallback),
     );
     if (picked == null || !mounted) return;
-    setState(() => _systemIconOverrides[key] = picked);
+    setState(() { _systemIconOverrides[key] = picked; _systemUiIconOverrides[key] = picked; });
     _queueLocalStatePersist();
     _showFeedback('Icône « $label » modifiée.');
   }
@@ -8891,7 +8991,7 @@ String _formatCoachDateTime(DateTime value) {
       ),
     );
     if (reset != true || !mounted) return;
-    setState(() => _systemIconOverrides.clear());
+    setState(() { _systemIconOverrides.clear(); _systemUiIconOverrides.clear(); });
     _queueLocalStatePersist();
     _showFeedback('Icônes de l’interface réinitialisées.');
   }
@@ -8904,11 +9004,37 @@ String _formatCoachDateTime(DateTime value) {
       {'key': 'periodMorning', 'label': 'En-tête Matin', 'fallback': '🌤️'},
       {'key': 'periodAfternoon', 'label': 'En-tête Après-midi', 'fallback': '🌿'},
       {'key': 'periodEvening', 'label': 'En-tête Soir', 'fallback': '🌙'},
-      {'key': 'add', 'label': 'Ajouter', 'fallback': '➕'},
-      {'key': 'history', 'label': 'Historique', 'fallback': '📖'},
       {'key': 'sport', 'label': 'Sport', 'fallback': '💪'},
+      {'key': 'coach', 'label': 'Coach', 'fallback': '🧠'},
+      {'key': 'add', 'label': 'Ajouter', 'fallback': '➕'},
       {'key': 'edit', 'label': 'Modifier', 'fallback': '✏️'},
       {'key': 'remove', 'label': 'Retirer', 'fallback': '➖'},
+      {'key': 'delete', 'label': 'Supprimer', 'fallback': '🗑️'},
+      {'key': 'confirm', 'label': 'Valider / fermer', 'fallback': '✅'},
+      {'key': 'history', 'label': 'Historique / journal', 'fallback': '📖'},
+      {'key': 'help', 'label': 'Aide / information', 'fallback': '💡'},
+      {'key': 'photo', 'label': 'Photo / image', 'fallback': '🖼️'},
+      {'key': 'emoji', 'label': 'Emoji', 'fallback': '😀'},
+      {'key': 'manageIcons', 'label': 'Gérer les icônes', 'fallback': '🎨'},
+      {'key': 'save', 'label': 'Sauvegarder', 'fallback': '💾'},
+      {'key': 'backup', 'label': 'Sauvegarde', 'fallback': '☁️'},
+      {'key': 'restore', 'label': 'Restaurer / importer', 'fallback': '↩️'},
+      {'key': 'reset', 'label': 'Réinitialiser', 'fallback': '♻️'},
+      {'key': 'filter', 'label': 'Filtrer', 'fallback': '🔎'},
+      {'key': 'calendar', 'label': 'Calendrier / moment', 'fallback': '📅'},
+      {'key': 'week', 'label': 'Vue 7 jours', 'fallback': '🗓️'},
+      {'key': 'duration', 'label': 'Durée / temps', 'fallback': '⏱️'},
+      {'key': 'move', 'label': 'Déplacer', 'fallback': '↕️'},
+      {'key': 'repeat', 'label': 'Répéter', 'fallback': '🔁'},
+      {'key': 'durationMinus', 'label': 'Diminuer une durée', 'fallback': '➖'},
+      {'key': 'durationPlus', 'label': 'Augmenter une durée', 'fallback': '➕'},
+      {'key': 'close', 'label': 'Fermer', 'fallback': '✕'},
+      {'key': 'apply', 'label': 'Appliquer', 'fallback': '⚡'},
+      {'key': 'settings', 'label': 'Réglages', 'fallback': '⚙️'},
+      {'key': 'identity', 'label': 'Identité', 'fallback': '👤'},
+      {'key': 'location', 'label': 'Lieu / météo', 'fallback': '📍'},
+      {'key': 'refresh', 'label': 'Actualiser', 'fallback': '🔄'},
+      {'key': 'insights', 'label': 'Statistiques', 'fallback': '📊'},
       {'key': 'system', 'label': 'Système', 'fallback': '⚙️'},
     ];
     await showModalBottomSheet<void>(
@@ -8929,8 +9055,15 @@ String _formatCoachDateTime(DateTime value) {
                 const Expanded(child: Text('Système · personnalisation', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF405049)))),
               ]),
               const SizedBox(height: 5),
-              const Text('Personnalise les icônes des en-têtes, de la navigation et des principaux boutons.', style: TextStyle(fontSize: 11.5, color: Color(0xFF747B75), height: 1.25)),
+              const Text('Personnalise les icônes de navigation, de rubriques, d’actions et des principaux menus. Les contrôles purement sémantiques (cases cochées, flèches de défilement) restent volontairement fixes.', style: TextStyle(fontSize: 11.5, color: Color(0xFF747B75), height: 1.25)),
               const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                decoration: BoxDecoration(color: const Color(0xFFF2F6F3), borderRadius: BorderRadius.circular(12)),
+                child: const Text('Signature commune : icônes d’action 18 px · icônes de détail 16–18 px · icônes d’en-tête 20–22 px. Les coches, flèches et indicateurs d’état restent sémantiques.', style: TextStyle(fontSize: 10.5, color: Color(0xFF6E7872), height: 1.25)),
+              ),
+              const SizedBox(height: 9),
               Flexible(
                 child: ListView.separated(
                   shrinkWrap: true,
@@ -9066,13 +9199,13 @@ String _formatCoachDateTime(DateTime value) {
                 tooltip: 'Pourquoi le coach a choisi ce moment ?',
                 visualDensity: VisualDensity.compact,
                 onPressed: () => _showPlanItemCoachReason(item),
-                icon: const Icon(Icons.psychology_alt_outlined, size: 18, color: Color(0xFF789082)),
+                icon: _uiIcon('coach', Icons.psychology_alt_outlined, size: 18, color: const Color(0xFF789082)),
               ),
             IconButton(
               tooltip: _isGenericActivityItem(item) ? 'Déplacer' : 'Voir / modifier',
               visualDensity: VisualDensity.compact,
               onPressed: () { final a = item.activityId == null ? null : findActivity(item.activityId!); if (a != null && _isSportActivity(a)) { addOrEditActivity(original: a); } else if (_isGenericActivityItem(item)) { _movePlanItemDay(item); } else { openItemActions(item); } },
-              icon: Icon(_isGenericActivityItem(item) ? Icons.event_outlined : Icons.chevron_right, size: 20, color: Color(0xFF718087)),
+              icon: _isGenericActivityItem(item) ? _uiIcon('calendar', Icons.event_outlined, size: 18, color: const Color(0xFF718087)) : const Icon(Icons.chevron_right_rounded, size: 20, color: Color(0xFF718087)),
             ),
             IconButton(
               tooltip: 'Retirer du jour',
@@ -9080,7 +9213,7 @@ String _formatCoachDateTime(DateTime value) {
               constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
               padding: EdgeInsets.zero,
               onPressed: () => _removePlanOccurrence(item),
-              icon: const Icon(Icons.remove_circle_outline, size: 22, color: Color(0xFFC27D68)),
+              icon: _uiIcon('remove', Icons.remove_circle_outline, size: 18, color: const Color(0xFFC27D68)),
             ),
           ],
         ),
@@ -9422,14 +9555,14 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                 padding: const EdgeInsets.all(15),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    const Icon(Icons.psychology_outlined, color: Color(0xFF6F8E80)),
+                    _uiIcon('coach', Icons.psychology_outlined, size: 18, color: const Color(0xFF6F8E80)),
                     const SizedBox(width: 8),
                     Expanded(child: Text('Le regard du coach', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
                     IconButton(
                       visualDensity: VisualDensity.compact,
                       tooltip: 'Pourquoi ces choix ?',
                       onPressed: widget.onOpenCoachDecisions,
-                      icon: const Icon(Icons.help_outline_rounded, size: 19),
+                      icon: _uiIcon('help', Icons.help_outline_rounded, size: 18),
                     ),
                   ]),
                   const SizedBox(height: 7),
@@ -9452,7 +9585,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                 padding: const EdgeInsets.all(15),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    const Icon(Icons.insights_outlined, color: Color(0xFF7D988D)),
+                    _uiIcon('insights', Icons.insights_outlined, size: 18, color: const Color(0xFF7D988D)),
                     const SizedBox(width: 8),
                     Expanded(child: Text('À quoi sert ce bilan ?', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
                   ]),
@@ -9466,7 +9599,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: widget.onOpenHistory,
-                        icon: const Icon(Icons.history_outlined, size: 17),
+                        icon: _uiIcon('history', Icons.history_outlined, size: 17),
                         label: const Text('Historique & mémoire'),
                       ),
                     ),
@@ -9474,7 +9607,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                     Expanded(
                       child: FilledButton.tonalIcon(
                         onPressed: widget.onReplan,
-                        icon: const Icon(Icons.auto_awesome_outlined, size: 17),
+                        icon: _uiIcon('coach', Icons.auto_awesome_outlined, size: 17),
                         label: const Text('Repenser'),
                       ),
                     ),
@@ -9541,7 +9674,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                 padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    const Icon(Icons.open_with_outlined, color: Color(0xFF6F8E80)),
+                    _uiIcon('move', Icons.open_with_outlined, size: 18, color: const Color(0xFF6F8E80)),
                     const SizedBox(width: 8),
                     Text('Les déplacements de la semaine', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
                   ]),
@@ -9584,7 +9717,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                         widget.onSaveNote(noteController.text.trim());
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bilan personnel enregistré.')));
                       },
-                      icon: const Icon(Icons.save_outlined),
+                      icon: _uiIcon('save', Icons.save_outlined, size: 18),
                       label: const Text('Enregistrer mon bilan'),
                     ),
                   ),
@@ -9696,7 +9829,7 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: (_closing || current == null || current < 1) ? null : () => _close(current),
-                    icon: const Icon(Icons.check_circle_outline),
+                    icon: _uiIcon('confirm', Icons.check_circle_outline, size: 18, color: const Color(0xFF6F8E80)),
                     label: const Text('Valider'),
                   ),
                 ),
@@ -10114,7 +10247,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                 actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Compris'))],
               ),
             ),
-            icon: const Icon(Icons.info_outline, size: 20),
+            icon: _uiIcon('help', Icons.info_outline, size: 18),
           ),
           const SizedBox(width: 2),
           IconButton(
@@ -10125,7 +10258,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
               _sort = 'Nom';
               _view = 'Semaine';
             }),
-            icon: const Icon(Icons.filter_alt_off_outlined),
+            icon: _uiIcon('filter', Icons.filter_alt_off_outlined, size: 18),
           ),
         ]),
         const SizedBox(height: 8),
@@ -10296,7 +10429,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
             tooltip: 'Ajouter une activité Sport',
             visualDensity: VisualDensity.compact,
             onPressed: () => widget.onAddSportActivity(day),
-            icon: const Icon(Icons.add_circle_outline, size: 18, color: Color(0xFF6F8E80)),
+            icon: _uiIcon('add', Icons.add_circle_outline, size: 18, color: const Color(0xFF6F8E80)),
           ),
           Text('$done / $planned min', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF6F7777))),
         ]),
@@ -10336,7 +10469,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
                     onPressed: () => widget.onRemoveItem(item),
-                    icon: const Icon(Icons.remove_circle_outline, size: 17, color: Color(0xFFC27D68)),
+                    icon: _uiIcon('remove', Icons.remove_circle_outline, size: 17, color: const Color(0xFFC27D68)),
                   ),
                 ]),
                 Row(
@@ -10392,7 +10525,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Icon(Icons.view_week_outlined, size: 17, color: Color(0xFF6F8E80)),
+          _uiIcon('week', Icons.view_week_outlined, size: 17, color: const Color(0xFF6F8E80)),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
@@ -10407,7 +10540,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           const SizedBox(width: 4),
           TextButton.icon(
             onPressed: () => setState(() => _showWeekTracking = true),
-            icon: const Icon(Icons.view_week_outlined, size: 16),
+            icon: _uiIcon('week', Icons.view_week_outlined, size: 16),
             label: const Text('7 jours'),
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFF526B78),
@@ -10765,7 +10898,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Semaine Sport'),
-        actions: [IconButton(tooltip: 'Accueil', onPressed: () => Navigator.pop(context), icon: const Icon(Icons.home_outlined))],
+        actions: [IconButton(tooltip: 'Accueil', onPressed: () => Navigator.pop(context), icon: _uiIcon('navHome', Icons.home_outlined, size: 20))],
       ),
       body: SafeArea(
         top: false,
@@ -10806,7 +10939,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                       ),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Row(children: [
-                          const Icon(Icons.view_week_outlined, size: 17, color: Color(0xFF6F8E80)),
+                          _uiIcon('week', Icons.view_week_outlined, size: 17, color: const Color(0xFF6F8E80)),
                           const SizedBox(width: 6),
                           const Expanded(child: Text('Suivi des activités', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5))),
                           SegmentedButton<bool>(
@@ -10858,7 +10991,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                   const SizedBox(height: 2),
                   Text('${activity.duration} min · ⏸ PLUS TARD', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: Color(0xFF9A7566))),
                 ])),
-                OutlinedButton.icon(onPressed: () { widget.onReactivate(activity); Navigator.pop(context); }, icon: const Icon(Icons.refresh_rounded, size: 16), label: const Text('Réactiver')),
+                OutlinedButton.icon(onPressed: () { widget.onReactivate(activity); Navigator.pop(context); }, icon: _uiIcon('refresh', Icons.refresh_rounded, size: 16), label: const Text('Réactiver')),
               ]),
             )),
           ],
@@ -11005,9 +11138,9 @@ class _StepperLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(children: [
         Expanded(child: Text(label)),
-        IconButton(onPressed: value > min ? () => onChanged(value - 1) : null, icon: const Icon(Icons.remove_circle_outline)),
+        IconButton(onPressed: value > min ? () => onChanged(value - 1) : null, icon: _uiIcon('remove', Icons.remove_circle_outline, size: 18, color: const Color(0xFFC27D68))),
         Text('$value', style: const TextStyle(fontWeight: FontWeight.w800)),
-        IconButton(onPressed: value < max ? () => onChanged(value + 1) : null, icon: const Icon(Icons.add_circle_outline)),
+        IconButton(onPressed: value < max ? () => onChanged(value + 1) : null, icon: _uiIcon('add', Icons.add_circle_outline, size: 18)),
       ]);
 }
 
@@ -11103,7 +11236,7 @@ class _DataPage extends StatelessWidget {
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: onExport,
-                    icon: const Icon(Icons.download_outlined),
+                    icon: _uiIcon('backup', Icons.download_outlined, size: 18),
                     label: const Text('Télécharger la sauvegarde'),
                   ),
                 ),
@@ -11129,7 +11262,7 @@ class _DataPage extends StatelessWidget {
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: onICloudExport,
-                    icon: const Icon(Icons.cloud_upload_outlined),
+                    icon: _uiIcon('backup', Icons.cloud_upload_outlined, size: 18),
                     label: const Text('Sauvegarder maintenant sur iCloud'),
                   ),
                 ),
@@ -11149,7 +11282,7 @@ class _DataPage extends StatelessWidget {
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: () => _import(context),
-                    icon: const Icon(Icons.upload_file_outlined),
+                    icon: _uiIcon('restore', Icons.upload_file_outlined, size: 18),
                     label: const Text('Choisir une sauvegarde'),
                   ),
                 ),
@@ -11170,7 +11303,7 @@ class _DataPage extends StatelessWidget {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () => _reset(context),
-                    icon: const Icon(Icons.restart_alt),
+                    icon: _uiIcon('reset', Icons.restart_alt, size: 18),
                     label: const Text('Réinitialisation complète'),
                   ),
                 ),
@@ -11292,7 +11425,7 @@ class _HomeMascotSheet extends StatelessWidget {
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: () => Navigator.pop(context, const _HomeMascotChoice(kind: 'photo')),
-                icon: const Icon(Icons.photo_library_outlined),
+                icon: _uiIcon('photo', Icons.photo_library_outlined, size: 18),
                 label: const Text('Choisir / conserver une photo sur l’appareil'),
               ),
             ),
@@ -11359,7 +11492,7 @@ class _HomeIdentitySheetState extends State<_HomeIdentitySheet> {
               decoration: InputDecoration(
                 labelText: 'Prénom ou nom affiché',
                 hintText: 'Ex. Alain',
-                prefixIcon: const Icon(Icons.person_outline_rounded),
+                prefixIcon: _uiIcon('identity', Icons.person_outline_rounded, size: 18),
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
@@ -11373,7 +11506,7 @@ class _HomeIdentitySheetState extends State<_HomeIdentitySheet> {
               decoration: InputDecoration(
                 labelText: 'Ville pour la météo',
                 hintText: 'Ex. Sarlat-la-Canéda',
-                prefixIcon: const Icon(Icons.location_on_outlined),
+                prefixIcon: _uiIcon('location', Icons.location_on_outlined, size: 18),
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
@@ -11919,7 +12052,7 @@ class _HistorySheetState extends State<_HistorySheet> {
             padding: const EdgeInsets.all(15),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Icon(Icons.tune_outlined, color: Color(0xFFC67E67)),
+                _uiIcon('settings', Icons.tune_outlined, size: 18, color: const Color(0xFFC67E67)),
                 const SizedBox(width: 8),
                 Text('À faire évoluer', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
               ]),
@@ -11951,7 +12084,7 @@ class _HistorySheetState extends State<_HistorySheet> {
             padding: const EdgeInsets.all(15),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Icon(Icons.psychology_outlined, color: Color(0xFF6F8E80)),
+                _uiIcon('coach', Icons.psychology_outlined, size: 18, color: const Color(0xFF6F8E80)),
                 const SizedBox(width: 8),
                 Expanded(child: Text('Apprentissage du coach', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
               ]),
@@ -11960,7 +12093,7 @@ class _HistorySheetState extends State<_HistorySheet> {
               const SizedBox(height: 9),
               OutlinedButton.icon(
                 onPressed: widget.onOpenGenerationCriteria,
-                icon: const Icon(Icons.tune_rounded, size: 17),
+                icon: _uiIcon('settings', Icons.tune_rounded, size: 17),
                 label: const Text('Modifier les consignes du coach'),
               ),
             ]),
@@ -11973,7 +12106,7 @@ class _HistorySheetState extends State<_HistorySheet> {
             padding: const EdgeInsets.all(15),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Icon(Icons.auto_graph_outlined, color: Color(0xFF7D988D)),
+                _uiIcon('insights', Icons.auto_graph_outlined, size: 18, color: const Color(0xFF7D988D)),
                 const SizedBox(width: 8),
                 Expanded(child: Text('Mémoire par activité', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
                 Text('${_memoryActivities().length}/${widget.activities.length}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF77746D))),
@@ -12079,7 +12212,7 @@ class _HistorySheetState extends State<_HistorySheet> {
             padding: const EdgeInsets.all(15),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Icon(Icons.psychology_outlined, color: Color(0xFF526B78)),
+                _uiIcon('coach', Icons.psychology_outlined, size: 18, color: const Color(0xFF526B78)),
                 const SizedBox(width: 8),
                 Text('Ce que le coach retient', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
               ]),
@@ -12419,13 +12552,13 @@ class _AddMomentPageState extends State<_AddMomentPage> {
         title: Text('Ajouter à ${widget.dayName}'),
         leading: IconButton(
           tooltip: 'Annuler',
-          icon: const Icon(Icons.close),
+          icon: _uiIcon('close', Icons.close, size: 18),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           TextButton.icon(
             onPressed: save,
-            icon: const Icon(Icons.check),
+            icon: _uiIcon('confirm', Icons.check, size: 18, color: const Color(0xFF60786B)),
             label: const Text('Ajouter'),
           ),
         ],
@@ -12435,9 +12568,9 @@ class _AddMomentPageState extends State<_AddMomentPage> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
           children: [
             SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment<bool>(value: true, icon: Icon(Icons.library_books_outlined), label: Text('Activité existante')),
-                ButtonSegment<bool>(value: false, icon: Icon(Icons.add_circle_outline), label: Text('Créer')),
+              segments: [
+                ButtonSegment<bool>(value: true, icon: _uiIcon('history', Icons.library_books_outlined, size: 18), label: const Text('Activité existante')),
+                ButtonSegment<bool>(value: false, icon: _uiIcon('add', Icons.add_circle_outline, size: 18), label: const Text('Créer')),
               ],
               selected: <bool>{useExisting},
               onSelectionChanged: (selection) {
@@ -12527,7 +12660,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
                                 onPressed: () => widget.onEditActivityIcon(a),
-                                icon: const Icon(Icons.edit_outlined, size: 17, color: Color(0xFF718077)),
+                                icon: _uiIcon('edit', Icons.edit_outlined, size: 17, color: const Color(0xFF718077)),
                               ),
                               Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off, size: 22, color: selected ? const Color(0xFF6F8E80) : const Color(0xFFA8ADA9)),
                             ]),
@@ -12543,8 +12676,8 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                 color: const Color(0xFFFFFBF4),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(13, 12, 13, 10),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-                    Icon(Icons.add_task_rounded, color: Color(0xFF60786B)),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    _uiIcon('add', Icons.add_task_rounded, size: 18, color: const Color(0xFF60786B)),
                     SizedBox(width: 10),
                     Expanded(child: Text('Cette option crée une vraie activité dans « Mes activités », puis la place immédiatement dans ta journée.', style: TextStyle(fontWeight: FontWeight.w600, height: 1.35))),
                   ]),
@@ -12555,10 +12688,10 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                 controller: titleController,
                 autofocus: true,
                 textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Nom de la nouvelle activité',
                   hintText: 'Ex. Visite du château, lecture, bricolage…',
-                  prefixIcon: Icon(Icons.edit_outlined),
+                  prefixIcon: _uiIcon('edit', Icons.edit_outlined, size: 18),
                 ),
               ),
               const SizedBox(height: 14),
@@ -12592,7 +12725,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                     _activityIconWidget(emoji, size: 28),
                     const SizedBox(width: 9),
                     const Expanded(child: Text('Choisir ou modifier l’icône')),
-                    const Icon(Icons.edit_outlined, size: 18),
+                    _uiIcon('edit', Icons.edit_outlined, size: 18),
                   ]),
                 ),
               ),
@@ -12600,7 +12733,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
             ],
             DropdownButtonFormField<String>(
               value: period,
-              decoration: const InputDecoration(labelText: 'Moment de la journée', prefixIcon: Icon(Icons.schedule_outlined)),
+              decoration: InputDecoration(labelText: 'Moment de la journée', prefixIcon: _uiIcon('calendar', Icons.schedule_outlined, size: 18)),
               items: const ['Matin', 'Après-midi', 'Soir']
                   .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                   .toList(),
@@ -12610,7 +12743,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
             TextField(
               controller: durationController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Durée (minutes)', prefixIcon: Icon(Icons.timer_outlined)),
+              decoration: InputDecoration(labelText: 'Durée (minutes)', prefixIcon: _uiIcon('duration', Icons.timer_outlined, size: 18)),
               enabled: !useExisting,
             ),
             const SizedBox(height: 24),
@@ -12618,7 +12751,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
               height: 52,
               child: FilledButton.icon(
                 onPressed: save,
-                icon: const Icon(Icons.check_circle_outline),
+                icon: _uiIcon('confirm', Icons.check_circle_outline, size: 18, color: const Color(0xFF6F8E80)),
                 label: Text(useExisting ? 'Ajouter cette activité' : 'Créer et ajouter'),
               ),
             ),
