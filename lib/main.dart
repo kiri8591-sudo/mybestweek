@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:html' as html;
 
@@ -104,6 +105,22 @@ final Map<String, String> _systemUiIconOverrides = {};
 String _uiIconValue(String key, String fallback) =>
     _systemUiIconOverrides[key] ?? fallback;
 
+double _standardUiIconSize(String key, double requested) {
+  const headerKeys = {
+    'navHome', 'navWeek', 'navActivities', 'periodMorning', 'periodAfternoon',
+    'periodEvening', 'sport', 'coach', 'system',
+  };
+  const actionKeys = {
+    'add', 'edit', 'remove', 'delete', 'confirm', 'history', 'help', 'photo',
+    'emoji', 'manageIcons', 'save', 'backup', 'restore', 'reset', 'filter',
+    'calendar', 'week', 'duration', 'move', 'repeat', 'close', 'apply',
+    'settings', 'identity', 'location', 'refresh', 'insights',
+  };
+  if (headerKeys.contains(key)) return requested < 20 ? 20 : requested.clamp(20, 23).toDouble();
+  if (actionKeys.contains(key)) return requested.clamp(17, 19).toDouble();
+  return requested.clamp(16, 22).toDouble();
+}
+
 Widget _uiIcon(
   String key,
   IconData fallback, {
@@ -111,11 +128,12 @@ Widget _uiIcon(
   double size = 18,
   Color color = const Color(0xFF66736D),
 }) {
+  final effectiveSize = _standardUiIconSize(key, size);
   final override = _systemUiIconOverrides[key];
   if (override != null && override.isNotEmpty) {
-    return _activityIconWidget(override, size: size);
+    return _activityIconWidget(override, size: effectiveSize);
   }
-  return Icon(fallback, size: size, color: color);
+  return Icon(fallback, size: effectiveSize, color: color);
 }
 
 Uint8List? _decodeCustomIconData(String data) {
@@ -321,6 +339,30 @@ class ActivityLog {
 }
 
 
+class DailySummary {
+  final DateTime date;
+  final String dateKey;
+  final String moodEmoji;
+  final String summary;
+  final int completedCount;
+  final int totalCount;
+  final int plannedMinutes;
+  final int realisedMinutes;
+  final List<String> activityTitles;
+
+  DailySummary({
+    required this.date,
+    required this.dateKey,
+    required this.moodEmoji,
+    required this.summary,
+    required this.completedCount,
+    required this.totalCount,
+    required this.plannedMinutes,
+    required this.realisedMinutes,
+    required this.activityTitles,
+  });
+}
+
 class ActivityMoveLog {
   final DateTime date;
   final String activityName;
@@ -453,8 +495,100 @@ class MaBelleSemaineApp extends StatefulWidget {
   State<MaBelleSemaineApp> createState() => _MaBelleSemaineAppState();
 }
 
+
+class _CompletionCelebration extends StatefulWidget {
+  const _CompletionCelebration({super.key});
+
+  @override
+  State<_CompletionCelebration> createState() => _CompletionCelebrationState();
+}
+
+class _CompletionCelebrationState extends State<_CompletionCelebration>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final String _emoji;
+  late final int _style;
+  late final List<String> _sparks;
+
+  static const _celebrations = ['🎉', '✨', '🌟', '🥳', '🧸', '🌿', '👏', '☀️'];
+  static const _sparkPool = ['✨', '✦', '·', '🌟', '💫'];
+
+  @override
+  void initState() {
+    super.initState();
+    final random = Random();
+    _emoji = _celebrations[random.nextInt(_celebrations.length)];
+    _style = random.nextInt(4);
+    _sparks = List.generate(4, (_) => _sparkPool[random.nextInt(_sparkPool.length)]);
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1450),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final t = Curves.easeOutBack.transform(_controller.value);
+        final burst = Curves.easeOut.transform(_controller.value);
+        // Le symbole principal reste visible une fois l’animation terminée ;
+        // seules les petites étincelles s’effacent progressivement.
+        final fade = _controller.value < .18
+            ? (_controller.value / .18).clamp(0.0, 1.0)
+            : 1.0;
+        final sparkFade = _controller.value < .55
+            ? (_controller.value / .55).clamp(0.0, 1.0)
+            : ((1 - _controller.value) / .45).clamp(0.0, 1.0);
+        final scale = .35 + (.95 * t);
+        final angle = (_style.isEven ? 1 : -1) *
+            (1 - Curves.easeOut.transform(_controller.value)) * .28;
+        final spread = 13 + 18 * burst;
+        return Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            for (var i = 0; i < _sparks.length; i++)
+              Positioned(
+                left: 16 + [0.0, spread, 12.0, spread - 4][i] - 6,
+                top: 16 + [-spread + 4, 0.0, spread - 7, spread * .55][i] - 6,
+                child: Opacity(
+                  opacity: (sparkFade * .9).clamp(0.0, 1.0).toDouble(),
+                  child: Transform.scale(
+                    scale: .5 + .65 * burst,
+                    child: Text(_sparks[i], style: const TextStyle(fontSize: 11)),
+                  ),
+                ),
+              ),
+            Opacity(
+              opacity: fade,
+              child: Transform.translate(
+                offset: Offset(0, -4 * (1 - burst)),
+                child: Transform.rotate(
+                  angle: angle,
+                  child: Transform.scale(
+                    scale: scale,
+                    child: Text(_emoji, style: const TextStyle(fontSize: 30)),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V8.65';
+  static const version = 'V8.73';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -649,10 +783,14 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
 
   List<PlanItem> plan = [];
   List<ActivityLog> logs = [];
+  List<DailySummary> dailySummaries = [];
   List<ActivityMoveLog> activityMoveLogs = [];
   // Nombre d'occurrences retirées manuellement pour chaque activité et jour.
   // Ces exceptions sont prises en compte par les prochaines générations.
   Map<String, Map<int, int>> _manualDayRemovals = {};
+  // Les retraits manuels sont valables uniquement pour la semaine où ils ont
+  // été effectués. Cela évite qu'un retrait du lundi reste actif la semaine suivante.
+  String _manualDayRemovalsWeekKey = '';
   String weeklyNote = '';
 
   // Coach Sport : une analyse unique, lisible depuis l’Accueil, puis un
@@ -811,6 +949,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         'activities': activities.length,
         'planItems': plan.length,
         'logs': logs.length,
+        'dailySummaries': dailySummaries.length,
         'moves': activityMoveLogs.length,
       },
       'appVersion': version,
@@ -914,6 +1053,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         'fromPeriod': m.fromPeriod,
         'toPeriod': m.toPeriod,
       }).toList(),
+      'manualDayRemovalsWeekKey': _manualDayRemovalsWeekKey,
       'manualDayRemovals': {
         for (final e in _manualDayRemovals.entries)
           e.key: {for (final d in e.value.entries) '${d.key}': d.value},
@@ -931,6 +1071,17 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         'unplanned': l.unplanned,
         'planItemId': l.planItemId,
         'activityId': l.activityId,
+      }).toList(),
+      'dailySummaries': dailySummaries.map((summary) => {
+        'date': summary.date.toIso8601String(),
+        'dateKey': summary.dateKey,
+        'moodEmoji': summary.moodEmoji,
+        'summary': summary.summary,
+        'completedCount': summary.completedCount,
+        'totalCount': summary.totalCount,
+        'plannedMinutes': summary.plannedMinutes,
+        'realisedMinutes': summary.realisedMinutes,
+        'activityTitles': [...summary.activityTitles],
       }).toList(),
     };
     return const JsonEncoder.withIndent('  ').convert(data);
@@ -1074,6 +1225,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         }
       }
 
+      final restoredManualDayRemovalsWeekKey = _asString(root['manualDayRemovalsWeekKey']) ?? '';
       final restoredManualDayRemovals = <String, Map<int, int>>{};
       final rawManualDayRemovals = root['manualDayRemovals'];
       if (rawManualDayRemovals is Map) {
@@ -1115,6 +1267,33 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         ));
       }
 
+      final restoredDailySummaries = <DailySummary>[];
+      final rawDailySummaries = root['dailySummaries'];
+      if (rawDailySummaries is List) {
+        for (final rawSummary in rawDailySummaries) {
+          if (rawSummary is! Map) continue;
+          final dateRaw = _asString(rawSummary['date']);
+          final date = dateRaw == null ? null : DateTime.tryParse(dateRaw);
+          final dateKey = _asString(rawSummary['dateKey']);
+          final summaryText = _asString(rawSummary['summary']);
+          if (date == null || dateKey == null || summaryText == null || dateKey.isEmpty) continue;
+          final titles = rawSummary['activityTitles'] is List
+              ? (rawSummary['activityTitles'] as List).map((v) => '$v').where((v) => v.trim().isNotEmpty).take(12).toList()
+              : <String>[];
+          restoredDailySummaries.add(DailySummary(
+            date: date,
+            dateKey: dateKey,
+            moodEmoji: _asString(rawSummary['moodEmoji']) ?? '🙂',
+            summary: summaryText,
+            completedCount: max(0, _asInt(rawSummary['completedCount'])),
+            totalCount: max(0, _asInt(rawSummary['totalCount'])),
+            plannedMinutes: max(0, _asInt(rawSummary['plannedMinutes'])),
+            realisedMinutes: max(0, _asInt(rawSummary['realisedMinutes'])),
+            activityTitles: titles,
+          ));
+        }
+      }
+
       setState(() {
         activities
           ..clear()
@@ -1125,10 +1304,18 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         logs
           ..clear()
           ..addAll(restoredLogs);
+        dailySummaries
+          ..clear()
+          ..addAll(restoredDailySummaries);
         activityMoveLogs
           ..clear()
           ..addAll(restoredMoveLogs);
+        _manualDayRemovalsWeekKey = restoredManualDayRemovalsWeekKey;
         _manualDayRemovals = restoredManualDayRemovals;
+        if (_manualDayRemovalsWeekKey.isEmpty || _manualDayRemovalsWeekKey != _currentWeekKey()) {
+          _manualDayRemovals = {};
+          _manualDayRemovalsWeekKey = _currentWeekKey();
+        }
         final cloudBackupDate = _asString(root['lastICloudBackupAt']);
         _lastICloudBackupAt = cloudBackupDate == null ? null : DateTime.tryParse(cloudBackupDate);
         _userName = _asString(root['userName']) ?? '';
@@ -1280,8 +1467,10 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       activities = keptActivities;
       plan = emptyPlan;
       logs = emptyLogs;
+      dailySummaries = [];
       activityMoveLogs = [];
       _manualDayRemovals = {};
+      _manualDayRemovalsWeekKey = _currentWeekKey();
       weeklyNote = '';
       sportCoachLastAnalysis = '';
       sportCoachLastAnalysisAt = null;
@@ -3181,11 +3370,6 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     return '$h:$m';
   }
 
-  String _todayDateKey() {
-    final d = DateTime.now();
-    return '${d.year}-${d.month}-${d.day}';
-  }
-
   Future<void> _loadTodayNameday() async {
     final key = _todayDateKey();
     if (_todayNamedayDateKey == key && _todayNameday.trim().isNotEmpty) return;
@@ -3654,6 +3838,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
         item.realisedMinutes = null;
         item.feeling = null;
         logs.removeWhere((log) => log.planItemId == item.id);
+        if (item.day == today) dailySummaries.removeWhere((summary) => summary.dateKey == _todayDateKey());
       });
       _queueLocalStatePersist();
       _showFeedback('Validation annulée pour « ${item.title} ».');
@@ -3682,6 +3867,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       ));
     });
     if (activity != null && _isSportActivity(activity)) analyzeSportSession(item, activity);
+    if (_todayIsCompleted()) _upsertTodayDailySummary(persist: false);
     _queueLocalStatePersist();
     _showFeedback('✓ « ${item.title} » validé.');
   }
@@ -3703,11 +3889,28 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     if (_sportValidationInProgress.contains(item.id)) return;
     _sportValidationInProgress.add(item.id);
     try {
+      // Geste principal iPhone : une simple coche signifie « réalisé comme prévu ».
+      // Un léger retour haptique rend le geste perceptible sur iPhone sans
+      // ajouter une étape d’interface.
+      await HapticFeedback.selectionClick();
+      _completePlanItem(item, activity, item.duration);
+    } catch (_) {
+      if (mounted) _showFeedback('Impossible d’enregistrer cette validation.');
+    } finally {
+      _sportValidationInProgress.remove(item.id);
+    }
+  }
+
+  Future<void> _editSportRealisedMinutes(PlanItem item, Activity activity) async {
+    if (!mounted || item.done) return;
+    if (_sportValidationInProgress.contains(item.id)) return;
+    _sportValidationInProgress.add(item.id);
+    try {
       final realised = await _askSportRealisedMinutes(item, activity);
       if (realised == null || !mounted || item.done) return;
       _completePlanItem(item, activity, realised);
     } catch (_) {
-      if (mounted) _showFeedback('Impossible d’enregistrer cette validation.');
+      if (mounted) _showFeedback('Impossible d’enregistrer cette durée.');
     } finally {
       _sportValidationInProgress.remove(item.id);
     }
@@ -3767,6 +3970,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
       }
     });
 
+    if (_todayIsCompleted()) _upsertTodayDailySummary(persist: false);
     _persistLocalState();
     _showFeedback('✓ « ${item.title} » validé · $actual min réalisés.');
   }
@@ -3804,10 +4008,17 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     }
   }
 
-  int _manualRemovalCount(String activityId, int day) =>
-      _manualDayRemovals[activityId]?[day] ?? 0;
+  int _manualRemovalCount(String activityId, int day) {
+    if (_manualDayRemovalsWeekKey != _currentWeekKey()) return 0;
+    return _manualDayRemovals[activityId]?[day] ?? 0;
+  }
 
   void _recordManualDayRemoval(String activityId, int day) {
+    final weekKey = _currentWeekKey();
+    if (_manualDayRemovalsWeekKey != weekKey) {
+      _manualDayRemovals = {};
+      _manualDayRemovalsWeekKey = weekKey;
+    }
     final byDay = _manualDayRemovals.putIfAbsent(activityId, () => <int, int>{});
     byDay[day] = (byDay[day] ?? 0) + 1;
   }
@@ -3825,6 +4036,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   }
 
   bool _manualDayBlocked(Activity activity, int day) {
+    final weekKey = _currentWeekKey();
+    if (_manualDayRemovalsWeekKey.isNotEmpty && _manualDayRemovalsWeekKey != weekKey) return false;
     final removed = _manualRemovalCount(activity.id, day);
     if (removed <= 0) return false;
     final dailyTarget = activity.allowMultiplePerDay ? activity.maxDailyOccurrences.clamp(2, 3).toInt() : 1;
@@ -4424,6 +4637,111 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     return logs.where((log) => !log.date.isBefore(start) && log.date.isBefore(end)).toList();
   }
 
+  String _todayDateKey() {
+    final d = DateTime.now();
+    return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  List<DailySummary> _recentDailySummaries([int days = 14]) {
+    final cutoff = DateTime.now().subtract(Duration(days: days));
+    return dailySummaries.where((summary) => !summary.date.isBefore(cutoff)).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+  }
+
+  DailySummary? _todayDailySummary() {
+    final key = _todayDateKey();
+    for (final summary in dailySummaries) {
+      if (summary.dateKey == key) return summary;
+    }
+    return null;
+  }
+
+  String _todayMoodComment(DailySummary summary) {
+    switch (summary.moodEmoji) {
+      case '😄':
+        return 'Une journée vécue avec le sourire ✨';
+      case '🙂':
+        return 'Une journée bien vécue, à garder comme repère 🌿';
+      case '😌':
+        return 'Une journée sereine, avec un bon rythme 🌿';
+      case '😐':
+        return 'Une journée neutre : demain pourra être un peu plus doux.';
+      case '😓':
+        return 'Une journée fatigante : le Coach en tiendra compte demain 🌙';
+      default:
+        return 'Ton ressenti du jour est conservé pour le Coach.';
+    }
+  }
+
+  bool _todayIsCompleted() {
+    final items = actionableItemsForDay(today);
+    return items.isNotEmpty && items.every((item) => item.done);
+  }
+
+  void _upsertTodayDailySummary({String? moodEmoji, bool persist = true}) {
+    final items = actionableItemsForDay(today);
+    if (items.isEmpty || !items.every((item) => item.done)) return;
+    final doneItems = items.where((item) => item.done).toList();
+    final planned = items.fold<int>(0, (sum, item) => sum + max(0, item.duration));
+    final realised = doneItems.fold<int>(0, (sum, item) => sum + max(0, item.realisedMinutes ?? item.duration));
+    final titles = doneItems
+        .map((item) => item.title.trim())
+        .where((title) => title.isNotEmpty)
+        .toSet()
+        .take(10)
+        .toList();
+    final mood = moodEmoji ?? _todayDailySummary()?.moodEmoji ?? '🙂';
+    final titleList = titles.isEmpty ? 'Les moments du jour' : titles.join(' · ');
+    final textSummary = '$titleList. ${doneItems.length} moment(s) réalisé(s) · $realised min vécues sur $planned min prévus.';
+    final summary = DailySummary(
+      date: DateTime.now(),
+      dateKey: _todayDateKey(),
+      moodEmoji: mood,
+      summary: textSummary,
+      completedCount: doneItems.length,
+      totalCount: items.length,
+      plannedMinutes: planned,
+      realisedMinutes: realised,
+      activityTitles: titles,
+    );
+    final index = dailySummaries.indexWhere((item) => item.dateKey == summary.dateKey);
+    if (index >= 0) {
+      dailySummaries[index] = summary;
+    } else {
+      dailySummaries.add(summary);
+    }
+    dailySummaries.sort((a, b) => b.date.compareTo(a.date));
+    if (dailySummaries.length > 180) dailySummaries.removeRange(180, dailySummaries.length);
+    if (persist) _queueLocalStatePersist();
+  }
+
+  Future<void> _openTodayDailySummary() async {
+    if (!_todayIsCompleted()) return;
+    final current = _todayDailySummary();
+    final mood = await showModalBottomSheet<String>(
+      context: _navigatorKey.currentContext!,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _DailySummarySheet(summary: current, dayLabel: dayNames[today]),
+    );
+    if (mood == null || !mounted) return;
+    setState(() {
+      _upsertTodayDailySummary(moodEmoji: mood, persist: false);
+    });
+    _queueLocalStatePersist();
+    _showFeedback('Ton humeur du jour $mood est conservée pour le Coach.');
+  }
+
+  String? _dailyMoodCoachSignal() {
+    final recent = _recentDailySummaries(14);
+    if (recent.isEmpty) return null;
+    final tired = recent.where((summary) => const {'😓', '😐'}.contains(summary.moodEmoji)).length;
+    final positive = recent.where((summary) => const {'😄', '🙂', '😌'}.contains(summary.moodEmoji)).length;
+    if (tired >= 2) return 'plusieurs journées récentes ont été ressenties comme lourdes';
+    if (positive >= 3) return 'plusieurs journées récentes ont été ressenties positivement';
+    return null;
+  }
+
   String _coachWeeklySummary() {
     final weekLogs = _currentWeekLogs();
     final trackedUntilToday = plan.where((p) => p.activityId != null && p.day <= today && !_isDateRangePlanItem(p)).toList();
@@ -4451,6 +4769,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
     if (manualRemoved > 0) parts.add('$manualRemoved occurrence(s) retirée(s) manuellement restent exclues de la génération sur leur jour.');
     final manualSportOver = _manualSportBudgetOverrideDays.fold<int>(0, (sum, day) => sum + _acceptedSportOverrunForDay(day));
     if (manualSportOver > 0) parts.add('Le Sport dépasse actuellement de $manualSportOver min le budget accepté par choix manuel ; je peux proposer un rééquilibrage entre les jours.');
+    final moodSignal = _dailyMoodCoachSignal();
+    if (moodSignal != null) parts.add('Les bilans d’humeur récents indiquent que $moodSignal ; je garde ce signal comme repère complémentaire.');
     if (difficult >= 2) {
       parts.add('$difficult ressentis « Difficile » sont un signal de charge à surveiller pour la suite.');
     } else if (veryGood >= 2) {
@@ -6975,6 +7295,7 @@ String _formatCoachDateTime(DateTime value) {
     final completed = trackableItems.where((x) => x.done).length;
     final progress = trackableItems.isEmpty ? 0.0 : completed / trackableItems.length;
     final todayActionItems = todayItems.where((x) => !_isDateRangePlanItem(x)).toList();
+    final todayCompleted = todayActionItems.isNotEmpty && todayActionItems.every((x) => x.done);
     final todayDone = todayActionItems.where((x) => x.done).length;
     final sportBudget = _sportBudgetForDay(today);
 
@@ -7076,127 +7397,161 @@ String _formatCoachDateTime(DateTime value) {
               color: const Color(0xFFFFF1DE),
               borderColor: const Color(0xFFF0D7B6),
               radius: 28,
-              padding: const EdgeInsets.fromLTRB(10, 7, 10, 7),
-              child: Row(
+              padding: const EdgeInsets.fromLTRB(12, 11, 10, 11),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _homeMascotAvatar(size: 48),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _homeMascotAvatar(size: 56),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: FittedBox(
-                                alignment: Alignment.centerLeft,
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  _userName.trim().isEmpty ? 'Bonjour 👋' : 'Bonjour ${_userName.trim()} 👋',
-                                  maxLines: 1,
-                                  softWrap: false,
-                                  style: const TextStyle(fontSize: 17.0, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.35),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _userName.trim().isEmpty ? 'Bonjour 👋' : 'Bonjour ${_userName.trim()} 👋',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.3),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(width: 5),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFFCF7),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(version, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Color(0xFF7A807D))),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 5),
-                            Flexible(
-                              child: Text(
-                                '${dateText()} · ${_clockText()} · ${_dayMoment()}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.right,
-                                style: const TextStyle(fontSize: 8.7, fontWeight: FontWeight.w800, color: Color(0xFF756E67)),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(_weatherCity.trim().isEmpty ? '🌤️' : _weatherIcon, style: const TextStyle(fontSize: 15)),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                _weatherCity.trim().isEmpty
-                                    ? 'Ajoute ta ville pour la météo'
-                                    : '${_weatherCity.trim()}${_weatherTemperature.isEmpty ? '' : ' · ${_weatherTemperature}'}${_weatherText.isEmpty ? '' : ' · ${_weatherText.toLowerCase()}'}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 9.0, fontWeight: FontWeight.w900, color: Color(0xFF536660)),
-                              ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${dateText()} · ${_clockText()} · ${_dayMoment()}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF756E67)),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 1),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const Text('💭', style: TextStyle(fontSize: 10.0)),
-                            const SizedBox(width: 3),
-                            Expanded(
-                              child: Text(
-                                '$_morningThought',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 8.9, height: 1.0, fontStyle: FontStyle.italic, color: Color(0xFF5D554B)),
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: refreshMorningThought,
-                              child: const Padding(
-                                padding: EdgeInsets.only(left: 3),
-                                child: Icon(Icons.auto_awesome_rounded, size: 12, color: Color(0xFF9C8866)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  IconButton(
-                    tooltip: 'Repenser le planning',
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                    onPressed: openGenerationCriteria,
-                    icon: _uiIcon('refresh', Icons.autorenew_rounded, size: 18, color: const Color(0xFF6F8E80)),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0xFFFFFCF7), borderRadius: BorderRadius.circular(9), border: Border.all(color: const Color(0xFFE6DBCF))),
-                    child: Text(version, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Color(0xFF7A807D))),
-                  ),
-                  const SizedBox(width: 3),
-                  PopupMenuButton<String>(
-                    tooltip: 'Réglages',
-                    icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 18, color: const Color(0xFF6F7B74)),
-                    onSelected: (value) {
-                      if (value == 'data') openDataManager();
-                      if (value == 'identity') _editHomeIdentity();
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem<String>(
-                        value: 'data',
-                        child: ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: _uiIcon('save', Icons.save_outlined, size: 18),
-                          title: Text('Sauvegarde & données'),
                         ),
                       ),
-                      PopupMenuItem<String>(
-                        value: 'identity',
-                        child: ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: _uiIcon('settings', Icons.tune_rounded, size: 18),
-                          title: Text('Personnaliser l’accueil'),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        tooltip: 'Repenser le planning',
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                        onPressed: openGenerationCriteria,
+                        icon: _uiIcon('refresh', Icons.autorenew_rounded, size: 18, color: const Color(0xFF6F8E80)),
+                      ),
+                      PopupMenuButton<String>(
+                        tooltip: 'Réglages',
+                        padding: EdgeInsets.zero,
+                        icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 18, color: const Color(0xFF6F7B74)),
+                        onSelected: (value) {
+                          if (value == 'data') openDataManager();
+                          if (value == 'identity') _editHomeIdentity();
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem<String>(
+                            value: 'data',
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: _uiIcon('save', Icons.save_outlined, size: 18),
+                              title: const Text('Sauvegarde & données'),
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'identity',
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: _uiIcon('settings', Icons.tune_rounded, size: 18),
+                              title: const Text('Personnaliser l’accueil'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(_weatherCity.trim().isEmpty ? '🌤️' : _weatherIcon, style: const TextStyle(fontSize: 17)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _weatherCity.trim().isEmpty
+                              ? 'Ajoute ta ville pour la météo'
+                              : '${_weatherCity.trim()}${_weatherTemperature.isEmpty ? '' : ' · ${_weatherTemperature}'}${_weatherText.isEmpty ? '' : ' · ${_weatherText.toLowerCase()}'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w900, color: Color(0xFF536660)),
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('💭', style: TextStyle(fontSize: 12)),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          _morningThought,
+                          maxLines: 3,
+                          softWrap: true,
+                          overflow: TextOverflow.visible,
+                          style: const TextStyle(fontSize: 10.1, height: 1.16, fontStyle: FontStyle.italic, color: Color(0xFF5D554B)),
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      GestureDetector(
+                        onTap: refreshMorningThought,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 1, left: 3),
+                          child: _uiIcon('coach', Icons.auto_awesome_rounded, size: 14, color: const Color(0xFF9C8866)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Builder(
+                    builder: (context) {
+                      final summary = _todayDailySummary();
+                      if (summary == null) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 5),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: _openTodayDailySummary,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(summary.moodEmoji, style: const TextStyle(fontSize: 17)),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    _todayMoodComment(summary),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 9.7, height: 1.16, fontWeight: FontWeight.w800, color: Color(0xFF6B756F)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -7384,7 +7739,15 @@ String _formatCoachDateTime(DateTime value) {
                     Expanded(
                       child: Row(
                         children: [
-                          Text(_focusIcon, style: const TextStyle(fontSize: 19)),
+                          todayCompleted
+                              ? SizedBox(
+                                  width: 36,
+                                  height: 36,
+                                  child: _CompletionCelebration(
+                                    key: ValueKey('completion-${todayActionItems.length}'),
+                                  ),
+                                )
+                              : Text(_focusIcon, style: const TextStyle(fontSize: 19)),
                           const SizedBox(width: 5),
                           Expanded(
                             child: Column(
@@ -7393,6 +7756,21 @@ String _formatCoachDateTime(DateTime value) {
                                 const Text('FOCUS DU JOUR', style: TextStyle(fontSize: 7.7, fontWeight: FontWeight.w900, color: Color(0xFF9A7758), letterSpacing: .35)),
                                 const SizedBox(height: 1),
                                 Text(_todayFocus(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.1, fontWeight: FontWeight.w900, color: Color(0xFF564944), height: 1.12)),
+                                if (todayCompleted) ...[
+                                  const SizedBox(height: 3),
+                                  InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: _openTodayDailySummary,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+                                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                        Text(_todayDailySummary()?.moodEmoji ?? '🙂', style: const TextStyle(fontSize: 13)),
+                                        const SizedBox(width: 4),
+                                        const Text('Voir le petit bilan', style: TextStyle(fontSize: 9.4, fontWeight: FontWeight.w900, color: Color(0xFF718079))),
+                                      ]),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -7448,8 +7826,8 @@ String _formatCoachDateTime(DateTime value) {
                   const Expanded(child: Text('Coach Sport', style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900, color: Color(0xFF4A5864)))),
                   IconButton(visualDensity: VisualDensity.compact, tooltip: 'Journal du coach Sport', onPressed: openSportCoachJournal, icon: _uiIcon('history', Icons.menu_book_rounded, size: 18, color: const Color(0xFF6B7884))),
                 ]),
-                const SizedBox(height: 4),
-                Text(sportCoachLastAnalysis.isEmpty ? 'Je veille à garder une semaine souple et agréable.' : sportCoachLastAnalysis, style: const TextStyle(fontSize: 10.8, height: 1.34, color: Color(0xFF596670), fontWeight: FontWeight.w600)),
+                const SizedBox(height: 5),
+                Text(sportCoachLastAnalysis.isEmpty ? 'Je veille à garder une semaine souple et agréable.' : sportCoachLastAnalysis, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.2, height: 1.34, color: Color(0xFF596670), fontWeight: FontWeight.w600)),
                 if (sportCoachSuggestion.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Container(
@@ -7602,7 +7980,7 @@ String _formatCoachDateTime(DateTime value) {
                             child: Builder(builder: (_) {
                               final sameDay = plan.where((p) => p.day == item.day && p.activityId == item.activityId).toList();
                               final occurrence = sameDay.indexWhere((p) => p.id == item.id) + 1;
-                              return Text('$occurrence/${sameDay.length}', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: Color(0xFF6F8E80)));
+                              return Text('$occurrence/${sameDay.length}', style: _detailMetaStyle());
                             }),
                           ),
                       ],
@@ -7611,7 +7989,7 @@ String _formatCoachDateTime(DateTime value) {
                     if (activity == null || activity.category == 'Sport')
                       Text(item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min · ✓ validé' : '${item.duration} min', style: _detailMetaStyle())
                     else if (item.done)
-                      const Text('✓ validé', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF526B78))),
+                      Text('✓ validé', style: _detailMetaStyle()),
                   ]),
                 ),
               ),
@@ -7852,10 +8230,20 @@ String _formatCoachDateTime(DateTime value) {
                   item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min',
                   style: _detailMetaStyle(),
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: 3),
+                if (!item.done && activity != null)
+                  IconButton(
+                    tooltip: 'Saisir un temps différent',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    onPressed: () => _editSportRealisedMinutes(item, activity),
+                    icon: _uiIcon('duration', Icons.timer_outlined, size: 17, color: const Color(0xFF7A8C84)),
+                  ),
                 if (activity != null) ...[
+                  const SizedBox(width: 1),
                   _sportWeeklyIndicator(activity),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 2),
                 ],
                 Checkbox(
                   value: item.done,
@@ -8863,51 +9251,139 @@ String _formatCoachDateTime(DateTime value) {
         score -= min(moveFromDay, 3) * .35;
       }
     }
+    final dailyMood = _recentDailySummaries(14);
+    if (dailyMood.length >= 2) {
+      final tiredDays = dailyMood.where((summary) => const {'😓', '😐'}.contains(summary.moodEmoji)).length;
+      final positiveDays = dailyMood.where((summary) => const {'😄', '🙂', '😌'}.contains(summary.moodEmoji)).length;
+      if (tiredDays >= 2 && activity.duration >= 45) score -= 1.0;
+      if (positiveDays >= 3 && activity.duration <= 60) score += 0.25;
+    }
     return score;
   }
 
   String _todayFocus() {
     final todayItems = actionableItemsForDay(today);
     final remaining = todayItems.where((item) => !item.done).toList();
-    final allActivities = remaining
+    final done = todayItems.length - remaining.length;
+    final remainingActivities = remaining
+        .map((item) => item.activityId == null ? null : findActivity(item.activityId!))
+        .whereType<Activity>()
+        .toList();
+    final doneActivities = todayItems
+        .where((item) => item.done)
         .map((item) => item.activityId == null ? null : findActivity(item.activityId!))
         .whereType<Activity>()
         .toList();
 
+    // Le Focus accompagne le planning existant : il ne crée ni ne déplace
+    // jamais d'activité. Après chaque validation, ce calcul est rappelé et
+    // peut donc faire évoluer le fil conducteur de la journée.
     if (todayItems.isNotEmpty && remaining.isEmpty) {
       return 'Journée accomplie ✨';
     }
 
     final weather = _weatherForWeekDay(today);
-    final hasOutdoor = allActivities.any(_isOutdoorPlanningActivity);
-    final hasSport = allActivities.any((a) => a.category == 'Sport');
-    final hasPiano = allActivities.any((a) => a.name.toLowerCase().contains('piano'));
-    final hasWellness = allActivities.any((a) => a.category == 'Bien-être');
+    final recent7 = _recentHistory(7);
+    final recent7Minutes = recent7.fold<int>(0, (sum, log) => sum + max(0, log.realisedMinutes));
+    final recent7Difficult = recent7.where((log) => _normalizeFeeling(log.feeling) == 'Difficile').length;
+    final recent7VeryGood = recent7.where((log) => _normalizeFeeling(log.feeling) == 'Très bien').length;
+    final outdoorRemaining = remainingActivities.where(_isOutdoorPlanningActivity).toList();
+    final sportRemaining = remainingActivities.where((a) => a.category == 'Sport').toList();
+    final pianoRemaining = remainingActivities.where((a) => a.name.toLowerCase().contains('piano')).toList();
+    final wellnessRemaining = remainingActivities.where((a) => a.category == 'Bien-être').toList();
+    final cultureRemaining = remainingActivities.where((a) => a.category == 'Culture').toList();
+    final socialRemaining = remainingActivities.where((a) => a.category == 'Social').toList();
+    final otherRemaining = remainingActivities.where((a) =>
+        a.category != 'Sport' &&
+        !_isOutdoorPlanningActivity(a) &&
+        !a.name.toLowerCase().contains('piano') &&
+        a.category != 'Bien-être' &&
+        a.category != 'Culture' &&
+        a.category != 'Social').toList();
 
-    if (weather?.outdoorBad == true && (hasOutdoor || hasSport)) {
-      return 'Adapter la journée à la météo 🌦️';
-    }
-    // Après chaque validation, le focus bascule naturellement vers ce qui
-    // reste à vivre aujourd'hui, en privilégiant la priorité de l'activité.
-    if (allActivities.isNotEmpty) {
-      allActivities.sort((a, b) {
-        final p = b.priority.compareTo(a.priority);
-        if (p != 0) return p;
-        return a.name.compareTo(b.name);
-      });
-      final next = allActivities.first;
-      if (hasPiano && next.name.toLowerCase().contains('piano')) return 'Quelques notes qui font du bien 🎵';
-      if (hasWellness && next.category == 'Bien-être') return 'Prendre soin de soi 🌿';
-      if (hasSport && next.category == 'Sport') return weather == null ? 'Bouger avec plaisir 💪' : 'Bouger au bon moment 💪';
-      if (next.category == 'Culture') return 'Curiosité & découverte 📚';
-      if (next.category == 'Sortie' || next.category == 'Social') return 'Sortir & profiter ☀️';
-      return next.name;
+    final moment = _clockNow.hour;
+    final isMorning = moment < 12;
+    final isAfternoon = moment >= 12 && moment < 18;
+    final isEvening = moment >= 18;
+
+    // La météo passe avant tout lorsqu'une activité extérieure reste réellement
+    // à vivre. Le focus ne conseille pas de sortie s'il n'y en a pas au planning.
+    if (weather?.outdoorBad == true && outdoorRemaining.isNotEmpty) {
+      return isMorning
+          ? 'Commencer doucement et garder la sortie pour un moment plus favorable 🌦️'
+          : 'Adapter la suite de la journée à la météo 🌦️';
     }
 
-    final recent = _recentHistory(14);
-    final difficult = recent.where((log) => log.feeling == 'Difficile').length;
-    if (difficult >= 2) return 'Récupération & rythme doux 🌿';
-    return _baseDayMood(today);
+    // Quand la semaine récente a été chargée ou ressentie comme difficile,
+    // le fil conducteur privilégie la respiration plutôt que l'accumulation.
+    if (recent7Minutes >= 420 || recent7Difficult >= 3) {
+      if (wellnessRemaining.isNotEmpty) return 'Aujourd’hui, privilégier un rythme doux et prendre soin de soi 🌿';
+      if (remaining.length <= 2) return 'Garder de l’espace pour profiter, sans chercher à remplir la journée 🌿';
+    }
+
+    // Après un ou plusieurs moments déjà réalisés, le focus passe du programme
+    // abstrait à ce qu’il reste réellement à vivre.
+    if (done > 0 && remaining.isNotEmpty) {
+      if (pianoRemaining.isNotEmpty && sportRemaining.isNotEmpty) {
+        return isEvening
+            ? 'La journée avance : un peu de musique pour terminer en douceur 🎵'
+            : 'Après ce qui est déjà fait, garder un bel équilibre entre musique et mouvement 🎵💪';
+      }
+      if (wellnessRemaining.isNotEmpty && doneActivities.any((a) => a.category == 'Sport')) {
+        return 'Après le mouvement, place maintenant à la récupération et au bien-être 🌿';
+      }
+      if (cultureRemaining.isNotEmpty && doneActivities.any((a) => a.category == 'Sport' || a.category == 'Bien-être')) {
+        return 'Après l’action, laisser une place à la curiosité 📚';
+      }
+      if (outdoorRemaining.isNotEmpty && weather?.outdoorBad != true) {
+        return 'La journée est déjà lancée : profiter maintenant d’un peu de plein air ☀️';
+      }
+      if (remaining.length == 1) {
+        final last = remainingActivities.isNotEmpty ? remainingActivities.first : null;
+        if (last != null && last.category == 'Sport') return 'Un dernier moment de mouvement, puis place au reste de la journée 💪';
+        if (last != null && last.category == 'Bien-être') return 'Un dernier moment pour prendre soin de soi 🌿';
+        if (last != null && last.category == 'Culture') return 'Il reste un moment de curiosité à savourer 📚';
+        if (last != null && last.category == 'Sortie') return 'Il reste une occasion de profiter de l’extérieur ☀️';
+        return 'Un dernier petit moment à vivre aujourd’hui ✨';
+      }
+    }
+
+    // Sans réalisation préalable, le focus s'appuie sur la forme de la journée
+    // et sur l'activité dominante, plutôt que de simplement afficher son nom.
+    if (pianoRemaining.isNotEmpty && sportRemaining.isNotEmpty) {
+      return isMorning
+          ? 'Commencer par quelques notes, puis laisser place au mouvement 🎵💪'
+          : 'Garder aujourd’hui un équilibre entre musique et mouvement 🎵💪';
+    }
+    if (pianoRemaining.isNotEmpty) {
+      return isMorning ? 'Quelques notes pour donner le ton à la journée 🎵' : 'Un moment de piano, sans se presser 🎵';
+    }
+    if (sportRemaining.isNotEmpty) {
+      return isMorning ? 'Mettre un peu de mouvement dans la journée 💪' : 'Bouger avec plaisir, au bon moment 💪';
+    }
+    if (wellnessRemaining.isNotEmpty) {
+      return 'Prendre soin de soi fait aussi partie du programme 🌿';
+    }
+    if (cultureRemaining.isNotEmpty) {
+      return 'Garder une place aujourd’hui pour la curiosité 📚';
+    }
+    if (socialRemaining.isNotEmpty) {
+      return 'Un peu de lien et de plaisir dans la journée ☀️';
+    }
+    if (outdoorRemaining.isNotEmpty) {
+      return weather == null
+          ? 'Profiter du plein air quand le moment se présente ☀️'
+          : 'Profiter de l’extérieur au bon moment ☀️';
+    }
+    if (otherRemaining.isNotEmpty) {
+      return isAfternoon ? 'Avancer tranquillement, un moment après l’autre ✨' : 'Donner la priorité aux bons moments de la journée ✨';
+    }
+
+    // Pas de planning actif : le Focus s’appuie alors uniquement sur le rythme
+    // récent et la météo, sans inventer d’activité.
+    if (recent7VeryGood >= 3 && recent7Difficult == 0) return 'Le rythme semble bon : continuer simplement à profiter de la journée ☀️';
+    if (recent7.isEmpty) return _baseDayMood(today);
+    return recent7Difficult >= 2 ? 'Respirer, ralentir un peu et garder de la place pour l’imprévu 🌿' : _baseDayMood(today);
   }
 
   String _todayFocusReason() {
@@ -8928,10 +9404,10 @@ String _formatCoachDateTime(DateTime value) {
     final names = remaining.map((item) => item.title).where((s) => s.trim().isNotEmpty).take(2).join(' · ');
     if (names.isNotEmpty) {
       return done > 0
-          ? 'Déjà $done moment(s) validé(s). Il reste maintenant : $names.'
-          : 'Le focus suit ce qui est réellement prévu maintenant : $names.';
+          ? 'Déjà $done moment(s) validé(s). Le focus se recentre sur ce qui reste, avec la météo et le rythme récent en toile de fond.'
+          : 'Le focus regarde d’abord ce qui est réellement prévu, puis le moment de la journée, la météo et le rythme récent.';
     }
-    return 'J’adapte le focus à ce qui reste de la journée, sans chercher à tout remplir.';
+    return 'J’adapte le focus à ce qui reste de la journée, sans ajouter ni déplacer d’activité.';
   }
 
   Widget _dayMood(int day) {
@@ -9753,10 +10229,15 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
   void initState() {
     super.initState();
     final planned = max(1, widget.plannedMinutes);
-    quickValues = <int>{planned, 10, 15, 20, 30, 45, 60, 90}
-        .where((v) => v > 0)
-        .toList()
-      ..sort();
+    // Cinq choix proches suffisent : l’écran reste très léger sur iPhone.
+    final nearby = <int>{
+      max(5, planned - 10),
+      max(5, planned - 5),
+      planned,
+      planned + 5,
+      planned + 10,
+    };
+    quickValues = nearby.where((v) => v > 0).toList()..sort();
     controller = TextEditingController(text: '$planned');
   }
 
@@ -9775,63 +10256,93 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
 
   @override
   Widget build(BuildContext context) {
+    final planned = max(1, widget.plannedMinutes);
     final current = int.tryParse(controller.text.trim());
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.fromLTRB(20, 4, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.fromLTRB(18, 6, 18, 14 + MediaQuery.of(context).viewInsets.bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Temps réalisé', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
-            const SizedBox(height: 4),
-            Text(widget.activityName, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, color: Color(0xFF6F7777))),
-            const SizedBox(height: 6),
-            Text('Prévu : ${widget.plannedMinutes} min · choisis rapidement le temps réellement fait.', style: const TextStyle(fontSize: 11.5, color: Color(0xFF6F7777))),
-            const SizedBox(height: 12),
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF2ED),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.timer_outlined, size: 21, color: Color(0xFF6F8E80)),
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Combien de temps ?', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45))),
+                      const SizedBox(height: 1),
+                      Text(widget.activityName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: Color(0xFF6F7777))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: FilledButton(
+                onPressed: _closing ? null : () => _close(planned),
+                child: Text('✓ ${planned} min · comme prévu', style: const TextStyle(fontWeight: FontWeight.w900)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text('Ou choisis rapidement une autre durée', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF7A807D))),
+            const SizedBox(height: 5),
             Wrap(
-              spacing: 7,
-              runSpacing: 7,
+              spacing: 6,
+              runSpacing: 6,
               children: quickValues.map((value) => SizedBox(
-                height: 40,
+                height: 36,
                 child: OutlinedButton(
                   onPressed: _closing ? null : () => _close(value),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 13),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 11),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+                    side: BorderSide(color: value == planned ? const Color(0xFF8EAA9D) : const Color(0xFFD9DDD9)),
                   ),
-                  child: Text('$value min', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  child: Text('$value', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: value == planned ? const Color(0xFF587163) : const Color(0xFF55605B))),
                 ),
               )).toList(),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              autofocus: false,
-              keyboardType: TextInputType.number,
-              textInputAction: TextInputAction.done,
-              decoration: const InputDecoration(
-                labelText: 'Autre durée',
-                suffixText: 'min',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              onChanged: (_) { if (mounted) setState(() {}); },
-              onSubmitted: (_) {
-                if (current != null && current > 0) _close(current);
-              },
-            ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 7),
             Row(
               children: [
-                Expanded(child: TextButton(onPressed: _closing ? null : () => _close(), child: const Text('Annuler'))),
-                const SizedBox(width: 8),
                 Expanded(
-                  child: FilledButton.icon(
-                    onPressed: (_closing || current == null || current < 1) ? null : () => _close(current),
-                    icon: _uiIcon('confirm', Icons.check_circle_outline, size: 18, color: const Color(0xFF6F8E80)),
-                    label: const Text('Valider'),
+                  child: TextField(
+                    controller: controller,
+                    autofocus: false,
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.done,
+                    decoration: const InputDecoration(
+                      hintText: 'Autre durée',
+                      suffixText: 'min',
+                      isDense: true,
+                    ),
+                    onChanged: (_) { if (mounted) setState(() {}); },
+                    onSubmitted: (_) {
+                      if (current != null && current > 0) _close(current);
+                    },
                   ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: 'Valider cette durée',
+                  onPressed: (_closing || current == null || current < 1) ? null : () => _close(current),
+                  icon: _uiIcon('confirm', Icons.check_circle_rounded, size: 23, color: const Color(0xFF6F8E80)),
                 ),
               ],
             ),
@@ -11522,6 +12033,112 @@ class _HomeIdentitySheetState extends State<_HomeIdentitySheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DailySummarySheet extends StatefulWidget {
+  final DailySummary? summary;
+  final String dayLabel;
+
+  const _DailySummarySheet({required this.summary, required this.dayLabel});
+
+  @override
+  State<_DailySummarySheet> createState() => _DailySummarySheetState();
+}
+
+class _DailySummarySheetState extends State<_DailySummarySheet> {
+  static const moods = [
+    ('😄', 'Très bien'),
+    ('🙂', 'Bien'),
+    ('😌', 'Serein'),
+    ('😐', 'Neutre'),
+    ('😓', 'Fatigué'),
+  ];
+
+  late String _selectedMood;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMood = widget.summary?.moodEmoji ?? '🙂';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = widget.summary;
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(18, 8, 18, 20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Text('✨', style: TextStyle(fontSize: 22)),
+            const SizedBox(width: 7),
+            Expanded(child: Text('Petit bilan · ${widget.dayLabel}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: Color(0xFF3F5047)))),
+            Text(_selectedMood, style: const TextStyle(fontSize: 28)),
+          ]),
+          const SizedBox(height: 5),
+          const Text('Un souvenir léger de la journée, utile aussi au Coach pour apprendre ton rythme.', style: TextStyle(fontSize: 11.2, color: Color(0xFF6D7772), height: 1.25)),
+          const SizedBox(height: 13),
+          if (summary != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
+              decoration: BoxDecoration(color: const Color(0xFFF5F0E7), borderRadius: BorderRadius.circular(16)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(summary.summary, style: const TextStyle(fontSize: 12.2, fontWeight: FontWeight.w800, color: Color(0xFF5B625E), height: 1.28)),
+                if (summary.activityTitles.isNotEmpty) ...[
+                  const SizedBox(height: 7),
+                  Wrap(
+                    spacing: 5,
+                    runSpacing: 5,
+                    children: summary.activityTitles.map((title) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(99)),
+                      child: Text(title, style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF68716D)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    )).toList(),
+                  ),
+                ],
+              ]),
+            ),
+          const SizedBox(height: 12),
+          const Text('Comment as-tu vécu ta journée ?', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Color(0xFF4F5B55))),
+          const SizedBox(height: 7),
+          Row(children: moods.map((entry) {
+            final selected = _selectedMood == entry.$1;
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 5),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => setState(() => _selectedMood = entry.$1),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 140),
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: selected ? const Color(0xFFE7F1EA) : const Color(0xFFF7F5F0),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: selected ? const Color(0xFF9FBCAB) : const Color(0xFFE3DED5), width: selected ? 1.5 : 1),
+                    ),
+                    child: Column(children: [
+                      Text(entry.$1, style: const TextStyle(fontSize: 22)),
+                      const SizedBox(height: 2),
+                      Text(entry.$2, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 8.4, fontWeight: FontWeight.w800, color: Color(0xFF68716D))),
+                    ]),
+                  ),
+                ),
+              ),
+            );
+          }).toList()),
+          const SizedBox(height: 14),
+          Row(children: [
+            Expanded(child: TextButton(onPressed: () => Navigator.pop(context), child: const Text('Fermer'))),
+            const SizedBox(width: 9),
+            Expanded(child: FilledButton.icon(onPressed: () => Navigator.pop(context, _selectedMood), icon: const Icon(Icons.check_rounded, size: 17), label: const Text('Conserver'))),
+          ]),
+        ]),
       ),
     );
   }
