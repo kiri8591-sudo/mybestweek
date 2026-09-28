@@ -53,7 +53,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V9.15';
+  static const version = 'V9.17.1';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -88,6 +88,23 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
 
   int tab = 0;
   String categoryFilter = 'Toutes';
+  bool _showActivitySearch = false;
+  String _activitySearchQuery = '';
+
+  void _openActivitySearch() {
+    setState(() => _showActivitySearch = true);
+  }
+
+  void _closeActivitySearch() {
+    setState(() {
+      _showActivitySearch = false;
+      _activitySearchQuery = '';
+    });
+  }
+
+  void _updateActivitySearch(String value) {
+    setState(() => _activitySearchQuery = value);
+  }
   int _weekSelectedDay = -1;
   int _resetGeneration = 0;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
@@ -159,6 +176,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   // été effectués. Cela évite qu'un retrait du lundi reste actif la semaine suivante.
   String _manualDayRemovalsWeekKey = '';
   String weeklyNote = '';
+
+  // Directions choisies le dimanche pour guider la régénération du lundi.
+  final Set<String> _nextWeekCoachDirections = <String>{};
 
   // Coach Sport : une analyse unique, lisible depuis l’Accueil, puis un
   // éventuel ajustement du prochain jour Sport sans créer un second programme.

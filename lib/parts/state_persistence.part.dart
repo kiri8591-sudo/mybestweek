@@ -111,6 +111,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       'lastPlanningCoachExplanation': _lastPlanningCoachExplanation,
       'lastPlanningDecisionDetails': [..._lastPlanningDecisionDetails],
       'weeklyNote': weeklyNote,
+      'nextWeekCoachDirections': [..._nextWeekCoachDirections],
       'sportCoachLastAnalysis': sportCoachLastAnalysis,
       'sportCoachLastAnalysisAt': sportCoachLastAnalysisAt?.toIso8601String(),
       'sportCoachSuggestion': sportCoachSuggestion,
@@ -481,6 +482,11 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         _todayNameday = _asString(root['todayNameday']) ?? '';
         _todayNamedayDateKey = _asString(root['todayNamedayDateKey']) ?? '';
         weeklyNote = _asString(root['weeklyNote']) ?? '';
+        _nextWeekCoachDirections
+          ..clear()
+          ..addAll(((root['nextWeekCoachDirections'] is List) ? (root['nextWeekCoachDirections'] as List) : const [])
+              .map((v) => v.toString())
+              .where((v) => const {'outdoor', 'culture', 'social', 'wellness'}.contains(v)));
         sportCoachLastAnalysis = _asString(root['sportCoachLastAnalysis']) ?? '';
         final coachDate = _asString(root['sportCoachLastAnalysisAt']);
         sportCoachLastAnalysisAt = coachDate == null ? null : DateTime.tryParse(coachDate);
@@ -593,6 +599,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _manualDayRemovals = {};
       _manualDayRemovalsWeekKey = _currentWeekKey();
       weeklyNote = '';
+      _nextWeekCoachDirections.clear();
       sportCoachLastAnalysis = '';
       sportCoachLastAnalysisAt = null;
       sportCoachSuggestion = '';

@@ -1,9 +1,327 @@
-// V8.99 — Écrans principaux
+// V9.17.1 — Écrans principaux
 // Extraction architecturale uniquement : comportement conservé.
 
 part of '../main.dart';
 
 extension _MainScreensPart on _MaBelleSemaineAppState {
+
+  Widget _nonSportWeeklyIndicator(Activity activity) {
+    const labels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    final itemsForDay = <int, List<PlanItem>>{
+      for (var day = 0; day < 7; day++)
+        day: plan.where((item) => item.day == day && item.activityId == activity.id).toList(),
+    };
+
+    void toggle(int day) {
+      final items = itemsForDay[day] ?? const <PlanItem>[];
+
+      // Cycle volontairement simple : vide → prévu → réalisé → vide.
+      if (items.isEmpty) {
+        setState(() {
+          _clearManualDayRemoval(activity.id, day);
+          plan.add(PlanItem(
+            id: 'activity_week_${activity.id}_${DateTime.now().microsecondsSinceEpoch}_$day',
+            day: day,
+            period: _periodForActivity(activity, day),
+            activityId: activity.id,
+            title: activity.name,
+            duration: activity.duration,
+            userAdded: true,
+            manualPlacement: true,
+          ));
+          _sortPlan();
+        });
+        _queueLocalStatePersist();
+        return;
+      }
+
+      if (items.any((item) => item.done)) {
+        setState(() {
+          for (final item in items) {
+            _recordManualDayRemoval(activity.id, day);
+          }
+          plan.removeWhere((item) => item.activityId == activity.id && item.day == day);
+          _sortPlan();
+        });
+        _queueLocalStatePersist();
+        return;
+      }
+
+      // Passage prévu → réalisé : on valide toutes les occurrences de ce jour.
+      setState(() {
+        for (final item in items) {
+          item.done = true;
+        }
+        _sortPlan();
+      });
+      _queueLocalStatePersist();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(bottom: 4),
+            child: Text(
+              '1 clic : prévu  ·  2e clic : réalisé ✓  ·  3e clic : retirer',
+              style: TextStyle(fontSize: 8.5, color: Color(0xFF7B817D), fontWeight: FontWeight.w700),
+            ),
+          ),
+          Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Text(
+            'Semaine',
+            style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Color(0xFF718079)),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Row(
+              children: List.generate(7, (day) {
+                final items = itemsForDay[day] ?? const <PlanItem>[];
+                final done = items.any((item) => item.done);
+                final planned = items.isNotEmpty;
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: day == 6 ? 0 : 5),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => toggle(day),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          height: 28,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: done
+                                ? const Color(0xFF7D988D)
+                                : planned
+                                    ? const Color(0xFFE3EEE8)
+                                    : const Color(0xFFF7F5F0),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: done ? const Color(0xFF6C887A) : const Color(0xFFC9D4CE),
+                            ),
+                          ),
+                          child: done
+                              ? const Icon(Icons.check, size: 14, color: Colors.white)
+                              : Text(
+                                  labels[day],
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    color: planned ? const Color(0xFF526B78) : const Color(0xFF858B87),
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+      ],
+      ),
+    );
+  }
+
+  Map<int, List<Activity>> _nextWeekProjection() {
+    final result = {for (var day = 0; day < 7; day++) day: <Activity>[]};
+    final load = {for (var day = 0; day < 7; day++) day: 0};
+    final candidates = activities.where((a) => !_isSportActivity(a) && !a.isSportProgram && !a.isDateRange && !_generationShouldAvoid(a)).toList()
+      ..sort((a, b) {
+        final direction = _nextWeekDirectionActivityScore(b).compareTo(_nextWeekDirectionActivityScore(a));
+        if (direction != 0) return direction;
+        return b.frequency.compareTo(a.frequency);
+      });
+    for (final activity in candidates) {
+      final target = activity.frequency.clamp(1, 7).toInt();
+      final available = List<int>.generate(7, (day) => day)
+        ..sort((a, b) {
+          final ap = activity.preferredDays.contains(a) ? 0 : 1;
+          final bp = activity.preferredDays.contains(b) ? 0 : 1;
+          if (ap != bp) return ap.compareTo(bp);
+          return load[a]!.compareTo(load[b]!);
+        });
+      for (final day in available.take(target)) {
+        result[day]!.add(activity);
+        load[day] = load[day]! + min(activity.duration, 60);
+      }
+    }
+    return result;
+  }
+
+  Future<void> _openNextWeekCoachDirections() async {
+    final local = <String>{..._nextWeekCoachDirections};
+    const labels = <String, String>{
+      'outdoor': '🌿 Plus de plein air',
+      'culture': '🎵 Plus de musique / culture',
+      'social': '🫶 Plus de vie sociale',
+      'wellness': '🌸 Plus de bien-être',
+    };
+    await showModalBottomSheet<void>(
+      context: _navigatorKey.currentContext!,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: const Color(0xFFFFFBF5),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.fromLTRB(18, 8, 18, 18 + MediaQuery.of(context).viewInsets.bottom),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Donner une direction au Coach', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45))),
+            const SizedBox(height: 5),
+            const Text('Ces indications seront prises en compte lors de la régénération du lundi. Rien ne change aujourd’hui.', style: TextStyle(fontSize: 11.5, color: Color(0xFF737C79), height: 1.3)),
+            const SizedBox(height: 12),
+            Wrap(spacing: 7, runSpacing: 7, children: labels.entries.map((entry) => FilterChip(
+              label: Text(entry.value, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800)),
+              selected: local.contains(entry.key),
+              onSelected: (selected) => setSheetState(() => selected ? local.add(entry.key) : local.remove(entry.key)),
+            )).toList()),
+            const SizedBox(height: 12),
+            SizedBox(width: double.infinity, child: FilledButton.icon(
+              onPressed: () {
+                setState(() { _nextWeekCoachDirections..clear()..addAll(local); });
+                _queueLocalStatePersist();
+                Navigator.of(sheetContext).pop();
+              },
+              icon: _uiIcon('coach', Icons.auto_awesome_outlined, size: 18),
+              label: Text(local.isEmpty ? 'Ne rien préciser' : 'Enregistrer mes directions'),
+            )),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _sundayNextWeekPreview({bool allowSelectedSunday = false}) {
+    if (today != 6 && !(allowSelectedSunday && _weekSelectedDay == 6)) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+    final projection = _nextWeekProjection();
+    const names = ['plein air', 'musique / culture', 'vie sociale', 'bien-être'];
+    final directionKeys = ['outdoor', 'culture', 'social', 'wellness'];
+    final activeDirections = <String>[];
+    for (var i = 0; i < directionKeys.length; i++) {
+      if (_nextWeekCoachDirections.contains(directionKeys[i])) activeDirections.add(names[i]);
+    }
+    final directionLabel = activeDirections.isEmpty ? 'Aucune direction particulière.' : 'Directions : ${activeDirections.join(' · ')}.';
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 1, 16, 6),
+        child: softCard(
+          color: const Color(0xFFF1F5F0),
+          borderColor: const Color(0xFFD7E2D8),
+          radius: 20,
+          padding: const EdgeInsets.fromLTRB(11, 9, 11, 10),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              const Text('🔭', style: TextStyle(fontSize: 19)),
+              const SizedBox(width: 7),
+              const Expanded(child: Text('Aperçu de la semaine prochaine', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w900, color: Color(0xFF49594F)))),
+              TextButton.icon(onPressed: _openNextWeekCoachDirections, icon: const Icon(Icons.tune_rounded, size: 15), label: const Text('Diriger le Coach'), style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4), minimumSize: const Size(0, 30))),
+            ]),
+            const SizedBox(height: 4),
+            Text(directionLabel, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9.8, color: Color(0xFF6F7770), height: 1.2)),
+            const SizedBox(height: 7),
+            SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: List.generate(7, (day) {
+              final items = projection[day]!;
+              return Container(
+                width: 76,
+                margin: EdgeInsets.only(right: day == 6 ? 0 : 6),
+                padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
+                decoration: BoxDecoration(color: const Color(0xFFFFFCF8), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE1E3DC))),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][day], style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF68736B))),
+                  const SizedBox(height: 3),
+                  if (_sportProgram != null && _configuredSportBaseBudgetForDay(day) > 0)
+                    const Padding(padding: EdgeInsets.only(bottom: 2), child: Text('💪 Sport', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800))),
+                  if (items.isEmpty)
+                    const Text('Temps libre', style: TextStyle(fontSize: 8.4, color: Color(0xFF8A8D88)))
+                  else
+                    ...items.take(3).map((a) => Padding(padding: const EdgeInsets.only(bottom: 2), child: Text(a.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w700, color: Color(0xFF52615A))))),
+                  if (items.length > 3) Text('+${items.length - 3}', style: const TextStyle(fontSize: 8, color: Color(0xFF8A8D88))),
+                ]),
+              );
+            }))),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _evo1CoachMissionCard() {
+    final remaining = actionableItemsForDay(today).where((item) => !item.done).toList();
+    PlanItem? mission;
+    if (remaining.isNotEmpty) {
+      remaining.sort((a, b) {
+        final pa = a.activityId == null ? 1 : (findActivity(a.activityId!)?.priority ?? 1);
+        final pb = b.activityId == null ? 1 : (findActivity(b.activityId!)?.priority ?? 1);
+        final priority = pb.compareTo(pa);
+        if (priority != 0) return priority;
+        return a.duration.compareTo(b.duration);
+      });
+      mission = remaining.first;
+    }
+    final activity = mission?.activityId == null ? null : findActivity(mission!.activityId!);
+    final title = mission == null ? 'Journée libre' : mission.title;
+    final reason = mission == null
+        ? 'Aucun moment actif ne reste à vivre aujourd’hui. Le Coach te laisse de l’espace.'
+        : activity != null
+            ? 'Je te propose ce moment en priorité : ${activity.category.toLowerCase()} · ${mission.duration} min.'
+            : 'Je te propose de commencer par ce moment de ${mission.duration} min.';
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 1, 16, 8),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF7E9),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE9DDC4)),
+            boxShadow: const [BoxShadow(color: Color(0x0E000000), blurRadius: 16, offset: Offset(0, 5))],
+          ),
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          child: Row(
+            children: [
+              Container(
+                width: 40, height: 40, alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEDCF),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(mission == null ? '🌿' : '🎯', style: const TextStyle(fontSize: 20)),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('MISSION DU JOUR', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: .45, color: Color(0xFF9A7758))),
+                  const SizedBox(height: 2),
+                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12.8, fontWeight: FontWeight.w900, color: Color(0xFF4E5149))),
+                  const SizedBox(height: 2),
+                  Text(reason, maxLines: 2, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 10.1, height: 1.22, color: Color(0xFF736E62))),
+                ]),
+              ),
+              const SizedBox(width: 6),
+              if (mission != null)
+                IconButton(
+                  tooltip: 'Voir ce moment',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => openItemActions(mission!),
+                  icon: _systemIconWidget('coach', fallback: '→', size: 19),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _kawaiiNavIcon(String emoji, Color bg, Color fg, {bool selected = false}) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
@@ -60,23 +378,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
     );
   }
 
-  Widget buildHome() {
-    final todayItems = itemsForDay(today);
-    final todaySportItems = _sportItemsForDay(today);
-    final todayOtherItems = todayItems.where((item) {
-      if (item.activityId == null) return true;
-      final activity = findActivity(item.activityId!);
-      return activity == null || !_isSportActivity(activity);
-    }).toList();
-    final trackableItems = plan.where((p) => p.activityId != null && !_isDateRangePlanItem(p)).toList();
-    final completed = trackableItems.where((x) => x.done).length;
-    final progress = trackableItems.isEmpty ? 0.0 : completed / trackableItems.length;
-    final todayActionItems = todayItems.where((x) => !_isDateRangePlanItem(x)).toList();
-    final todayCompleted = todayActionItems.isNotEmpty && todayActionItems.every((x) => x.done);
-    final todayDone = todayActionItems.where((x) => x.done).length;
-    final sportBudget = _sportBudgetForDay(today);
-
-    Widget softCard({
+  Widget softCard({
       required Widget child,
       required Color color,
       EdgeInsetsGeometry padding = const EdgeInsets.all(15),
@@ -92,6 +394,22 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       padding: padding,
       child: child,
     );
+
+  Widget buildHome() {
+    final todayItems = itemsForDay(today);
+    final todaySportItems = _sportItemsForDay(today);
+    final todayOtherItems = todayItems.where((item) {
+      if (item.activityId == null) return true;
+      final activity = findActivity(item.activityId!);
+      return activity == null || !_isSportActivity(activity);
+    }).toList();
+    final trackableItems = plan.where((p) => p.activityId != null && !_isDateRangePlanItem(p)).toList();
+    final completed = trackableItems.where((x) => x.done).length;
+    final progress = trackableItems.isEmpty ? 0.0 : completed / trackableItems.length;
+    final todayActionItems = todayItems.where((x) => !_isDateRangePlanItem(x)).toList();
+    final todayCompleted = todayActionItems.isNotEmpty && todayActionItems.every((x) => x.done);
+    final todayDone = todayActionItems.where((x) => x.done).length;
+    final sportBudget = _sportBudgetForDay(today);
 
     Widget pill(String text, {Color bg = const Color(0xFFFFFCF7), Color fg = const Color(0xFF60786B)}) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -191,10 +509,10 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    _userName.trim().isEmpty ? 'Bonjour 👋' : 'Bonjour ${_userName.trim()} 👋',
+                                    '${dateText()} · ${_clockText()} · ${_dayMoment()}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.3),
+                                    style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF756E67)),
                                   ),
                                 ),
                                 const SizedBox(width: 5),
@@ -208,12 +526,12 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 5),
                             Text(
-                              '${dateText()} · ${_clockText()} · ${_dayMoment()}',
+                              _userName.trim().isEmpty ? 'Bonjour 👋' : 'Bonjour ${_userName.trim()} 👋',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF756E67)),
+                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.25),
                             ),
                           ],
                         ),
@@ -366,6 +684,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
               ),
             ),
           ),
+        _sundayNextWeekPreview(),
         if (_showMondayRegenerationPrompt)
           SliverToBoxAdapter(
             child: Padding(
@@ -503,6 +822,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             ),
           ),
         ),
+        _evo1CoachMissionCard(),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 1, 16, 8),
@@ -530,9 +850,9 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('FOCUS DU JOUR', style: TextStyle(fontSize: 7.7, fontWeight: FontWeight.w900, color: Color(0xFF9A7758), letterSpacing: .35)),
+                                const Text('FOCUS DU JOUR', style: TextStyle(fontSize: 7.2, fontWeight: FontWeight.w900, color: Color(0xFF9A7758), letterSpacing: .15)),
                                 const SizedBox(height: 1),
-                                Text(_todayFocus(), maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.1, fontWeight: FontWeight.w900, color: Color(0xFF564944), height: 1.12)),
+                                Text(_todayFocus(), maxLines: 3, overflow: TextOverflow.fade, style: const TextStyle(fontSize: 10.1, fontWeight: FontWeight.w900, color: Color(0xFF564944), height: 1.12)),
                                 if (todayCompleted) ...[
                                   const SizedBox(height: 3),
                                   InkWell(
@@ -664,6 +984,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             'Choisis un jour. Le détail s’affiche juste en dessous.',
           ),
         ),
+        _sundayNextWeekPreview(allowSelectedSunday: true),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -1004,9 +1325,13 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
 
   Widget buildActivities() {
     final cats = <String>['Toutes', 'Sport', 'Bien-être', 'Loisir', 'Culture', 'Sortie', 'Social'];
-    final filtered = categoryFilter == 'Toutes'
-        ? activities
-        : activities.where((a) => a.category == categoryFilter).toList();
+    final query = _activitySearchQuery.trim().toLowerCase();
+    final filtered = activities.where((a) {
+      final matchesCategory = categoryFilter == 'Toutes' || a.category == categoryFilter;
+      if (!matchesCategory) return false;
+      if (query.isEmpty) return true;
+      return a.name.toLowerCase().contains(query) || a.category.toLowerCase().contains(query);
+    }).toList();
 
     return CustomScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -1017,26 +1342,63 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             child: Row(
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Mes activités',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontFamily: GoogleFonts.lora().fontFamily,
-                              fontFamilyFallback: const ['Times New Roman', 'serif'],
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF33414A),
-                              letterSpacing: -0.2,
+                  child: _showActivitySearch
+                      ? TextField(
+                          autofocus: true,
+                          onChanged: _updateActivitySearch,
+                          textInputAction: TextInputAction.search,
+                          decoration: InputDecoration(
+                            hintText: 'Rechercher une activité',
+                            prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                            suffixIcon: IconButton(
+                              tooltip: 'Fermer la recherche',
+                              onPressed: _closeActivitySearch,
+                              icon: const Icon(Icons.close_rounded, size: 19),
                             ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '${activities.length} activités',
-                        style: GoogleFonts.nunitoSans(fontSize: 13, color: const Color(0xFF6F7777)),
-                      ),
-                    ],
-                  ),
+                            isDense: true,
+                            filled: true,
+                            fillColor: const Color(0xFFFFFCF8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: const BorderSide(color: Color(0xFFE0D9CF)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: const BorderSide(color: Color(0xFFE0D9CF)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: const BorderSide(color: Color(0xFF9FB2A8)),
+                            ),
+                          ),
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Mes activités',
+                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    fontFamily: GoogleFonts.lora().fontFamily,
+                                    fontFamilyFallback: const ['Times New Roman', 'serif'],
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF33414A),
+                                    letterSpacing: -0.2,
+                                  ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              _activitySearchQuery.trim().isEmpty
+                                  ? '${activities.length} activités'
+                                  : '${filtered.length} résultat(s) sur ${activities.length}',
+                              style: GoogleFonts.nunitoSans(fontSize: 13, color: const Color(0xFF6F7777)),
+                            ),
+                          ],
+                        ),
+                ),
+                IconButton(
+                  tooltip: 'Rechercher',
+                  onPressed: _openActivitySearch,
+                  icon: _systemIconWidget('search', fallback: '🔎', size: 21),
                 ),
                 IconButton(
                   onPressed: openHistory,
@@ -1108,8 +1470,11 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     onTap: () => addOrEditActivity(original: a),
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(13, 12, 9, 12),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          Row(
+                            children: [
                           InkWell(
                             borderRadius: BorderRadius.circular(22),
                             onTap: () => _editActivityIcon(a),
@@ -1169,6 +1534,10 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                           ),
                           const SizedBox(width: 6),
                           const Icon(Icons.chevron_right_rounded, color: Color(0xFF899398)),
+                            ],
+                          ),
+                          if (a.category != 'Sport' && !a.isSportProgram && !a.isDateRange)
+                            _nonSportWeeklyIndicator(a),
                         ],
                       ),
                     ),
