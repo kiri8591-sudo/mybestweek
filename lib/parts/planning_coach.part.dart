@@ -20,16 +20,6 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
 
   bool _generationShouldAvoid(Activity activity) => _generationActivityRule(activity.id) == 'avoid';
 
-  int _nextWeekDirectionActivityScore(Activity activity) {
-    var score = 0;
-    final name = activity.name.trim().toLowerCase();
-    if (_nextWeekCoachDirections.contains('outdoor') && _isOutdoorPlanningActivity(activity)) score += 6;
-    if (_nextWeekCoachDirections.contains('culture') && (activity.category == 'Culture' || name.contains('piano') || name.contains('musique'))) score += 6;
-    if (_nextWeekCoachDirections.contains('social') && activity.category == 'Social') score += 6;
-    if (_nextWeekCoachDirections.contains('wellness') && activity.category == 'Bien-être') score += 6;
-    return score;
-  }
-
   bool _isOutdoorPlanningActivity(Activity activity) {
     if (activity.category == 'Sortie') return true;
     final name = activity.name.trim().toLowerCase();
@@ -726,19 +716,6 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
     final decisionDetails = <String>[];
     var seq = 0;
 
-    // Lundi uniquement : lors de « Repenser », le Sport du jour peut être
-    // recalculé tant qu'il n'est pas encore réalisé. Les séances réalisées et
-    // les placements manuels restent inchangés.
-    final regenerateSportToday = markAsRegenerated && cutoffDay == 0;
-    if (regenerateSportToday) {
-      plan.removeWhere((p) =>
-          p.day == cutoffDay &&
-          _isSportPlanItem(p) &&
-          !p.done &&
-          !p.manualPlacement &&
-          !p.fixedInWeeklyTemplate);
-    }
-
     // Une décision négative doit elle aussi être explicable : « À éviter »
     // signifie réellement qu'aucune nouvelle occurrence ne sera créée.
     for (final activity in activities.where((a) => _generationActivityRule(a.id) == 'avoid')) {
@@ -750,8 +727,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
     _generateSportPart(
       generated,
       seq,
-      startDay: regenerateSportToday ? cutoffDay : cutoffDay + 1,
-      includeToday: regenerateSportToday,
+      startDay: cutoffDay + 1,
       decisionDetails: decisionDetails,
     );
     seq = generated.length;
@@ -777,8 +753,6 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
           final cmp = (rank[ar] ?? 2).compareTo(rank[br] ?? 2);
           if (cmp != 0) return cmp;
         }
-        final directionCompare = _nextWeekDirectionActivityScore(b).compareTo(_nextWeekDirectionActivityScore(a));
-        if (directionCompare != 0) return directionCompare;
         if (_generationRespectPriorities) {
           final priorityCompare = b.priority.compareTo(a.priority);
           if (priorityCompare != 0) return priorityCompare;
@@ -921,10 +895,9 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
     setState(() {
       if (markAsRegenerated) {
         _lastPlanningRegeneratedWeekKey = _currentWeekKey();
-        final firstRegeneratedDay = regenerateSportToday ? cutoffDay : cutoffDay + 1;
         _lastPlanningRegeneratedDays = List<int>.generate(
-          max(0, 7 - firstRegeneratedDay),
-          (i) => firstRegeneratedDay + i,
+          max(0, 7 - (cutoffDay + 1)),
+          (i) => cutoffDay + 1 + i,
         );
         _lastPlanningRegeneratedAt = DateTime.now();
         _lastPlanningCoachExplanation = planningCoachExplanation;
@@ -961,18 +934,13 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
         ..._sportDays().where((d) => d > cutoffDay),
         ..._regeneratedSportBudgets.keys.where((d) => d > cutoffDay),
         ...plan.where((p) => p.day > cutoffDay && _isSportPlanItem(p)).map((p) => p.day),
-        if (regenerateSportToday && plan.any((p) => p.day == cutoffDay && _isSportPlanItem(p))) cutoffDay,
       }.toList()..sort();
       final sportDays = sportFutureDays.length;
       final totalSportMinutes = sportFutureDays.fold<int>(0, (sum, day) => sum + _sportBudgetForDay(day));
       final criteria = _generationCriteriaSummary();
       final activityRules = _generationActivityRulesSummary();
       final ruleMessage = activityRules.isEmpty ? '' : ' Consignes : $activityRules.';
-      final sportMessage = sportDays == 0
-          ? ''
-          : regenerateSportToday
-              ? ' Sport : $sportDays jour(s) pris en compte cette semaine · $totalSportMinutes min.'
-              : ' Sport : $sportDays jour(s) futur(s) · $totalSportMinutes min.';
+      final sportMessage = sportDays == 0 ? '' : ' Sport : $sportDays jour(s) futur(s) · $totalSportMinutes min.';
       final decisionMessage = noChange ? ' Aucun changement automatique n’était nécessaire.' : '';
       _scaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text('Planning futur repensé ($futureDaysCount jour(s)) selon $criteria.$ruleMessage$sportMessage$decisionMessage')),

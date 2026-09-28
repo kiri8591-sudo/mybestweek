@@ -125,6 +125,72 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
             ),
             const SizedBox(height: 12),
             Card(
+              color: const Color(0xFFF3EEE8),
+              child: Padding(
+                padding: const EdgeInsets.all(15),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    const Text('🗓️', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 7),
+                    Expanded(child: Text('Ton rythme sur 4 semaines', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                  ]),
+                  const SizedBox(height: 5),
+                  const Text(
+                    'Pour voir si ton rythme se construit dans la durée, pas seulement sur les derniers jours.',
+                    style: TextStyle(fontSize: 10.8, color: Color(0xFF737976), height: 1.25),
+                  ),
+                  const SizedBox(height: 10),
+                  ...List.generate(4, (index) {
+                    final start = monday.subtract(Duration(days: 7 * index));
+                    final end = start.add(const Duration(days: 7));
+                    final weekLogs = widget.logs.where((log) => !log.date.isBefore(start) && log.date.isBefore(end)).toList();
+                    final activeDays = weekLogs
+                        .map((log) => DateTime(log.date.year, log.date.month, log.date.day))
+                        .toSet()
+                        .length;
+                    final minutes = weekLogs.fold<int>(0, (sum, log) => sum + max(0, log.realisedMinutes));
+                    final difficultCount = weekLogs.where((log) => log.feeling == 'Difficile').length;
+                    final label = index == 0 ? 'Cette semaine' : 'Semaine -$index';
+                    final range = '${start.day.toString().padLeft(2, '0')}/${start.month.toString().padLeft(2, '0')} → ${(end.subtract(const Duration(days: 1))).day.toString().padLeft(2, '0')}/${(end.subtract(const Duration(days: 1))).month.toString().padLeft(2, '0')}';
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: index == 3 ? 0 : 7),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFDF9),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE0DDD4)),
+                        ),
+                        child: Row(children: [
+                          SizedBox(
+                            width: 78,
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(label, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: Color(0xFF4E5A55))),
+                              const SizedBox(height: 2),
+                              Text(range, style: const TextStyle(fontSize: 8.8, color: Color(0xFF858B87))),
+                            ]),
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(child: Wrap(
+                            alignment: WrapAlignment.end,
+                            spacing: 12,
+                            runSpacing: 4,
+                            children: [
+                              Text('$activeDays j actif${activeDays > 1 ? 's' : ''}', style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF617069))),
+                              Text('${weekLogs.length} moment${weekLogs.length > 1 ? 's' : ''}', style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF617069))),
+                              Text('$minutes min', style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF617069))),
+                              Text('⚠️ $difficultCount', style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF9A6D5D))),
+                            ],
+                          )),
+                        ]),
+                      ),
+                    );
+                  }),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
               color: const Color(0xFFE8F0EA),
               child: Padding(
                 padding: const EdgeInsets.all(15),

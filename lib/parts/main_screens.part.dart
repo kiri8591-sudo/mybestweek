@@ -130,6 +130,25 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
     );
   }
 
+  int _nextWeekDirectionActivityScore(Activity activity) {
+    if (_nextWeekCoachDirections.isEmpty) return 0;
+    var score = 0;
+    final category = activity.category.toLowerCase();
+    if (_nextWeekCoachDirections.contains('outdoor') && category == 'sortie') {
+      score += 4;
+    }
+    if (_nextWeekCoachDirections.contains('culture') && category == 'culture') {
+      score += 4;
+    }
+    if (_nextWeekCoachDirections.contains('social') && category == 'social') {
+      score += 4;
+    }
+    if (_nextWeekCoachDirections.contains('wellness') && category == 'bien-être') {
+      score += 4;
+    }
+    return score;
+  }
+
   Map<int, List<Activity>> _nextWeekProjection() {
     final result = {for (var day = 0; day < 7; day++) day: <Activity>[]};
     final load = {for (var day = 0; day < 7; day++) day: 0};

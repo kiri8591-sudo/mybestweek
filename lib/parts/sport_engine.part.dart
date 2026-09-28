@@ -442,7 +442,7 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
     return max(5, (average / 5).round() * 5);
   }
 
-  List<int> _futureSportGenerationDays({bool includeToday = false}) {
+  List<int> _futureSportGenerationDays() {
     final future = <int>{..._sportDays().where((d) => d > today)};
     final targetDays = _sportDayCount();
 
@@ -454,13 +454,6 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
       if (_sportItemsForDay(day).any((item) => item.done && (item.realisedMinutes ?? 0) > 0)) {
         realisedPastSportDays.add(day);
       }
-    }
-
-    // Exception demandée pour la régénération du lundi : le jour courant
-    // peut être recalculé pour le Sport s'il n'a pas encore été réalisé.
-    // Un Sport déjà réalisé aujourd'hui reste protégé.
-    if (includeToday && !realisedPastSportDays.contains(today)) {
-      future.add(today);
     }
 
     final preservedFutureManualSportDays = <int>{
@@ -564,13 +557,13 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
   }
 
   void _generateSportPart(List<PlanItem> generated, int seqStart,
-      {int startDay = 0, bool includeToday = false, List<String>? decisionDetails}) {
+      {int startDay = 0, List<String>? decisionDetails}) {
     final sportActivities = activities
         .where((a) => _isSportActivity(a) && a.activeInSportRotation && !_generationShouldAvoid(a))
         .toList();
     if (sportActivities.isEmpty || _sportProgram == null) return;
 
-    final days = _futureSportGenerationDays(includeToday: includeToday);
+    final days = _futureSportGenerationDays();
     final generatedCount = <String, int>{for (final a in sportActivities) a.id: 0};
     var seq = seqStart;
     Set<String> previousDayIds = {};

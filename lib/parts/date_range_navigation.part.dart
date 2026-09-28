@@ -137,7 +137,7 @@ extension _DateRangeNavigationPart on _MaBelleSemaineAppState {
     _navigatorKey.currentState?.push(
       MaterialPageRoute(builder: (_) => _WeeklyReviewPage(
         plan: plan,
-        logs: _currentWeekLogs(),
+        logs: logs,
         moveLogs: activityMoveLogs,
         activities: activities,
         weeklyNote: weeklyNote,
