@@ -62,7 +62,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(.65), borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: .65), borderRadius: BorderRadius.circular(12)),
                   child: const Center(child: Text('Déposer l’activité ici', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF6F8E80)))),
                 )
               else

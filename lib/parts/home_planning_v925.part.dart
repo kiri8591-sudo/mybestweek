@@ -1,4 +1,4 @@
-// V9.07 — Helpers de rythme, focus du jour et rendu du planning
+// V9.25 — Helpers de rythme, focus du jour et rendu du planning
 // Extraction architecturale uniquement : comportement conservé.
 
 part of '../main.dart';
@@ -292,7 +292,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
     final category = activity?.category ?? (item.customCategory ?? 'Autre');
     final emoji = _planItemIconValue(item, activities);
     final isGeneric = _isGenericActivityItem(item);
-    final bg = item.optional ? const Color(0xFFF0EDE6) : this._pastelFor(category).withOpacity(isGeneric ? .30 : .42);
+    final bg = item.optional ? const Color(0xFFF0EDE6) : this._pastelFor(category).withValues(alpha: isGeneric ? .30 : .42);
 
     final card = Padding(
       padding: EdgeInsets.only(top: isGeneric ? 4 : 7),

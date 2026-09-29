@@ -1,9 +1,152 @@
-// V9.17.1 — Écrans principaux
+// V9.25 — Écrans principaux
 // Extraction architecturale uniquement : comportement conservé.
 
 part of '../main.dart';
 
 extension _MainScreensPart on _MaBelleSemaineAppState {
+
+
+  Future<void> _evo8OpenActivityMiniHistory(Activity activity) async {
+    final recent = logs.where((log) => _logMatchesActivity(log, activity)).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    final shown = recent.take(6).toList();
+    final totalMinutes = recent.fold<int>(0, (sum, log) => sum + log.realisedMinutes);
+
+    String durationLabel(int minutes) {
+      if (minutes < 60) return '$minutes min';
+      final hours = minutes ~/ 60;
+      final remainder = minutes % 60;
+      return remainder == 0 ? '${hours} h' : '${hours} h ${remainder}';
+    }
+
+    String dateLabel(ActivityLog log) {
+      final date = log.date;
+      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
+    }
+
+    String feelingEmoji(String raw) {
+      final feeling = _normalizeFeeling(raw);
+      switch (feeling) {
+        case 'Très bien':
+          return '😄';
+        case 'Bien':
+          return '🙂';
+        case 'Difficile':
+          return '😕';
+        default:
+          return '';
+      }
+    }
+
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: _navigatorKey.currentContext!,
+      showDragHandle: true,
+      backgroundColor: const Color(0xFFFFFBF5),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _activityIconWidget(activity.emoji, size: 28),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Historique de l’activité',
+                          style: TextStyle(
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF3F4B45),
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        Text(
+                          activity.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            color: Color(0xFF707873),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                recent.isEmpty
+                    ? 'Aucune réalisation enregistrée pour le moment.'
+                    : '${recent.length} réalisation${recent.length > 1 ? 's' : ''} · $totalMinutes min réalisées au total',
+                style: const TextStyle(fontSize: 11.5, color: Color(0xFF707873)),
+              ),
+              if (shown.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                ...shown.map(
+                  (log) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 56,
+                          child: Text(
+                            dateLabel(log),
+                            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 17,
+                          color: Color(0xFF6F8E80),
+                        ),
+                        const SizedBox(width: 7),
+                        Expanded(
+                          child: Text(
+                            durationLabel(log.realisedMinutes),
+                            style: const TextStyle(fontSize: 11.5, color: Color(0xFF59635F)),
+                          ),
+                        ),
+                        if (feelingEmoji(log.feeling).isNotEmpty)
+                          Text(
+                            feelingEmoji(log.feeling),
+                            style: const TextStyle(fontSize: 15),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              if (recent.length > shown.length) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '${recent.length - shown.length} autre${recent.length - shown.length > 1 ? 's' : ''} réalisation${recent.length - shown.length > 1 ? 's' : ''} dans l’historique général.',
+                  style: const TextStyle(fontSize: 10.8, color: Color(0xFF7A827F)),
+                ),
+              ],
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Fermer'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 
   Widget _nonSportWeeklyIndicator(Activity activity) {
     const labels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
@@ -349,7 +492,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(selected ? 14 : 12),
-        border: Border.all(color: fg.withOpacity(selected ? .20 : .13), width: 1),
+        border: Border.all(color: fg.withValues(alpha: selected ? .20 : .13), width: 1),
         boxShadow: selected
             ? [const BoxShadow(color: Color(0x12000000), blurRadius: 7, offset: Offset(0, 2))]
             : const [],
@@ -1570,7 +1713,15 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               ],
                             ),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 4),
+                          IconButton(
+                            tooltip: 'Voir l’historique',
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                            onPressed: () => _evo8OpenActivityMiniHistory(a),
+                            icon: _systemIconWidget('history', fallback: '📖', size: 19),
+                          ),
                           const Icon(Icons.chevron_right_rounded, color: Color(0xFF899398)),
                             ],
                           ),

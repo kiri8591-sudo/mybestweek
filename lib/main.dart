@@ -18,18 +18,18 @@ part 'parts/state_sport_planning.part.dart';
 part 'parts/activity_management.part.dart';
 part 'parts/state_weather_home.part.dart';
 part 'parts/history.part.dart';
-part 'parts/today_planning.part.dart';
+part 'parts/today_planning_v925.part.dart';
 part 'parts/weekly_review_v919.part.dart';
 part 'parts/sport_ui.part.dart';
 part 'parts/plan_interaction.part.dart';
-part 'parts/main_screens_v922.part.dart';
+part 'parts/main_screens_v925.part.dart';
 part 'parts/reusable_sheets_v921.part.dart';
 part 'parts/system_icons.part.dart';
 part 'parts/daily_coach_summary.part.dart';
 part 'parts/planning_helpers.part.dart';
-part 'parts/plan_completion.part.dart';
+part 'parts/plan_completion_v924.part.dart';
 part 'parts/date_range_navigation.part.dart';
-part 'parts/home_planning.part.dart';
+part 'parts/home_planning_v925.part.dart';
 part 'parts/sport_runtime_ui.part.dart';
 part 'parts/sport_engine_v920.part.dart';
 part 'parts/app_core_helpers_v922.part.dart';
@@ -53,7 +53,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V9.22';
+  static const version = 'V9.25';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',

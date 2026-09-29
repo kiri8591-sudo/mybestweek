@@ -1,4 +1,4 @@
-// V9.04 — Validation et complétion des activités
+// V9.24 — Validation et complétion des activités
 // Extraction architecturale uniquement : comportement conservé.
 
 part of '../main.dart';
@@ -28,6 +28,7 @@ extension _PlanCompletionPart on _MaBelleSemaineAppState {
     }
 
     final now = DateTime.now();
+    HapticFeedback.selectionClick();
     setState(() {
       item.done = true;
       item.realisedMinutes = item.duration;
