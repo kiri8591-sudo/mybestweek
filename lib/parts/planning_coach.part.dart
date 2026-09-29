@@ -268,8 +268,12 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
   }
 
   String _regeneratedDaysMessage() {
+    // Seuls les jours strictement futurs peuvent être annoncés comme
+    // régénérés. Cela évite qu'une information conservée d'une régénération
+    // précédente affiche par erreur hier ou aujourd'hui.
+    final currentDay = today;
     final days = _lastPlanningRegeneratedDays
-        .where((d) => d >= 0 && d < 7)
+        .where((d) => d >= 0 && d < 7 && d > currentDay)
         .toList();
     if (days.isEmpty) return '';
     final names = days.map((d) => dayNames[d]).toList();

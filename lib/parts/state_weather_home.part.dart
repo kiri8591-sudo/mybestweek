@@ -12,6 +12,13 @@ extension _WeatherHomePart on _MaBelleSemaineAppState {
     return 'Bonne nuit ✨';
   }
 
+  String _greetingLabel() {
+    final hour = _clockNow.hour;
+    if (hour < 12) return 'Bonjour';
+    if (hour < 18) return 'Bon après-midi';
+    return 'Bonsoir';
+  }
+
   String _clockText() {
     final h = _clockNow.hour.toString().padLeft(2, '0');
     final m = _clockNow.minute.toString().padLeft(2, '0');

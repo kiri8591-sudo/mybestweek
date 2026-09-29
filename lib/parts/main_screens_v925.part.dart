@@ -693,11 +693,11 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text(
-                                  'Bonjour 👋',
+                                Text(
+                                  '${_greetingLabel()} 👋',
                                   maxLines: 1,
                                   softWrap: false,
-                                  style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.25),
+                                  style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.25),
                                 ),
                                 if (_userName.trim().isNotEmpty) ...[
                                   const SizedBox(height: 1),
