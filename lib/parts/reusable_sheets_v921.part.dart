@@ -1,4 +1,4 @@
-// V9.00 — Composants UI réutilisables et feuilles secondaires
+// V9.21 — Composants UI réutilisables et feuilles secondaires
 // Extraction architecturale uniquement : comportement conservé.
 
 part of '../main.dart';
@@ -6,6 +6,36 @@ part of '../main.dart';
 class _InfoSheet extends StatelessWidget {
   final PlanItem item;
   const _InfoSheet({required this.item});
+
+
+  Widget _backupStep({
+    required IconData icon,
+    required String title,
+    required String text,
+    required bool done,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 30, height: 30, alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: done ? const Color(0xFFE3F0E7) : const Color(0xFFF1EEE8),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(done ? Icons.check_rounded : icon, size: 16,
+              color: done ? const Color(0xFF62806E) : const Color(0xFF847A6D)),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: Color(0xFF4C5952))),
+          const SizedBox(height: 1),
+          Text(text, maxLines: 2, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 9.8, height: 1.22, color: Color(0xFF737A76))),
+        ])),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +75,60 @@ class _DataPage extends StatelessWidget {
     required this.cloudBackupStatus,
     required this.cloudReminderDays,
   });
+
+  Widget _backupStep({
+    required IconData icon,
+    required String title,
+    required String text,
+    required bool done,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: done ? const Color(0xFFE3F0E7) : const Color(0xFFF1EEE8),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            done ? Icons.check_rounded : icon,
+            size: 16,
+            color: done ? const Color(0xFF62806E) : const Color(0xFF847A6D),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF4C5952),
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                text,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 9.8,
+                  height: 1.22,
+                  color: Color(0xFF737A76),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   Future<void> _import(BuildContext context) async {
     final ok = await onImport();
@@ -244,6 +328,53 @@ class _DataPage extends StatelessWidget {
                       Text('La sauvegarde locale est automatique. Garde une copie à portée de main pour retrouver MyBestWeek facilement.', style: TextStyle(fontSize: 10.8, height: 1.3, color: Color(0xFF68736D))),
                     ],
                   ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF2F5F1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFDDE5DE)),
+            ),
+            padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Text('🛡️', style: TextStyle(fontSize: 19)),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      'Ton filet de sécurité',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, color: const Color(0xFF4A5850)),
+                    ),
+                  ),
+                  _statusPill(),
+                ]),
+                const SizedBox(height: 9),
+                _backupStep(
+                  icon: Icons.smartphone_rounded,
+                  title: 'Sur cet appareil',
+                  text: 'Automatique après les modifications.',
+                  done: true,
+                ),
+                const SizedBox(height: 6),
+                _backupStep(
+                  icon: Icons.cloud_done_outlined,
+                  title: 'Copie iCloud',
+                  text: cloudBackupStatus,
+                  done: !cloudBackupStatus.startsWith('Aucune'),
+                ),
+                const SizedBox(height: 6),
+                _backupStep(
+                  icon: Icons.archive_outlined,
+                  title: 'Fichier .json',
+                  text: 'À conserver où tu veux pour une restauration complète.',
+                  done: false,
                 ),
               ],
             ),

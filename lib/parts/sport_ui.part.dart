@@ -193,7 +193,6 @@ class _SportWeekPageState extends State<_SportWeekPage> {
   String _stateFilter = 'Tous';
   String _sort = 'Nom';
   String _view = 'Semaine';
-  bool _showWeekTracking = false;
   int? _selectedActivityId;
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month, 1);
   late DateTime _selectedDate;
@@ -589,7 +588,6 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           onPressed: () => setState(() {
             _dateStripStart = _dateStripStart.subtract(const Duration(days: 7));
             _selectedDate = _selectedDate.subtract(const Duration(days: 7));
-            _showWeekTracking = false;
           }),
           icon: const Icon(Icons.chevron_left_rounded),
         ),
@@ -606,7 +604,6 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           onPressed: () => setState(() {
             _dateStripStart = _dateStripStart.add(const Duration(days: 7));
             _selectedDate = _selectedDate.add(const Duration(days: 7));
-            _showWeekTracking = false;
           }),
           icon: const Icon(Icons.chevron_right_rounded),
         ),
@@ -630,8 +627,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                   return GestureDetector(
                     onTap: () => setState(() {
                       _selectedDate = d;
-                      _showWeekTracking = false;
-                    }),
+                              }),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 160),
                       width: 39,
@@ -676,201 +672,6 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         ],
       ),
     ]);
-  }
-
-  Widget _weeklySportOverview() {
-    final activities = _visibleActivities();
-    final allSport = _allSportActivities();
-    final currentPlan = widget.getPlan();
-
-    int plannedMinutes(int day) {
-      return currentPlan.where((item) {
-        if (item.day != day || item.activityId == null) return false;
-        return allSport.any((a) => a.id == item.activityId);
-      }).fold<int>(0, (sum, item) => sum + item.duration);
-    }
-
-    int doneMinutes(int day) {
-      return currentPlan.where((item) {
-        if (item.day != day || item.activityId == null || !item.done) return false;
-        return allSport.any((a) => a.id == item.activityId);
-      }).fold<int>(0, (sum, item) => sum + (item.realisedMinutes ?? item.duration));
-    }
-
-    int activityCount(int day) {
-      return currentPlan.where((item) {
-        if (item.day != day || item.activityId == null) return false;
-        return allSport.any((a) => a.id == item.activityId);
-      }).length;
-    }
-
-    final weeklyPlanned = List<int>.generate(7, plannedMinutes);
-    final weeklyDone = List<int>.generate(7, doneMinutes);
-    final weeklyBudget = List<int>.generate(
-      7,
-      (day) => widget.getSportDays().contains(day) ? (budgets[day] ?? 0) : 0,
-    );
-
-    final totalPlanned = weeklyPlanned.fold<int>(0, (a, b) => a + b);
-    final totalDone = weeklyDone.fold<int>(0, (a, b) => a + b);
-    final totalBudget = weeklyBudget.fold<int>(0, (a, b) => a + b);
-    final activeDays = List<int>.generate(7, (day) => day)
-        .where((day) => weeklyBudget[day] > 0 || weeklyPlanned[day] > 0)
-        .length;
-
-    Widget dayCard(int day) {
-      final planned = weeklyPlanned[day];
-      final done = weeklyDone[day];
-      final budget = weeklyBudget[day];
-      final progressTarget = budget > 0 ? budget : planned;
-      final progress = progressTarget <= 0 ? 0.0 : (done / progressTarget).clamp(0.0, 1.0);
-      final status = planned == 0 && budget == 0
-          ? 'repos'
-          : planned == 0
-              ? 'à organiser'
-              : done >= planned
-                  ? 'fait'
-                  : 'en cours';
-
-      return Expanded(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          padding: const EdgeInsets.fromLTRB(4, 7, 4, 7),
-          decoration: BoxDecoration(
-            color: status == 'fait' ? const Color(0xFFEAF4EE) : const Color(0xFFFFFDF9),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: status == 'fait' ? const Color(0xFFBFD8C8) : const Color(0xFFE1DDD5),
-            ),
-          ),
-          child: Column(
-            children: [
-              Text(
-                widget.dayNames[day].substring(0, 3),
-                style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Color(0xFF6F7777)),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '$planned',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF33414A)),
-              ),
-              Text(
-                budget > 0 ? '/ $budget' : 'min',
-                style: const TextStyle(fontSize: 7.2, fontWeight: FontWeight.w700, color: Color(0xFF85847E)),
-              ),
-              const SizedBox(height: 4),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(99),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 4,
-                  backgroundColor: const Color(0xFFE5E4DE),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF7D988D)),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                done > 0 ? '$done ✓' : status,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 7.8,
-                  fontWeight: FontWeight.w800,
-                  color: done > 0 ? const Color(0xFF6F8E80) : const Color(0xFF7A7770),
-                ),
-              ),
-              const SizedBox(height: 1),
-              Text(
-                '${activityCount(day)} activité${activityCount(day) > 1 ? 's' : ''}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 6.8, color: Color(0xFF9A9992)),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _uiIcon('week', Icons.view_week_outlined, size: 18, color: const Color(0xFF6F8E80)),
-            const SizedBox(width: 6),
-            const Expanded(
-              child: Text(
-                'Rythme de la semaine',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
-              ),
-            ),
-            Text(
-              '$activeDays / 7 jours actifs',
-              style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF6F7777)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 3),
-        const Text(
-          'Une lecture rapide de la charge Sport. Les cases ci-dessous servent au suivi et restent cliquables.',
-          style: TextStyle(fontSize: 9.6, color: Color(0xFF7A7770), height: 1.2),
-        ),
-        const SizedBox(height: 8),
-        Row(children: List.generate(7, dayCard)),
-        const SizedBox(height: 9),
-        Container(
-          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF2F6F3),
-            borderRadius: BorderRadius.circular(13),
-            border: Border.all(color: const Color(0xFFD7E1DB)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  totalBudget > 0
-                      ? '$totalDone / $totalPlanned min réalisées · budget $totalBudget min'
-                      : '$totalDone / $totalPlanned min réalisées',
-                  style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF596761)),
-                ),
-              ),
-              if (totalPlanned > 0)
-                Text(
-                  '${(totalDone * 100 / totalPlanned).round()} %',
-                  style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w900, color: Color(0xFF6F8E80)),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            _uiIcon('week', Icons.grid_view_rounded, size: 17, color: const Color(0xFF6F8E80)),
-            const SizedBox(width: 6),
-            const Expanded(
-              child: Text(
-                'Activités × jours',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 2),
-        const Text(
-          '• prévu  ·  ✓ réalisé  ·  touche une case pour modifier le jour.',
-          style: TextStyle(fontSize: 9.3, color: Color(0xFF7A7770)),
-        ),
-        const SizedBox(height: 6),
-        _weekDayHeader(),
-        if (activities.isEmpty)
-          const Text('Aucune activité Sport ne correspond aux filtres.', style: TextStyle(fontSize: 11.5, color: Color(0xFF6F7777)))
-        else
-          ...activities.map(_activityRow),
-      ],
-    );
   }
 
   bool _sameDate(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
@@ -981,62 +782,6 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     );
   }
 
-  Widget _selectedDayActivityTracking(List<Activity> visible) {
-    final selectedDay = _planDayIndex(_selectedDate);
-    final plannedToday = visible.where((activity) => _itemsFor(activity, selectedDay).isNotEmpty).length;
-    final doneToday = visible.where((activity) => _itemsFor(activity, selectedDay).any((item) => item.done)).length;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(10, 9, 10, 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F6F3),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFD7E1DB)),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          _uiIcon('week', Icons.view_week_outlined, size: 17, color: const Color(0xFF6F8E80)),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              'Suivi des activités · ${widget.dayNames[selectedDay]} ${_dateLabel(_selectedDate)}',
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5),
-            ),
-          ),
-          Text(
-            '$doneToday/$plannedToday',
-            style: const TextStyle(fontSize: 9.5, color: Color(0xFF6F7777), fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(width: 4),
-          TextButton.icon(
-            onPressed: () => setState(() => _showWeekTracking = true),
-            icon: _uiIcon('week', Icons.view_week_outlined, size: 16),
-            label: const Text('7 jours'),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF526B78),
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              textStyle: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800),
-            ),
-          ),
-        ]),
-        const SizedBox(height: 3),
-        const Text(
-          'Même tableau que la vue 7 jours · toutes les cases restent cliquables ; le jour sélectionné est mis en évidence.',
-          style: TextStyle(fontSize: 9.3, color: Color(0xFF7A7770)),
-        ),
-        const SizedBox(height: 5),
-        _weekDayHeader(),
-        if (visible.isEmpty)
-          const Text('Aucune activité ne correspond aux filtres.', style: TextStyle(fontSize: 11.5, color: Color(0xFF6F7777)))
-        else
-          ...visible.map(_activityRow),
-      ]),
-    );
-  }
-
-  
   // Le tableau garde toujours ses 7 colonnes, quel que soit le mode.
   // En mode 1 jour, le jour sélectionné est seulement mis en évidence ;
   // toutes les colonnes restent affichées et toutes les cases restent cliquables.
@@ -1356,14 +1101,10 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     final active = widget.getActivities().where((a) => a.activeInSportRotation).toList();
     final inactive = widget.getActivities().where((a) => !a.activeInSportRotation).toList();
     final visible = _visibleActivities();
-    final selectedDay = _planDayIndex(_selectedDate);
-    // Le choix 1 jour / 7 jours pilote uniquement les activités affichées :
-    // - 1 jour : uniquement les activités prévues le jour sélectionné ;
-    // - 7 jours : toutes les activités visibles.
-    // Le tableau conserve toujours ses 7 colonnes et le même design.
-    final trackingActivities = _showWeekTracking
-        ? visible
-        : visible.where((activity) => _itemsFor(activity, selectedDay).isNotEmpty).toList();
+    // La vue journalière au-dessus affiche déjà le détail du jour sélectionné.
+    // Le tableau de suivi est donc dédié aux 7 jours : il n'y a pas de second
+    // mode « 1 jour » qui répéterait le même contenu.
+    final trackingActivities = visible;
 
     return Scaffold(
       appBar: AppBar(
@@ -1394,7 +1135,40 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           Container(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             decoration: BoxDecoration(color: const Color(0xFFFFFDF9), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE0DDD5))),
-            child: _view == 'Semaine' ? _weeklySportOverview() : _monthView(),
+            child: _view == 'Semaine'
+                ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    _dailyDateNavigator(),
+                    const SizedBox(height: 8),
+                    _selectedDaySportDetail(),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2F6F3),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFD7E1DB)),
+                      ),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          _uiIcon('week', Icons.view_week_outlined, size: 17, color: const Color(0xFF6F8E80)),
+                          const SizedBox(width: 6),
+                          const Expanded(child: Text('Suivi des activités · 7 jours', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5))),
+                        ]),
+                        const SizedBox(height: 3),
+                        const Text(
+                          'Les 7 jours restent visibles et les cases restent cliquables ; le jour sélectionné est mis en évidence.',
+                          style: TextStyle(fontSize: 9.5, color: Color(0xFF6F7777)),
+                        ),
+                        const SizedBox(height: 6),
+                        _weekDayHeader(),
+                        if (trackingActivities.isEmpty)
+                          const Text('Aucune activité Sport n’est prévue pour ce jour.')
+                        else
+                          ...trackingActivities.map(_activityRow),
+                      ]),
+                    ),
+                  ])
+                : _monthView(),
           ),
           if (inactive.isNotEmpty) ...[
             const SizedBox(height: 12),

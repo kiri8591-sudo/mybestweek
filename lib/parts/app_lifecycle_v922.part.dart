@@ -1,4 +1,4 @@
-// V9.14 — Cycle de vie de l'application.
+// V9.22 — Cycle de vie de l'application.
 // Extraction architecturale uniquement : comportement conservé.
 
 part of '../main.dart';
@@ -30,6 +30,11 @@ extension _AppLifecyclePart on _MaBelleSemaineAppState {
       _loadLocalState();
       if (mounted && _weatherCity.trim().isNotEmpty) {
         await _loadWeather();
+      }
+      if (mounted) {
+        // Après restauration de l'état et de la météo, le message du matin
+        // reflète à nouveau la journée réellement proposée.
+        refreshMorningThought();
       }
     });
   }

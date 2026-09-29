@@ -19,11 +19,11 @@ part 'parts/activity_management.part.dart';
 part 'parts/state_weather_home.part.dart';
 part 'parts/history.part.dart';
 part 'parts/today_planning.part.dart';
-part 'parts/weekly_review.part.dart';
+part 'parts/weekly_review_v919.part.dart';
 part 'parts/sport_ui.part.dart';
 part 'parts/plan_interaction.part.dart';
-part 'parts/main_screens.part.dart';
-part 'parts/reusable_sheets.part.dart';
+part 'parts/main_screens_v922.part.dart';
+part 'parts/reusable_sheets_v921.part.dart';
 part 'parts/system_icons.part.dart';
 part 'parts/daily_coach_summary.part.dart';
 part 'parts/planning_helpers.part.dart';
@@ -31,12 +31,12 @@ part 'parts/plan_completion.part.dart';
 part 'parts/date_range_navigation.part.dart';
 part 'parts/home_planning.part.dart';
 part 'parts/sport_runtime_ui.part.dart';
-part 'parts/sport_engine.part.dart';
-part 'parts/app_core_helpers.part.dart';
+part 'parts/sport_engine_v920.part.dart';
+part 'parts/app_core_helpers_v922.part.dart';
 part 'parts/app_shell.part.dart';
 part 'parts/completion_celebration.part.dart';
 part 'parts/branding.part.dart';
-part 'parts/app_lifecycle.part.dart';
+part 'parts/app_lifecycle_v922.part.dart';
 
 void main() {
   _installMascotBrowserIcon();
@@ -53,7 +53,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V9.19';
+  static const version = 'V9.22';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -88,6 +88,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
 
   int tab = 0;
   String categoryFilter = 'Toutes';
+
+  // Recherche dans « Mes activités » (V9.18)
   bool _showActivitySearch = false;
   String _activitySearchQuery = '';
 
@@ -179,6 +181,29 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
 
   // Directions choisies le dimanche pour guider la régénération du lundi.
   final Set<String> _nextWeekCoachDirections = <String>{};
+
+  // Permet aux extensions UI de modifier l’état sans appeler directement le
+  // membre protégé State.setState depuis une extension.
+  void _setNextWeekCoachDirections(Iterable<String> directions) {
+    setState(() {
+      _nextWeekCoachDirections
+        ..clear()
+        ..addAll(directions);
+    });
+  }
+
+  void _setMorningThoughtState({
+    required String thought,
+    required String thoughtIcon,
+    required String focusIcon,
+  }) {
+    if (!mounted) return;
+    setState(() {
+      _morningThought = thought;
+      _morningThoughtIcon = thoughtIcon;
+      _focusIcon = focusIcon;
+    });
+  }
 
   // Coach Sport : une analyse unique, lisible depuis l’Accueil, puis un
   // éventuel ajustement du prochain jour Sport sans créer un second programme.

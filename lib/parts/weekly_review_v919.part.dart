@@ -1,5 +1,6 @@
-// V8.96 — Extraction de la revue hebdomadaire
-// Extraction architecturale uniquement : comportement conservé.
+// V9.19 — Bilan : rythme sur 4 semaines
+// La page reste basée sur le bilan de la semaine courante, complété par un
+// historique lisible des quatre dernières semaines calendaires.
 
 part of '../main.dart';
 
@@ -125,72 +126,6 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
             ),
             const SizedBox(height: 12),
             Card(
-              color: const Color(0xFFF3EEE8),
-              child: Padding(
-                padding: const EdgeInsets.all(15),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    const Text('🗓️', style: TextStyle(fontSize: 18)),
-                    const SizedBox(width: 7),
-                    Expanded(child: Text('Ton rythme sur 4 semaines', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
-                  ]),
-                  const SizedBox(height: 5),
-                  const Text(
-                    'Pour voir si ton rythme se construit dans la durée, pas seulement sur les derniers jours.',
-                    style: TextStyle(fontSize: 10.8, color: Color(0xFF737976), height: 1.25),
-                  ),
-                  const SizedBox(height: 10),
-                  ...List.generate(4, (index) {
-                    final start = monday.subtract(Duration(days: 7 * index));
-                    final end = start.add(const Duration(days: 7));
-                    final weekLogs = widget.logs.where((log) => !log.date.isBefore(start) && log.date.isBefore(end)).toList();
-                    final activeDays = weekLogs
-                        .map((log) => DateTime(log.date.year, log.date.month, log.date.day))
-                        .toSet()
-                        .length;
-                    final minutes = weekLogs.fold<int>(0, (sum, log) => sum + max(0, log.realisedMinutes));
-                    final difficultCount = weekLogs.where((log) => log.feeling == 'Difficile').length;
-                    final label = index == 0 ? 'Cette semaine' : 'Semaine -$index';
-                    final range = '${start.day.toString().padLeft(2, '0')}/${start.month.toString().padLeft(2, '0')} → ${(end.subtract(const Duration(days: 1))).day.toString().padLeft(2, '0')}/${(end.subtract(const Duration(days: 1))).month.toString().padLeft(2, '0')}';
-                    return Padding(
-                      padding: EdgeInsets.only(bottom: index == 3 ? 0 : 7),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFFDF9),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE0DDD4)),
-                        ),
-                        child: Row(children: [
-                          SizedBox(
-                            width: 78,
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(label, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: Color(0xFF4E5A55))),
-                              const SizedBox(height: 2),
-                              Text(range, style: const TextStyle(fontSize: 8.8, color: Color(0xFF858B87))),
-                            ]),
-                          ),
-                          const SizedBox(width: 5),
-                          Expanded(child: Wrap(
-                            alignment: WrapAlignment.end,
-                            spacing: 12,
-                            runSpacing: 4,
-                            children: [
-                              Text('$activeDays j actif${activeDays > 1 ? 's' : ''}', style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF617069))),
-                              Text('${weekLogs.length} moment${weekLogs.length > 1 ? 's' : ''}', style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF617069))),
-                              Text('$minutes min', style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF617069))),
-                              Text('⚠️ $difficultCount', style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF9A6D5D))),
-                            ],
-                          )),
-                        ]),
-                      ),
-                    );
-                  }),
-                ]),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Card(
               color: const Color(0xFFE8F0EA),
               child: Padding(
                 padding: const EdgeInsets.all(15),
@@ -218,6 +153,83 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                   )),
                 ]),
               ),
+            ),
+
+            const SizedBox(height: 12),
+            Builder(
+              builder: (context) {
+                final weekStart = monday;
+                final fourWeekRows = List.generate(4, (index) {
+                  final start = weekStart.subtract(Duration(days: index * 7));
+                  final end = start.add(const Duration(days: 7));
+                  final rowLogs = widget.logs.where((log) => !log.date.isBefore(start) && log.date.isBefore(end)).toList();
+                  final minutes = rowLogs.fold<int>(0, (sum, log) => sum + max(0, log.realisedMinutes));
+                  final activeDays = rowLogs
+                      .map((log) => DateTime(log.date.year, log.date.month, log.date.day))
+                      .toSet()
+                      .length;
+                  final difficultCount = rowLogs.where((log) => log.feeling == 'Difficile').length;
+                  return _ReviewWeekSummary(
+                    start: start,
+                    end: end,
+                    moments: rowLogs.length,
+                    minutes: minutes,
+                    activeDays: activeDays,
+                    difficult: difficultCount,
+                  );
+                });
+                final totalFourWeeksMinutes = fourWeekRows.fold<int>(0, (sum, row) => sum + row.minutes);
+                final totalFourWeeksMoments = fourWeekRows.fold<int>(0, (sum, row) => sum + row.moments);
+                final totalFourWeeksDifficult = fourWeekRows.fold<int>(0, (sum, row) => sum + row.difficult);
+                final totalActiveDays = widget.logs
+                    .where((log) => !log.date.isBefore(weekStart.subtract(const Duration(days: 21))) && log.date.isBefore(nextMonday))
+                    .map((log) => DateTime(log.date.year, log.date.month, log.date.day))
+                    .toSet()
+                    .length;
+
+                return Card(
+                  color: const Color(0xFFF3EEE8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        const Text('🗓️', style: TextStyle(fontSize: 18)),
+                        const SizedBox(width: 7),
+                        Expanded(child: Text('Ton rythme sur 4 semaines', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                      ]),
+                      const SizedBox(height: 5),
+                      const Text(
+                        'Une vue simple des quatre dernières semaines pour voir le rythme réel, sans mélanger les semaines.',
+                        style: TextStyle(fontSize: 11.4, color: Color(0xFF68716D), height: 1.3),
+                      ),
+                      const SizedBox(height: 11),
+                      Row(children: [
+                        Expanded(child: _ReviewStat(label: 'Jours actifs', value: '$totalActiveDays/28', icon: Icons.event_available_outlined)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _ReviewStat(label: 'Moments', value: '$totalFourWeeksMoments', icon: Icons.check_circle_outline)),
+                      ]),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        Expanded(child: _ReviewStat(label: 'Temps vécu', value: '$totalFourWeeksMinutes min', icon: Icons.timer_outlined)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _ReviewStat(label: 'Difficiles', value: '$totalFourWeeksDifficult', icon: Icons.battery_alert_outlined)),
+                      ]),
+                      const SizedBox(height: 13),
+                      ...fourWeekRows.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final row = entry.value;
+                        return Padding(
+                          padding: EdgeInsets.only(top: index == 0 ? 0 : 7),
+                          child: _ReviewWeekRow(
+                            label: index == 0 ? 'Cette semaine' : 'S-${index}',
+                            summary: row,
+                          ),
+                        );
+                      }),
+                    ]),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 12),
             Card(
@@ -367,6 +379,76 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+class _ReviewWeekSummary {
+  final DateTime start;
+  final DateTime end;
+  final int moments;
+  final int minutes;
+  final int activeDays;
+  final int difficult;
+
+  const _ReviewWeekSummary({
+    required this.start,
+    required this.end,
+    required this.moments,
+    required this.minutes,
+    required this.activeDays,
+    required this.difficult,
+  });
+}
+
+class _ReviewWeekRow extends StatelessWidget {
+  final String label;
+  final _ReviewWeekSummary summary;
+
+  const _ReviewWeekRow({required this.label, required this.summary});
+
+  String _dateLabel(DateTime date) {
+    final d = date.day.toString().padLeft(2, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    return '$d/$m';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFDF9),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE0DDD4)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 78,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(label, style: const TextStyle(fontSize: 11.8, fontWeight: FontWeight.w900, color: Color(0xFF526B78))),
+              const SizedBox(height: 2),
+              Text('${_dateLabel(summary.start)}–${_dateLabel(summary.end.subtract(const Duration(days: 1)))}', style: const TextStyle(fontSize: 9.2, color: Color(0xFF7A817E))),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Wrap(
+              spacing: 7,
+              runSpacing: 3,
+              children: [
+                Text('${summary.activeDays} j', style: const TextStyle(fontSize: 10.8, fontWeight: FontWeight.w800)),
+                Text('${summary.moments} moments', style: const TextStyle(fontSize: 10.8, color: Color(0xFF626C68))),
+                Text('${summary.minutes} min', style: const TextStyle(fontSize: 10.8, color: Color(0xFF626C68))),
+                if (summary.difficult > 0)
+                  Text('${summary.difficult} difficile${summary.difficult > 1 ? 's' : ''}', style: const TextStyle(fontSize: 10.8, color: Color(0xFF8A6C5D))),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,4 +1,4 @@
-// V9.09 — Moteur Sport
+// V9.20 — Moteur Sport
 // Extraction architecturale uniquement : comportement conservé.
 
 part of '../main.dart';
@@ -159,6 +159,18 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
         ? null
         : (recent30..sort((a, b) => b.date.compareTo(a.date))).first;
     final daysSinceLast = last == null ? 60 : now.difference(last.date).inDays;
+    final recent28Count = logs.where((log) {
+      final age = now.difference(log.date).inDays;
+      return age >= 0 && age < 28 && _logMatchesActivity(log, activity);
+    }).length;
+    final recent28GroupCount = activity.sportGroup == null
+        ? 0
+        : logs.where((log) {
+            final age = now.difference(log.date).inDays;
+            if (age < 0 || age >= 28 || log.activityId == null) return false;
+            final other = findActivity(log.activityId!);
+            return other != null && other.sportGroup == activity.sportGroup;
+          }).length;
 
     if (_generationShouldAvoid(activity)) return -1000000.0;
     var score = activity.sportWeight * 5.0;
@@ -175,6 +187,10 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
       // pas sorti depuis longtemps remonte.
       score += min(daysSinceLast, 14) * 1.15;
       score -= recent14.length * 4.0;
+      // Sur 4 semaines, une activité trop souvent répétée descend davantage.
+      // Le but est d'encourager la variété sans interdire une activité appréciée.
+      score -= recent28Count * 1.8;
+      score -= recent28GroupCount * 0.9;
       score -= recent14.where((l) => l.feeling == 'Difficile').length * 3.0;
       score += recent14.where((l) => l.feeling == 'Très bien').length * 0.8;
     }

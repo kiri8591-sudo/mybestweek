@@ -204,7 +204,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             const SizedBox(height: 12),
             SizedBox(width: double.infinity, child: FilledButton.icon(
               onPressed: () {
-                setState(() { _nextWeekCoachDirections..clear()..addAll(local); });
+                _setNextWeekCoachDirections(local);
                 _queueLocalStatePersist();
                 Navigator.of(sheetContext).pop();
               },
@@ -546,11 +546,26 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               ],
                             ),
                             const SizedBox(height: 5),
-                            Text(
-                              _userName.trim().isEmpty ? 'Bonjour 👋' : 'Bonjour ${_userName.trim()} 👋',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.25),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Bonjour 👋',
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.25),
+                                ),
+                                if (_userName.trim().isNotEmpty) ...[
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    _userName.trim(),
+                                    softWrap: true,
+                                    overflow: TextOverflow.visible,
+                                    style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.2, height: 1.05),
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
                         ),
@@ -615,7 +630,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('💭', style: TextStyle(fontSize: 12)),
+                      Text(_morningThoughtIcon, style: const TextStyle(fontSize: 12)),
                       const SizedBox(width: 5),
                       Expanded(
                         child: Text(
@@ -849,53 +864,11 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
               color: const Color(0xFFF0F7F3),
               borderColor: const Color(0xFFD7E6DE),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          todayCompleted
-                              ? SizedBox(
-                                  width: 36,
-                                  height: 36,
-                                  child: _CompletionCelebration(
-                                    key: ValueKey('completion-${todayActionItems.length}'),
-                                  ),
-                                )
-                              : Text(_focusIcon, style: const TextStyle(fontSize: 19)),
-                          const SizedBox(width: 5),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('FOCUS DU JOUR', style: TextStyle(fontSize: 7.2, fontWeight: FontWeight.w900, color: Color(0xFF9A7758), letterSpacing: .15)),
-                                const SizedBox(height: 1),
-                                Text(_todayFocus(), maxLines: 3, overflow: TextOverflow.fade, style: const TextStyle(fontSize: 10.1, fontWeight: FontWeight.w900, color: Color(0xFF564944), height: 1.12)),
-                                if (todayCompleted) ...[
-                                  const SizedBox(height: 3),
-                                  InkWell(
-                                    borderRadius: BorderRadius.circular(12),
-                                    onTap: _openTodayDailySummary,
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-                                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                        Text(_todayDailySummary()?.moodEmoji ?? '🙂', style: const TextStyle(fontSize: 13)),
-                                        const SizedBox(width: 4),
-                                        const Text('Voir le petit bilan', style: TextStyle(fontSize: 9.4, fontWeight: FontWeight.w900, color: Color(0xFF718079))),
-                                      ]),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 9),
                     Row(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         const Text('✨', style: TextStyle(fontSize: 19)),
                         const SizedBox(width: 5),
@@ -904,6 +877,52 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                           const SizedBox(width: 6),
                           pill('$todayDone/${todayActionItems.length}', bg: const Color(0xFFF9FCFA)),
                         ],
+                      ],
+                    ),
+                    const SizedBox(height: 7),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        todayCompleted
+                            ? SizedBox(
+                                width: 36,
+                                height: 36,
+                                child: _CompletionCelebration(
+                                  key: ValueKey('completion-${todayActionItems.length}'),
+                                ),
+                              )
+                            : Text(_focusIcon, style: const TextStyle(fontSize: 19)),
+                        const SizedBox(width: 7),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('FOCUS DU JOUR', style: TextStyle(fontSize: 7.2, fontWeight: FontWeight.w900, color: Color(0xFF9A7758), letterSpacing: .15)),
+                              const SizedBox(height: 2),
+                              Text(
+                                _todayFocus(),
+                                softWrap: true,
+                                overflow: TextOverflow.visible,
+                                style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: Color(0xFF564944), height: 1.18),
+                              ),
+                              if (todayCompleted) ...[
+                                const SizedBox(height: 3),
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: _openTodayDailySummary,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+                                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                      Text(_todayDailySummary()?.moodEmoji ?? '🙂', style: const TextStyle(fontSize: 13)),
+                                      const SizedBox(width: 4),
+                                      const Text('Voir le petit bilan', style: TextStyle(fontSize: 9.4, fontWeight: FontWeight.w900, color: Color(0xFF718079))),
+                                    ]),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ],

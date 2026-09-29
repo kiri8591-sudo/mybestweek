@@ -290,15 +290,14 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
               p.activityId == activity.id &&
               p.day == day &&
               !p.fixedInWeeklyTemplate).toList();
-          final autoItems = dayItems.where((p) =>
-              p.userAdded && !p.manualPlacement && !p.done).toList();
-          final doneAutoCount = dayItems.where((p) =>
-              p.userAdded && !p.manualPlacement && p.done).length;
-          final currentAutoCount = autoItems.length + doneAutoCount;
-          var missing = dailyTarget - currentAutoCount;
+          // Toutes les occurrences déjà présentes sur ce jour comptent dans
+          // la cible quotidienne, y compris une occurrence créée dans la
+          // version précédente, une occurrence manuelle ou une occurrence
+          // déjà réalisée. On ne doit ajouter que le complément manquant.
+          final currentOccurrenceCount = dayItems.length;
+          var missing = dailyTarget - currentOccurrenceCount;
           if (missing <= 0) continue;
-          final usedAuto = autoItems.length;
-          var occ = usedAuto + doneAutoCount;
+          var occ = currentOccurrenceCount;
           while (missing > 0) {
             plan.add(PlanItem(
               id: 'activity_repeat_${activity.id}_${DateTime.now().microsecondsSinceEpoch}_${day}_$occ',
