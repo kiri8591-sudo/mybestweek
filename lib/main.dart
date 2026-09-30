@@ -1,4 +1,4 @@
-// V9.29.25 — correction affichage bouton Ajouter un objectif.
+// V9.30.0 — passe visuelle globale MyBestWeek : cohérence iPhone sur tous les écrans.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -58,7 +58,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V9.29.18';
+  static const version = 'V9.30.0';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',

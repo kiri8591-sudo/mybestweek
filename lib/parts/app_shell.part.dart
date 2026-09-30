@@ -48,9 +48,9 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           scrolledUnderElevation: 0,
           surfaceTintColor: Colors.transparent,
           centerTitle: true,
-          toolbarHeight: 52,
+          toolbarHeight: 50,
           titleTextStyle: TextStyle(
-            fontSize: 17,
+            fontSize: 16.5,
             fontWeight: FontWeight.w700,
             color: Color(0xFF33414A),
             fontFamily: GoogleFonts.lora().fontFamily,
@@ -64,8 +64,8 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           margin: EdgeInsets.zero,
           shadowColor: const Color(0x14000000),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(26),
-            side: const BorderSide(color: Color(0xFFE8DED2)),
+            borderRadius: BorderRadius.circular(22),
+            side: const BorderSide(color: Color(0xFFE5DED5)),
           ),
         ),
         dialogTheme: DialogThemeData(
@@ -73,7 +73,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           surfaceTintColor: Colors.transparent,
           elevation: 8,
           insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
           titleTextStyle: TextStyle(
             fontFamily: GoogleFonts.lora().fontFamily,
             fontSize: 18,
@@ -97,7 +97,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           showDragHandle: true,
         ),
         listTileTheme: const ListTileThemeData(
-          minVerticalPadding: 7,
+          minVerticalPadding: 6,
           contentPadding: EdgeInsets.symmetric(horizontal: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
         ),
@@ -109,25 +109,25 @@ extension _AppShellPart on _MaBelleSemaineAppState {
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 46),
+            minimumSize: const Size(0, 42),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 44),
+            minimumSize: const Size(0, 42),
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             side: const BorderSide(color: Color(0xFFDCCFC1)),
             textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
           ),
         ),
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
-            minimumSize: const Size(0, 42),
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+            minimumSize: const Size(0, 40),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
           ),
@@ -135,22 +135,22 @@ extension _AppShellPart on _MaBelleSemaineAppState {
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: const Color(0xFFFFFCF7),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           isDense: false,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(13),
             borderSide: const BorderSide(color: Color(0xFFDCD5CC)),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(13),
             borderSide: const BorderSide(color: Color(0xFFDCD5CC)),
           ),
           disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(13),
             borderSide: const BorderSide(color: Color(0xFFE8E1D8)),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(13),
             borderSide: const BorderSide(color: Color(0xFF789082), width: 1.5),
           ),
           errorBorder: OutlineInputBorder(
@@ -170,14 +170,14 @@ extension _AppShellPart on _MaBelleSemaineAppState {
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: const Color(0xFFFFFBF5),
           indicatorColor: const Color(0xFFDCEBDD),
-          height: 70,
+          height: 68,
           elevation: 0,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           labelTextStyle: WidgetStatePropertyAll(GoogleFonts.nunitoSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF52616A))),
         ),
         chipTheme: ChipThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           side: const BorderSide(color: Color(0xFFE0D8CF)),
           backgroundColor: const Color(0xFFFAF8F3),
           selectedColor: const Color(0xFFDCE5E7),

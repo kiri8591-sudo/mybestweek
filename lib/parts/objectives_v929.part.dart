@@ -773,7 +773,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 11, 10),
+        padding: const EdgeInsets.fromLTRB(11, 9, 10, 9),
         decoration: BoxDecoration(
           color: streak > 0 ? const Color(0xFFF1F7F0) : const Color(0xFFFFFCF7),
           borderRadius: BorderRadius.circular(19),
@@ -907,11 +907,11 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
               child: Row(
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 46,
+                    height: 46,
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FBFF),
-                      borderRadius: BorderRadius.circular(17),
+                      borderRadius: BorderRadius.circular(15),
                     ),
                     alignment: Alignment.center,
                     child: const Text('🎯', style: TextStyle(fontSize: 26)),
@@ -924,7 +924,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                         const Text(
                           'Mes objectifs de réalisation',
                           style: TextStyle(
-                            fontSize: 15.5,
+                            fontSize: 15.2,
                             fontWeight: FontWeight.w900,
                             color: Color(0xFF48576A),
                           ),
