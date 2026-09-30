@@ -1,4 +1,4 @@
-// V9.25 — Écrans principaux
+// V9.30.2 — Écrans principaux, identité visuelle renforcée
 // Extraction architecturale uniquement : comportement conservé.
 
 part of '../main.dart';
@@ -544,10 +544,20 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       Color? borderColor,
     }) => Container(
       decoration: BoxDecoration(
-        color: color,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color,
+            Color.lerp(color, const Color(0xFFFFFFFF), .28) ?? color,
+          ],
+        ),
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: borderColor ?? const Color(0xFFDCD4C8)),
-        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 18, offset: Offset(0, 6))],
+        border: Border.all(color: borderColor ?? const Color(0xFFD5DDD7), width: 1.15),
+        boxShadow: const [
+          BoxShadow(color: Color(0x1A000000), blurRadius: 20, offset: Offset(0, 7)),
+          BoxShadow(color: Color(0x08FFFFFF), blurRadius: 2, offset: Offset(0, -1)),
+        ],
       ),
       padding: padding,
       child: child,
@@ -803,7 +813,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _homeMascotAvatar(size: 64),
+                      _homeMascotAvatar(size: 70),
                       const SizedBox(width: 9),
                       Expanded(
                         child: Column(
@@ -839,7 +849,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                   '${_greetingLabel()} 👋',
                                   maxLines: 1,
                                   softWrap: false,
-                                  style: const TextStyle(fontSize: 17.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.25),
+                                  style: const TextStyle(fontSize: 18.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.25),
                                 ),
                                 if (_userName.trim().isNotEmpty) ...[
                                   const SizedBox(height: 1),
@@ -847,7 +857,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     _userName.trim(),
                                     softWrap: true,
                                     overflow: TextOverflow.visible,
-                                    style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.2, height: 1.05),
+                                    style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.2, height: 1.05),
                                   ),
                                 ],
                               ],
@@ -1225,7 +1235,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 Row(children: [
                   mascotAvatar(size: 42),
                   const SizedBox(width: 9),
-                  const Expanded(child: Text('Coach Sport', style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w900, color: Color(0xFF4A5864)))),
+                  const Expanded(child: Text('Coach Sport', style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF4A5864)))),
                   IconButton(visualDensity: VisualDensity.compact, tooltip: 'Journal du coach Sport', onPressed: openSportCoachJournal, icon: _uiIcon('history', Icons.menu_book_rounded, size: 18, color: const Color(0xFF6B7884))),
                 ]),
                 const SizedBox(height: 5),
@@ -1588,7 +1598,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                                       _systemIconWidget(period == 'Matin' ? 'periodMorning' : period == 'Après-midi' ? 'periodAfternoon' : 'periodEvening', fallback: period == 'Matin' ? '🌤️' : period == 'Après-midi' ? '🌿' : '🌙', size: 19),
                                       const SizedBox(width: 6),
-                                      Text(period, style: GoogleFonts.nunitoSans(fontSize: 15.5, fontWeight: FontWeight.w900, color: const Color(0xFF405049), letterSpacing: .05)),
+                                      Text(period, style: GoogleFonts.nunitoSans(fontSize: 16.5, fontWeight: FontWeight.w900, color: const Color(0xFF405049), letterSpacing: .05)),
                                     ]),
                                   ),
                                   if (highlighted) ...[

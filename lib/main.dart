@@ -1,4 +1,4 @@
-// V9.30.1 — correction affichage bouton Ajouter un objectif.
+// V9.30.2 — identité visuelle renforcée.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -58,7 +58,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V9.30.1';
+  static const version = 'V9.30.2';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',

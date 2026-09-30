@@ -1,4 +1,4 @@
-// V9.11 — Shell principal de l'application.
+// V9.30.2 — Shell visuel renforcé.
 // Extraction architecturale uniquement : comportement conservé.
 
 part of '../main.dart';
@@ -20,16 +20,16 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           seedColor: const Color(0xFF7A9384),
           brightness: Brightness.light,
         ).copyWith(
-          primary: const Color(0xFF557563),
+          primary: const Color(0xFF456B57),
           onPrimary: Colors.white,
-          secondary: const Color(0xFFB8D0BF),
+          secondary: const Color(0xFFB9CCBF),
           onSecondary: Colors.white,
-          tertiary: const Color(0xFFD38B6D),
+          tertiary: const Color(0xFFC98268),
           onTertiary: Colors.white,
-          surface: const Color(0xFFFFFEFA),
+          surface: const Color(0xFFFFFCF7),
           onSurface: const Color(0xFF34433C),
         ),
-        scaffoldBackgroundColor: const Color(0xFFF5F0E8),
+        scaffoldBackgroundColor: const Color(0xFFEEF2EE),
         iconTheme: const IconThemeData(size: 18, color: Color(0xFF66736D)),
         pageTransitionsTheme: PageTransitionsTheme(
           builders: {
@@ -48,7 +48,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           scrolledUnderElevation: 0,
           surfaceTintColor: Colors.transparent,
           centerTitle: true,
-          toolbarHeight: 58,
+          toolbarHeight: 62,
           titleTextStyle: TextStyle(
             fontSize: 18.5,
             fontWeight: FontWeight.w700,
@@ -64,8 +64,8 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           margin: EdgeInsets.zero,
           shadowColor: const Color(0x14000000),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-            side: const BorderSide(color: Color(0xFFE1D8CC)),
+            borderRadius: BorderRadius.circular(24),
+            side: const BorderSide(color: Color(0xFFD8DED8), width: 1.2),
           ),
         ),
         dialogTheme: DialogThemeData(
@@ -87,8 +87,8 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           ),
         ),
         bottomSheetTheme: const BottomSheetThemeData(
-          backgroundColor: Color(0xFFFFFBF5),
-          modalBackgroundColor: Color(0xFFFFFBF5),
+          backgroundColor: Color(0xFFFFFCF8),
+          modalBackgroundColor: Color(0xFFFFFCF8),
           surfaceTintColor: Colors.transparent,
           elevation: 8,
           shape: RoundedRectangleBorder(
@@ -168,12 +168,12 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           errorStyle: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFFC47B68)),
         ),
         navigationBarTheme: NavigationBarThemeData(
-          backgroundColor: const Color(0xFFFFFBF5),
-          indicatorColor: const Color(0xFFD4E6D9),
-          height: 76,
+          backgroundColor: const Color(0xFFFFFCF8),
+          indicatorColor: const Color(0xFFCFE3D5),
+          height: 82,
           elevation: 0,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           labelTextStyle: WidgetStatePropertyAll(GoogleFonts.nunitoSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF52616A))),
         ),
         chipTheme: ChipThemeData(
@@ -210,13 +210,13 @@ extension _AppShellPart on _MaBelleSemaineAppState {
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         bottomNavigationBar: SafeArea(
           top: false,
-          minimum: const EdgeInsets.fromLTRB(12, 5, 12, 8),
+          minimum: const EdgeInsets.fromLTRB(10, 5, 10, 10),
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: const Color(0xFFFFFEFC),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: const Color(0xFFE3DED5)),
-              boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 14, offset: Offset(0, 3))],
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: const Color(0xFFD7DED8), width: 1.2),
+              boxShadow: const [BoxShadow(color: Color(0x18000000), blurRadius: 20, offset: Offset(0, 5))],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(25),
