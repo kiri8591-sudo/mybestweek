@@ -20,16 +20,16 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           seedColor: const Color(0xFF7A9384),
           brightness: Brightness.light,
         ).copyWith(
-          primary: const Color(0xFF60786B),
+          primary: const Color(0xFF557563),
           onPrimary: Colors.white,
-          secondary: const Color(0xFFA9C8B2),
+          secondary: const Color(0xFFB8D0BF),
           onSecondary: Colors.white,
-          tertiary: const Color(0xFFD98F72),
+          tertiary: const Color(0xFFD38B6D),
           onTertiary: Colors.white,
-          surface: const Color(0xFFFFFCF5),
-          onSurface: const Color(0xFF3B4842),
+          surface: const Color(0xFFFFFEFA),
+          onSurface: const Color(0xFF34433C),
         ),
-        scaffoldBackgroundColor: const Color(0xFFFFF8EF),
+        scaffoldBackgroundColor: const Color(0xFFF5F0E8),
         iconTheme: const IconThemeData(size: 18, color: Color(0xFF66736D)),
         pageTransitionsTheme: PageTransitionsTheme(
           builders: {
@@ -42,15 +42,15 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           },
         ),
         appBarTheme: AppBarTheme(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Color(0xFF33414A),
+          backgroundColor: const Color(0xFFF9F5ED),
+          foregroundColor: const Color(0xFF33414A),
           elevation: 0,
           scrolledUnderElevation: 0,
           surfaceTintColor: Colors.transparent,
           centerTitle: true,
-          toolbarHeight: 50,
+          toolbarHeight: 58,
           titleTextStyle: TextStyle(
-            fontSize: 16.5,
+            fontSize: 18.5,
             fontWeight: FontWeight.w700,
             color: Color(0xFF33414A),
             fontFamily: GoogleFonts.lora().fontFamily,
@@ -59,13 +59,13 @@ extension _AppShellPart on _MaBelleSemaineAppState {
         ),
         cardTheme: CardThemeData(
           elevation: 0,
-          color: const Color(0xFFFFFEFB),
+          color: const Color(0xFFFFFEFC),
           surfaceTintColor: Colors.transparent,
           margin: EdgeInsets.zero,
           shadowColor: const Color(0x14000000),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(22),
-            side: const BorderSide(color: Color(0xFFE5DED5)),
+            side: const BorderSide(color: Color(0xFFE1D8CC)),
           ),
         ),
         dialogTheme: DialogThemeData(
@@ -73,7 +73,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           surfaceTintColor: Colors.transparent,
           elevation: 8,
           insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           titleTextStyle: TextStyle(
             fontFamily: GoogleFonts.lora().fontFamily,
             fontSize: 18,
@@ -97,7 +97,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           showDragHandle: true,
         ),
         listTileTheme: const ListTileThemeData(
-          minVerticalPadding: 6,
+          minVerticalPadding: 9,
           contentPadding: EdgeInsets.symmetric(horizontal: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
         ),
@@ -109,56 +109,56 @@ extension _AppShellPart on _MaBelleSemaineAppState {
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 42),
+            minimumSize: const Size(0, 48),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            textStyle: const TextStyle(fontSize: 13.2, fontWeight: FontWeight.w800),
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 42),
+            minimumSize: const Size(0, 46),
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             side: const BorderSide(color: Color(0xFFDCCFC1)),
             textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
           ),
         ),
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
-            minimumSize: const Size(0, 40),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            minimumSize: const Size(0, 44),
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFFFFFCF7),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          fillColor: const Color(0xFFFFFEFA),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           isDense: false,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(13),
+            borderRadius: BorderRadius.circular(16),
             borderSide: const BorderSide(color: Color(0xFFDCD5CC)),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(13),
+            borderRadius: BorderRadius.circular(16),
             borderSide: const BorderSide(color: Color(0xFFDCD5CC)),
           ),
           disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(13),
+            borderRadius: BorderRadius.circular(16),
             borderSide: const BorderSide(color: Color(0xFFE8E1D8)),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(13),
+            borderRadius: BorderRadius.circular(16),
             borderSide: const BorderSide(color: Color(0xFF789082), width: 1.5),
           ),
           errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
             borderSide: const BorderSide(color: Color(0xFFD98F72), width: 1.2),
           ),
           focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
             borderSide: const BorderSide(color: Color(0xFFD98F72), width: 1.5),
           ),
           labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF68736F)),
@@ -169,15 +169,15 @@ extension _AppShellPart on _MaBelleSemaineAppState {
         ),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: const Color(0xFFFFFBF5),
-          indicatorColor: const Color(0xFFDCEBDD),
-          height: 68,
+          indicatorColor: const Color(0xFFD4E6D9),
+          height: 76,
           elevation: 0,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
           labelTextStyle: WidgetStatePropertyAll(GoogleFonts.nunitoSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF52616A))),
         ),
         chipTheme: ChipThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           side: const BorderSide(color: Color(0xFFE0D8CF)),
           backgroundColor: const Color(0xFFFAF8F3),
           selectedColor: const Color(0xFFDCE5E7),
@@ -213,7 +213,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           minimum: const EdgeInsets.fromLTRB(12, 5, 12, 8),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFEFB),
+              color: const Color(0xFFFFFEFC),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(color: const Color(0xFFE3DED5)),
               boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 14, offset: Offset(0, 3))],

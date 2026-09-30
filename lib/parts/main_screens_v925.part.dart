@@ -440,7 +440,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             color: const Color(0xFFFFF7E9),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFFE9DDC4)),
-            boxShadow: const [BoxShadow(color: Color(0x0E000000), blurRadius: 16, offset: Offset(0, 5))],
+            boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 18, offset: Offset(0, 6))],
           ),
           padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
           child: Row(
@@ -483,18 +483,18 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
   Widget _kawaiiNavIcon(String emoji, Color bg, Color fg, {bool selected = false}) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
-      width: selected ? 40 : 36,
-      height: selected ? 32 : 29,
+      width: selected ? 42 : 38,
+      height: selected ? 34 : 30,
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(selected ? 13 : 11),
-        border: Border.all(color: fg.withValues(alpha: selected ? .20 : .12), width: 1),
+        borderRadius: BorderRadius.circular(selected ? 14 : 12),
+        border: Border.all(color: fg.withValues(alpha: selected ? .20 : .13), width: 1),
         boxShadow: selected
-            ? [const BoxShadow(color: Color(0x10000000), blurRadius: 6, offset: Offset(0, 2))]
+            ? [const BoxShadow(color: Color(0x12000000), blurRadius: 7, offset: Offset(0, 2))]
             : const [],
       ),
       alignment: Alignment.center,
-      child: _activityIconWidget(emoji, size: selected ? 19 : 17),
+      child: _activityIconWidget(emoji, size: selected ? 20 : 18),
     );
   }
 
@@ -539,15 +539,15 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
   Widget softCard({
       required Widget child,
       required Color color,
-      EdgeInsetsGeometry padding = const EdgeInsets.all(14),
-      double radius = 21,
+      EdgeInsetsGeometry padding = const EdgeInsets.all(16),
+      double radius = 24,
       Color? borderColor,
     }) => Container(
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: borderColor ?? const Color(0xFFE5DED5)),
-        boxShadow: const [BoxShadow(color: Color(0x0C000000), blurRadius: 12, offset: Offset(0, 4))],
+        border: Border.all(color: borderColor ?? const Color(0xFFDCD4C8)),
+        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 18, offset: Offset(0, 6))],
       ),
       padding: padding,
       child: child,
@@ -791,19 +791,19 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 7, 14, 4),
+            padding: const EdgeInsets.fromLTRB(14, 9, 14, 5),
             child: softCard(
               color: headerColor,
               borderColor: headerBorderColor,
-              radius: 28,
-              padding: const EdgeInsets.fromLTRB(12, 11, 10, 11),
+              radius: 26,
+              padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _homeMascotAvatar(size: 56),
+                      _homeMascotAvatar(size: 64),
                       const SizedBox(width: 9),
                       Expanded(
                         child: Column(
@@ -839,7 +839,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                   '${_greetingLabel()} 👋',
                                   maxLines: 1,
                                   softWrap: false,
-                                  style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.25),
+                                  style: const TextStyle(fontSize: 17.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.25),
                                 ),
                                 if (_userName.trim().isNotEmpty) ...[
                                   const SizedBox(height: 1),
@@ -1643,7 +1643,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 11, 16, 8),
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
             child: Row(
               children: [
                 Expanded(
@@ -1736,7 +1736,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
         ),
         SliverToBoxAdapter(
           child: SizedBox(
-            height: 44,
+            height: 48,
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(18, 1, 18, 7),
               scrollDirection: Axis.horizontal,
