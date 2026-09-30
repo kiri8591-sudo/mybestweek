@@ -80,6 +80,7 @@ extension _SystemIconsPart on _MaBelleSemaineAppState {
       {'key': 'sportNext', 'label': 'Sport · jour suivant', 'fallback': '›'},
       {'key': 'sportReactivate', 'label': 'Sport · réactiver', 'fallback': '🔄'},
       {'key': 'sportWarning', 'label': 'Sport · avertissement', 'fallback': '⚠️'},
+      {'key': 'frozen', 'label': 'Activité gelée', 'fallback': '🧊'},
       {'key': 'backupDevice', 'label': 'Sauvegarde · appareil', 'fallback': '📱'},
       {'key': 'backupCloud', 'label': 'Sauvegarde · iCloud', 'fallback': '☁️'},
       {'key': 'backupFile', 'label': 'Sauvegarde · fichier', 'fallback': '🗃️'},

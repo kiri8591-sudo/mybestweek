@@ -67,7 +67,8 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
   @override
   void initState() {
     super.initState();
-    activityId = widget.existing?.activityId ?? widget.activities.first.id;
+    final firstSelectable = widget.activities.where((a) => !a.isFrozen).cast<Activity?>().firstWhere((a) => a != null, orElse: () => null);
+    activityId = widget.existing?.activityId ?? firstSelectable?.id ?? widget.activities.first.id;
     cadence = widget.existing?.cadence ?? 'semaine';
     target = widget.existing?.target ?? (cadence == 'jour' ? 1 : cadence == 'mois' ? 8 : 3);
     targetController = TextEditingController(text: '$target');
@@ -160,21 +161,70 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
               ],
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: activityId,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Activité'),
-              items: widget.activities
-                  .map(
-                    (a) => DropdownMenuItem<String>(
-                      value: a.id,
-                      child: Text('${a.emoji} ${a.name}', maxLines: 2, overflow: TextOverflow.ellipsis),
+            const Text(
+              'Activité',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF5A655F)),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFCF7),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE3DBD0)),
+              ),
+              constraints: const BoxConstraints(maxHeight: 255),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                shrinkWrap: true,
+                itemCount: widget.activities.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, indent: 52, endIndent: 10),
+                itemBuilder: (context, index) {
+                  final activity = widget.activities[index];
+                  final selected = activity.id == activityId;
+                  final frozen = activity.isFrozen;
+                  return ListTile(
+                    dense: true,
+                    enabled: !frozen,
+                    selected: selected && !frozen,
+                    selectedTileColor: const Color(0xFFEAF0FA),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
+                    leading: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        _activityIconWidget(activity.emoji, size: 26),
+                        if (frozen)
+                          const Positioned(
+                            right: -7,
+                            bottom: -4,
+                            child: Text('🧊', style: TextStyle(fontSize: 12)),
+                          ),
+                      ],
                     ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) setState(() => activityId = value);
-              },
+                    title: Text(
+                      activity.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.6,
+                        fontWeight: FontWeight.w800,
+                        color: frozen ? const Color(0xFF989F9B) : const Color(0xFF48534E),
+                      ),
+                    ),
+                    subtitle: frozen
+                        ? const Text(
+                            'Activité gelée · non sélectionnable',
+                            style: TextStyle(fontSize: 10.2, color: Color(0xFF9A9F9B), fontWeight: FontWeight.w700),
+                          )
+                        : null,
+                    trailing: frozen
+                        ? const Text('GELÉE', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF8C9490)))
+                        : selected
+                            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF6D8EA8), size: 20)
+                            : const Icon(Icons.radio_button_unchecked_rounded, color: Color(0xFFB0B7B3), size: 19),
+                    onTap: frozen ? null : () => setState(() => activityId = activity.id),
+                  );
+                },
+              ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
@@ -401,16 +451,38 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
   Future<void> _addOrEditGoal({RealizationGoal? existing}) async {
     if (!mounted) return;
 
-    final editableActivities = activities
-        .where((a) =>
-            !a.isSportProgram &&
-            !a.isDateRange &&
-            (!a.isFrozen || (existing != null && a.id == existing.activityId)))
-        .toList()
+    // Un objectif peut être créé pour toute activité réellement présente
+    // dans Mes activités, y compris Sport, activités gelées et activités
+    // multi-jours. Le gel agit sur le Coach, pas sur le suivi des objectifs.
+    // Pour un nouvel objectif, toutes les activités non gelées sont proposées.
+    // Une activité gelée reste visible dans Mes activités et peut être ajoutée
+    // manuellement à une journée, mais elle n’est pas sélectionnable lors de
+    // la création d’un nouvel objectif.
+    // Lors de la modification d'un objectif existant, l'activité actuellement
+    // liée reste visible même si elle est désormais gelée, afin de pouvoir
+    // consulter ou modifier l'objectif sans perdre son lien.
+    final byId = <String, Activity>{};
+    for (final activity in activities) {
+      byId.putIfAbsent(activity.id, () => activity);
+    }
+    final editableActivities = byId.values.toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
-    if (editableActivities.isEmpty) {
-      _showFeedback('Aucune activité disponible pour créer un objectif.');
+    final selectableForNewGoal = editableActivities.where((a) => !a.isFrozen).toList();
+    final availableForEditor = existing != null &&
+            selectableForNewGoal.every((a) => a.id != existing.activityId)
+        ? [
+            ...selectableForNewGoal,
+            ...editableActivities.where((a) => a.id == existing.activityId),
+          ]
+        : selectableForNewGoal;
+
+    if (existing == null && selectableForNewGoal.isEmpty) {
+      _showFeedback('Aucune activité disponible pour créer un objectif : toutes les activités sont gelées.');
+      return;
+    }
+    if (availableForEditor.isEmpty) {
+      _showFeedback('Aucune activité disponible.');
       return;
     }
 
@@ -439,8 +511,12 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     }
 
     final selectedActivity = findActivity(draft.activityId);
-    if (selectedActivity == null || selectedActivity.isSportProgram || selectedActivity.isDateRange) {
-      _showFeedback('Cette activité ne peut pas recevoir cet objectif.');
+    if (selectedActivity == null) {
+      _showFeedback('Activité introuvable.');
+      return;
+    }
+    if (existing == null && selectedActivity.isFrozen) {
+      _showFeedback('Une activité gelée ne peut pas être sélectionnée pour un nouvel objectif.');
       return;
     }
 
@@ -816,7 +892,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
             IconButton(
               tooltip: 'Nouvel objectif',
               onPressed: () => _addOrEditGoal(),
-              icon: _activityIconWidget(_uiIconValue('add', ''), size: 22),
+              icon: _systemIconWidget('add', fallback: '➕', size: 22),
             ),
           ],
         ),

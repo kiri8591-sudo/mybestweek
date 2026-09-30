@@ -1808,6 +1808,14 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                         style: _detailTitleStyle(),
                                       ),
                                     ),
+                                    if (frozen)
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 6),
+                                        child: Tooltip(
+                                          message: 'Activité gelée',
+                                          child: _systemIconWidget('frozen', fallback: '🧊', size: 17),
+                                        ),
+                                      ),
                                     if (frozen || sportWaiting)
                                       Container(
                                         margin: const EdgeInsets.only(left: 6),
