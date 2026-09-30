@@ -572,6 +572,26 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
     final todayCompleted = todayActionItems.isNotEmpty && todayActionItems.every((x) => x.done);
     final todayDone = todayActionItems.where((x) => x.done).length;
     final sportBudget = _sportBudgetForDay(today);
+    final todayWeather = _weatherForWeekDay(today);
+    final hasOutdoorRemaining = todayActionItems.where((x) => !x.done).any((item) {
+      final activity = item.activityId == null ? null : findActivity(item.activityId!);
+      return activity != null && _isOutdoorPlanningActivity(activity);
+    });
+    final headerWeatherSensitive = hasOutdoorRemaining && todayWeather?.outdoorBad == true;
+    final headerColor = headerWeatherSensitive
+        ? const Color(0xFFEEF4F7)
+        : _clockNow.hour < 12
+            ? const Color(0xFFFFF1DE)
+            : _clockNow.hour < 18
+                ? const Color(0xFFEAF6F0)
+                : const Color(0xFFF1EEF6);
+    final headerBorderColor = headerWeatherSensitive
+        ? const Color(0xFFD9E5EB)
+        : _clockNow.hour < 12
+            ? const Color(0xFFF0D7B6)
+            : _clockNow.hour < 18
+                ? const Color(0xFFD3E5DB)
+                : const Color(0xFFDED8EA);
 
     Widget pill(String text, {Color bg = const Color(0xFFFFFCF7), Color fg = const Color(0xFF60786B)}) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -651,8 +671,8 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 9, 14, 5),
             child: softCard(
-              color: const Color(0xFFFFF1DE),
-              borderColor: const Color(0xFFF0D7B6),
+              color: headerColor,
+              borderColor: headerBorderColor,
               radius: 28,
               padding: const EdgeInsets.fromLTRB(12, 11, 10, 11),
               child: Column(
@@ -957,45 +977,14 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
           ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 1, 16, 5),
-            child: softCard(
-              color: const Color(0xFFEAF6EE),
-              borderColor: const Color(0xFFD5E7DA),
-              radius: 20,
-              padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
-              child: Row(
-                children: [
-                  const Text('🌱', style: TextStyle(fontSize: 17)),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      trackableItems.isEmpty
-                          ? 'Ma semaine démarre doucement.'
-                          : completed == trackableItems.length
-                              ? 'Ma semaine est accomplie ✨'
-                              : 'Ma semaine avance · ${trackableItems.length - completed} moment(s) restent à vivre.',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 10.1, height: 1.2, fontWeight: FontWeight.w800, color: Color(0xFF5E7168)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 72,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('${(progress * 100).round()} %', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF527061))),
-                        const SizedBox(height: 3),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(99),
-                          child: LinearProgressIndicator(value: progress, minHeight: 5, backgroundColor: const Color(0xFFDCE9DF), valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF88AE98))),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            padding: const EdgeInsets.fromLTRB(16, 1, 16, 7),
+            child: _adaptiveHomeContextCard(
+              todayActionItems: todayActionItems,
+              todayDone: todayDone,
+              todayCompleted: todayCompleted,
+              weekProgress: progress,
+              weekCompleted: completed,
+              weekTotal: trackableItems.length,
             ),
           ),
         ),
@@ -1077,7 +1066,19 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                   _multiDaySection(todayOtherItems.where(_isDateRangePlanItem).toList(), day: today),
                 if (sportBudget > 0 || todaySportItems.isNotEmpty) _sportDayCard(today),
                 if (sportBudget > 0 || todaySportItems.isNotEmpty) const SizedBox(height: 5),
-                ...const ['Matin', 'Après-midi', 'Soir'].map(todayPeriod),
+                ...const ['Matin', 'Après-midi', 'Soir']
+                    .where((period) {
+                      final periodItems = todayItems.where((item) {
+                        if (item.period != period || _isDateRangePlanItem(item)) return false;
+                        if (item.activityId != null) {
+                          final activity = findActivity(item.activityId!);
+                          if (activity != null && _isSportActivity(activity)) return false;
+                        }
+                        return true;
+                      }).toList();
+                      return _homeShouldShowPeriod(period, periodItems, todayItems);
+                    })
+                    .map(todayPeriod),
                 const SizedBox(height: 2),
                 Align(
                   alignment: Alignment.centerLeft,
