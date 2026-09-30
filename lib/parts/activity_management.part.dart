@@ -759,6 +759,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
     final sportGroup = draft.sportGroup;
     final sportGroupFrequency = draft.sportGroupFrequency;
     var activeInSportRotation = draft.activeInSportRotation;
+    var isFrozen = draft.isFrozen;
     var dateRangeEnabled = draft.isDateRange && draft.category != 'Sport' && !draft.isSportProgram;
     DateTime? rangeStart = draft.rangeStart == null ? null : _dateOnly(draft.rangeStart!);
     DateTime? rangeEnd = draft.rangeEnd == null ? null : _dateOnly(draft.rangeEnd!);
@@ -1257,6 +1258,25 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                     ),
                   ),
                 ],
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(11, 9, 11, 9),
+                  decoration: BoxDecoration(
+                    color: isFrozen ? const Color(0xFFF1EEE8) : const Color(0xFFEFF5F1),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: isFrozen ? const Color(0xFFDCD6CC) : const Color(0xFFD2E2D8)),
+                  ),
+                  child: Row(children: [
+                    Text(isFrozen ? '🧊' : '🌱', style: const TextStyle(fontSize: 19)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(isFrozen ? 'Activité gelée' : 'Activité active', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5)),
+                      const SizedBox(height: 2),
+                      Text(isFrozen ? 'Elle reste dans tes activités mais ne sera plus proposée par le coach.' : 'Le coach peut de nouveau la proposer lors d’une prochaine régénération.', style: const TextStyle(fontSize: 10.5, color: Color(0xFF6F7777))),
+                    ])),
+                    Switch.adaptive(value: isFrozen, onChanged: (v) => setDialogState(() => isFrozen = v)),
+                  ]),
+                ),
                 if (!dateRangeEnabled) ...[
                   const SizedBox(height: 4),
                   Align(
@@ -1327,6 +1347,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   sportGroupFrequency: sportGroupFrequency,
                   activeInSportRotation: activeInSportRotation,
                   isSportProgram: draft.isSportProgram,
+                  isFrozen: isFrozen,
                   sportDailyDurations: draft.isSportProgram ? {...sportDailyDurations} : draft.sportDailyDurations,
                 );
                 final changedSportDays = <int>[];
@@ -1360,6 +1381,10 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       );
                     }
                     _syncActivityToWeek(updated, previous: original);
+                    if (!original.isFrozen && updated.isFrozen) {
+                      plan.removeWhere((p) => p.activityId == updated.id && p.day > today && !p.done && p.userAdded && !p.manualPlacement && !p.fixedInWeeklyTemplate);
+                      _dailyPriorityActivityIds.remove(updated.id);
+                    }
                   } else {
                     activities.add(updated);
                     _syncActivityToWeek(updated);

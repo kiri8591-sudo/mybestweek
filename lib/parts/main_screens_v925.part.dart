@@ -1635,6 +1635,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             itemCount: filtered.length,
             itemBuilder: (context, index) {
               final a = filtered[index];
+              final frozen = a.isFrozen;
               final sportWaiting = a.category == 'Sport' && !a.isSportProgram && !a.activeInSportRotation;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -1684,7 +1685,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                         style: _detailTitleStyle(),
                                       ),
                                     ),
-                                    if (sportWaiting)
+                                    if (frozen || sportWaiting)
                                       Container(
                                         margin: const EdgeInsets.only(left: 6),
                                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
@@ -1692,9 +1693,9 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                           color: const Color(0xFFF1EEE8),
                                           borderRadius: BorderRadius.circular(9),
                                         ),
-                                        child: const Text(
-                                          'PLUS TARD',
-                                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF8E756A)),
+                                        child: Text(
+                                          frozen ? 'GELÉE' : 'PLUS TARD',
+                                          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF8E756A)),
                                         ),
                                       ),
                                   ],
@@ -1714,7 +1715,16 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               ],
                             ),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 2),
+                          IconButton(
+                            tooltip: frozen ? 'Reprendre l’activité' : 'Geler l’activité',
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                            onPressed: () => _toggleActivityFrozen(a),
+                            icon: Icon(frozen ? Icons.play_circle_outline_rounded : Icons.pause_circle_outline_rounded, size: 19, color: const Color(0xFF7A827D)),
+                          ),
+                          const SizedBox(width: 2),
                           IconButton(
                             tooltip: 'Voir l’historique',
                             visualDensity: VisualDensity.compact,

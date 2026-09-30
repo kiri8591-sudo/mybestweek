@@ -98,6 +98,11 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       'homeMascotKind': _homeMascotKind,
       'homeMascotEmoji': _homeMascotEmoji,
       'homeMascotImageData': _homeMascotImageData,
+      'dailyPriorityActivityIds': [..._dailyPriorityActivityIds],
+      'priorityBonusAwardedDateKey': _priorityBonusAwardedDateKey,
+      'priorityBonusAwarded': _priorityBonusAwarded,
+      'priorityBonusTotal': _priorityBonusTotal,
+      'priorityRewardText': _priorityRewardText,
       'customActivityEmojis': _customActivityEmojis.map((e) => e.value).toList(),
       'customActivityIcons': _customActivityIcons.map((e) => {
         'id': e.id,
@@ -151,6 +156,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         'priority': a.priority,
         'preferredDays': a.preferredDays,
         'isDateRange': a.isDateRange,
+        'isFrozen': a.isFrozen,
         'rangeStart': a.rangeStart?.toIso8601String(),
         'rangeEnd': a.rangeEnd?.toIso8601String(),
         'sportWeight': a.sportWeight,
@@ -292,6 +298,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
           priority: max(1, min(5, _asInt(rawActivity['priority'], 3))),
           preferredDays: _asIntList(rawActivity['preferredDays']),
           isDateRange: _asBool(rawActivity['isDateRange'], false),
+          isFrozen: _asBool(rawActivity['isFrozen'], false),
           rangeStart: (() { final raw = _asString(rawActivity['rangeStart']); return raw == null ? null : DateTime.tryParse(raw); })(),
           rangeEnd: (() { final raw = _asString(rawActivity['rangeEnd']); return raw == null ? null : DateTime.tryParse(raw); })(),
           sportWeight: max(1, min(10, _asInt(rawActivity['sportWeight'], 5))),
@@ -464,6 +471,17 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         _homeMascotKind = _asString(root['homeMascotKind']) ?? 'ourson';
         _homeMascotEmoji = _asString(root['homeMascotEmoji']) ?? '🧸';
         _homeMascotImageData = _asString(root['homeMascotImageData']) ?? '';
+        _dailyPriorityActivityIds
+          ..clear()
+          ..addAll((root['dailyPriorityActivityIds'] is List)
+              ? (root['dailyPriorityActivityIds'] as List).map((v) => '$v').where((v) => v.trim().isNotEmpty)
+              : const <String>[]);
+        _dailyPriorityActivityIds.removeWhere((id) => !restoredActivities.any((a) => a.id == id));
+        _priorityBonusAwardedDateKey = _asString(root['priorityBonusAwardedDateKey']) ?? '';
+        _priorityBonusAwarded = _asBool(root['priorityBonusAwarded'], false);
+        _priorityBonusTotal = max(0, _asInt(root['priorityBonusTotal']));
+        _priorityRewardText = (_asString(root['priorityRewardText']) ?? 'un moment plaisir').trim();
+        if (_priorityRewardText.isEmpty) _priorityRewardText = 'un moment plaisir';
         _customActivityEmojis
           ..clear()
           ..addAll(((root['customActivityEmojis'] is List) ? (root['customActivityEmojis'] as List) : const [])
@@ -635,6 +653,11 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _homeMascotKind = 'ourson';
       _homeMascotEmoji = '🧸';
       _homeMascotImageData = '';
+      _dailyPriorityActivityIds.clear();
+      _priorityBonusAwardedDateKey = '';
+      _priorityBonusAwarded = false;
+      _priorityBonusTotal = 0;
+      _priorityRewardText = 'un moment plaisir';
       _systemIconOverrides.clear();
       _systemUiIconOverrides.clear();
       categoryFilter = 'Toutes';

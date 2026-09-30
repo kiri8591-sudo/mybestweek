@@ -127,6 +127,7 @@ class Activity {
   int priority;
   List<int> preferredDays;
   bool isDateRange;
+  bool isFrozen;
   DateTime? rangeStart;
   DateTime? rangeEnd;
   int sportWeight;
@@ -149,6 +150,7 @@ class Activity {
     required this.priority,
     this.preferredDays = const [],
     this.isDateRange = false,
+    this.isFrozen = false,
     this.rangeStart,
     this.rangeEnd,
     this.sportWeight = 5,
@@ -175,6 +177,7 @@ class Activity {
         priority: priority,
         preferredDays: [...preferredDays],
         isDateRange: isDateRange,
+        isFrozen: isFrozen,
         rangeStart: rangeStart,
         rangeEnd: rangeEnd,
         sportWeight: sportWeight,

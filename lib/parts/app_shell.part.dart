@@ -196,7 +196,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           bottom: false,
           child: KeyedSubtree(
             key: ValueKey('content-$_resetGeneration'),
-            child: IndexedStack(index: tab, children: [buildHome(), buildWeek(), buildActivities()]),
+            child: IndexedStack(index: tab, children: [buildHome(), buildWeek(), buildPriorities(), buildActivities()]),
           ),
         ),
         floatingActionButton: _canUndoLastAction
@@ -233,6 +233,11 @@ extension _AppShellPart on _MaBelleSemaineAppState {
                     icon: _kawaiiNavIcon(_systemIconValue('navWeek', '🌿'), const Color(0xFFE8F1EA), const Color(0xFF668272)),
                     selectedIcon: _kawaiiNavIcon(_systemIconValue('navWeek', '🌿'), const Color(0xFFD4E8DA), const Color(0xFF4F725C), selected: true),
                     label: 'Semaine',
+                  ),
+                  NavigationDestination(
+                    icon: _kawaiiNavIcon(_systemIconValue('navPriorities', '⭐'), const Color(0xFFFFF0DA), const Color(0xFF8A745D)),
+                    selectedIcon: _kawaiiNavIcon(_systemIconValue('navPriorities', '⭐'), const Color(0xFFFFE4B8), const Color(0xFF7D6346), selected: true),
+                    label: 'Priorités',
                   ),
                   NavigationDestination(
                     icon: _kawaiiNavIcon(_systemIconValue('navActivities', '🧸'), const Color(0xFFF2EAF5), const Color(0xFF806B88)),

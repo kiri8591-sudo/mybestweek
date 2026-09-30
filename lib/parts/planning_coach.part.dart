@@ -18,7 +18,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
     }
   }
 
-  bool _generationShouldAvoid(Activity activity) => _generationActivityRule(activity.id) == 'avoid';
+  bool _generationShouldAvoid(Activity activity) => activity.isFrozen || _generationActivityRule(activity.id) == 'avoid';
 
   bool _isOutdoorPlanningActivity(Activity activity) {
     if (activity.category == 'Sortie') return true;

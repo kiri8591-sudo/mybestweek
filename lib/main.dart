@@ -39,6 +39,7 @@ part 'parts/branding.part.dart';
 part 'parts/app_lifecycle_v922.part.dart';
 part 'parts/undo.part.dart';
 part 'parts/home_adaptive_v927.part.dart';
+part 'parts/priorities_v928.part.dart';
 
 void main() {
   _installMascotBrowserIcon();
@@ -55,7 +56,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V9.27';
+  static const version = 'V9.28';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -165,6 +166,13 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   String _homeMascotImageData = '';
   final List<_CustomActivityEmoji> _customActivityEmojis = [];
   final List<_CustomActivityIcon> _customActivityIcons = [];
+
+  // V9.28 — Priorités du jour : 1 à 5 activités choisies par l'utilisateur.
+  final Set<String> _dailyPriorityActivityIds = <String>{};
+  String _priorityBonusAwardedDateKey = '';
+  bool _priorityBonusAwarded = false;
+  int _priorityBonusTotal = 0;
+  String _priorityRewardText = 'un moment plaisir';
 
   // Icônes personnalisables de l'interface (en-têtes, navigation et boutons).
   // La valeur peut être un emoji ou un token customicon:// existant.
