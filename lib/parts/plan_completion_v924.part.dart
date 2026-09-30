@@ -53,6 +53,7 @@ extension _PlanCompletionPart on _MaBelleSemaineAppState {
     if (activity != null && _isSportActivity(activity)) analyzeSportSession(item, activity);
     if (_todayIsCompleted()) _upsertTodayDailySummary(persist: false);
     _queueLocalStatePersist();
+    _refreshGoalsAfterRealization();
     _maybeAwardDailyPriorityBonus();
     _showFeedback('✓ « ${item.title} » validé.');
   }
@@ -157,6 +158,7 @@ extension _PlanCompletionPart on _MaBelleSemaineAppState {
 
     if (_todayIsCompleted()) _upsertTodayDailySummary(persist: false);
     _persistLocalState();
+    _refreshGoalsAfterRealization();
     _maybeAwardDailyPriorityBonus();
     _showFeedback('✓ « ${item.title} » validé · $actual min réalisés.');
   }

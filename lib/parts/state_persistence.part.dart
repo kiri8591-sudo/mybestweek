@@ -103,6 +103,15 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       'priorityBonusAwarded': _priorityBonusAwarded,
       'priorityBonusTotal': _priorityBonusTotal,
       'priorityRewardText': _priorityRewardText,
+      'realizationGoals': _realizationGoals.map((g) => {
+        'id': g.id,
+        'activityId': g.activityId,
+        'cadence': g.cadence,
+        'target': g.target,
+        'rewardText': g.rewardText,
+        'createdAt': g.createdAt.toIso8601String(),
+        'rewardedPeriodKeys': [...g.rewardedPeriodKeys],
+      }).toList(),
       'customActivityEmojis': _customActivityEmojis.map((e) => e.value).toList(),
       'customActivityIcons': _customActivityIcons.map((e) => {
         'id': e.id,
@@ -482,6 +491,29 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         _priorityBonusTotal = max(0, _asInt(root['priorityBonusTotal']));
         _priorityRewardText = (_asString(root['priorityRewardText']) ?? 'un moment plaisir').trim();
         if (_priorityRewardText.isEmpty) _priorityRewardText = 'un moment plaisir';
+        _realizationGoals
+          ..clear()
+          ..addAll((root['realizationGoals'] is List ? root['realizationGoals'] as List : const [])
+              .whereType<Map>()
+              .map((rawGoal) {
+                final createdRaw = _asString(rawGoal['createdAt']);
+                final createdAt = createdRaw == null ? DateTime.now() : DateTime.tryParse(createdRaw) ?? DateTime.now();
+                final activityId = _asString(rawGoal['activityId']);
+                final cadence = _asString(rawGoal['cadence']) ?? 'semaine';
+                return RealizationGoal(
+                  id: _asString(rawGoal['id']) ?? 'goal_${createdAt.microsecondsSinceEpoch}',
+                  activityId: activityId ?? '',
+                  cadence: const {'jour', 'semaine', 'mois'}.contains(cadence) ? cadence : 'semaine',
+                  target: max(1, min(31, _asInt(rawGoal['target'], 1))),
+                  rewardText: (_asString(rawGoal['rewardText']) ?? 'un petit plaisir').trim().isEmpty ? 'un petit plaisir' : (_asString(rawGoal['rewardText']) ?? 'un petit plaisir').trim(),
+                  createdAt: createdAt,
+                  rewardedPeriodKeys: rawGoal['rewardedPeriodKeys'] is List
+                      ? (rawGoal['rewardedPeriodKeys'] as List).map((v) => '$v').where((v) => v.trim().isNotEmpty).toSet()
+                      : <String>{},
+                );
+              })
+              .where((g) => restoredActivities.any((a) => a.id == g.activityId))
+              .take(12));
         _customActivityEmojis
           ..clear()
           ..addAll(((root['customActivityEmojis'] is List) ? (root['customActivityEmojis'] as List) : const [])

@@ -557,6 +557,132 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       child: child,
     );
 
+  Widget _homeDailyPriorityChallengeCard() {
+    final selected = _dailyPriorityActivities();
+    final doneCount = selected.where(_priorityActivityDoneToday).length;
+    final hasChallenge = selected.isNotEmpty;
+    final allDone = hasChallenge && doneCount == selected.length;
+    final bonusWon = _priorityBonusWonToday;
+    final progress = hasChallenge ? doneCount / selected.length : 0.0;
+
+    String title;
+    String subtitle;
+    String actionLabel;
+    String badge;
+    String icon;
+
+    if (!hasChallenge) {
+      title = 'Prépare ton défi du jour';
+      subtitle = 'Choisis 4 ou 5 habitudes prioritaires et essaie de toutes les réaliser aujourd’hui.';
+      actionLabel = 'Préparer';
+      badge = '⭐ Challenge';
+      icon = '🎯';
+    } else if (allDone) {
+      title = 'Challenge réussi !';
+      subtitle = bonusWon
+          ? 'Toutes tes priorités sont faites aujourd’hui · le bonus est gagné.'
+          : 'Toutes tes priorités sont réalisées. Le bonus se prépare…';
+      actionLabel = 'Voir';
+      badge = bonusWon ? '⭐ +1 bonus' : '⭐ Bravo';
+      icon = '🏆';
+    } else {
+      title = 'Challenge du jour';
+      subtitle = '$doneCount/${selected.length} habitudes prioritaires réalisées';
+      actionLabel = 'Continuer';
+      badge = '⭐ ${selected.length - doneCount} restantes';
+      icon = '🎯';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 1, 16, 7),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: () => setState(() => tab = 2),
+        child: softCard(
+          color: allDone ? const Color(0xFFF8F0DD) : const Color(0xFFF6F1FB),
+          borderColor: allDone ? const Color(0xFFE9D7AB) : const Color(0xFFE2D8EC),
+          radius: 22,
+          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFCF7),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(icon, style: const TextStyle(fontSize: 21)),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                title,
+                                style: const TextStyle(fontSize: 13.2, fontWeight: FontWeight.w900, color: Color(0xFF53485F)),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFFCF7),
+                                borderRadius: BorderRadius.circular(99),
+                              ),
+                              child: Text(badge, style: const TextStyle(fontSize: 9.2, fontWeight: FontWeight.w900, color: Color(0xFF786A50))),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 10.3, height: 1.22, fontWeight: FontWeight.w700, color: Color(0xFF72697B)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Icon(Icons.chevron_right_rounded, size: 21, color: const Color(0xFF8A7D94)),
+                ],
+              ),
+              if (hasChallenge) ...[
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 5,
+                    backgroundColor: const Color(0xFFE8DFEC),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF9D89B0)),
+                  ),
+                ),
+                const SizedBox(height: 6),
+              ],
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  actionLabel,
+                  style: const TextStyle(fontSize: 9.8, fontWeight: FontWeight.w900, color: Color(0xFF786A82)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget buildHome() {
     final todayItems = itemsForDay(today);
     final todaySportItems = _sportItemsForDay(today);
@@ -988,6 +1114,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             ),
           ),
         ),
+        SliverToBoxAdapter(child: _homeDailyPriorityChallengeCard()),
         _evo1CoachMissionCard(),
         SliverToBoxAdapter(
           child: Padding(

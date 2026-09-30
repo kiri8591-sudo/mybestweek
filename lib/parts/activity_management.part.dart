@@ -1358,6 +1358,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                     if (before != after) changedSportDays.add(day);
                   }
                 }
+                final freezeTransition = edit && !original.isFrozen && updated.isFrozen;
                 setState(() {
                   if (edit) {
                     final index = activities.indexWhere((a) => a.id == original.id);
@@ -1381,10 +1382,6 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       );
                     }
                     _syncActivityToWeek(updated, previous: original);
-                    if (!original.isFrozen && updated.isFrozen) {
-                      plan.removeWhere((p) => p.activityId == updated.id && p.day > today && !p.done && p.userAdded && !p.manualPlacement && !p.fixedInWeeklyTemplate);
-                      _dailyPriorityActivityIds.remove(updated.id);
-                    }
                   } else {
                     activities.add(updated);
                     _syncActivityToWeek(updated);
@@ -1397,6 +1394,10 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   }
                 });
                 _queueLocalStatePersist();
+                if (freezeTransition) {
+                  _applyFreezeTransitionFromEditor(updated, original);
+                  _queueLocalStatePersist();
+                }
                 Navigator.pop(context);
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (!mounted) return;

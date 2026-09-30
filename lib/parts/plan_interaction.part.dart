@@ -251,6 +251,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
       _sortPlan();
     });
     _queueLocalStatePersist();
+    _refreshGoalsAfterRealization();
     _showFeedback('✓ « ${activity.name} » réalisée une nouvelle fois aujourd’hui ($occurrence/${activity.maxDailyOccurrences.clamp(2, 3)}).');
   }
 

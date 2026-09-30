@@ -109,6 +109,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
         ));
       });
       _queueLocalStatePersist();
+      _refreshGoalsAfterRealization();
       _showFeedback('✓ « ${activity.name} » comptée comme réalisée aujourd’hui.');
     }
 
@@ -289,23 +290,81 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
     if (!mounted) return;
     _prepareUndoSnapshot();
     final freezing = !activity.isFrozen;
+    var removedToday = 0;
+    var removedFuture = 0;
+
     setState(() {
       activity.isFrozen = freezing;
       if (freezing) {
         _dailyPriorityActivityIds.remove(activity.id);
-        plan.removeWhere((item) =>
+
+        final toRemove = plan.where((item) =>
             item.activityId == activity.id &&
-            item.day > today &&
+            item.day >= today &&
             !item.done &&
-            item.userAdded &&
-            !item.manualPlacement &&
-            !item.fixedInWeeklyTemplate);
+            !_isDateRangePlanItem(item)).toList();
+        removedToday = toRemove.where((item) => item.day == today).length;
+        removedFuture = toRemove.where((item) => item.day > today).length;
+        final removedIds = toRemove.map((item) => item.id).toSet();
+        plan.removeWhere((item) => removedIds.contains(item.id));
+
+        // Le gel est une décision du Coach à prendre en compte immédiatement :
+        // on conserve une trace visible de l'ajustement, sans le traiter comme
+        // un simple retrait manuel de planning.
+        if (removedToday > 0) {
+          final detail =
+              '🧊 Aujourd’hui · ${activity.name} — activité gelée : $removedToday occurrence(s) prévue(s) retirée(s) du planning du jour. Le Coach n’en proposera pas de nouvelle tant qu’elle restera gelée.';
+          _lastPlanningDecisionDetails = [
+            detail,
+            ..._lastPlanningDecisionDetails,
+          ].take(30).toList();
+          _lastPlanningCoachExplanation =
+              'J’ai pris en compte le gel de « ${activity.name} » : $removedToday occurrence(s) prévue(s) aujourd’hui ont été retirée(s), sans remplacement automatique.';
+        }
       }
+      _sortPlan();
     });
+
     _queueLocalStatePersist();
-    _showFeedback(freezing
-        ? '🧊 « ${activity.name} » est gelée. Elle reste disponible pour une reprise ultérieure.'
-        : '🌱 « ${activity.name} » est de nouveau active. Elle pourra revenir lors d’une prochaine régénération.');
+    if (freezing) {
+      final detail = removedToday > 0
+          ? '🧊 « ${activity.name} » est gelée. $removedToday occurrence(s) d’aujourd’hui retirée(s) ; $removedFuture pour les jours suivants. Le Coach en tient compte.'
+          : removedFuture > 0
+              ? '🧊 « ${activity.name} » est gelée. $removedFuture occurrence(s) future(s) retirée(s). Le Coach en tient compte.'
+              : '🧊 « ${activity.name} » est gelée. Elle reste disponible pour une reprise ultérieure.';
+      _showFeedback(detail);
+    } else {
+      _showFeedback('🌱 « ${activity.name} » est de nouveau active. Elle pourra revenir lors d’une prochaine régénération.');
+    }
+  }
+
+  void _applyFreezeTransitionFromEditor(Activity updated, Activity original) {
+    if (!mounted || original.isFrozen == updated.isFrozen || !updated.isFrozen) return;
+    var removedToday = 0;
+    var removedFuture = 0;
+    setState(() {
+      final toRemove = plan.where((item) =>
+          item.activityId == updated.id &&
+          item.day >= today &&
+          !item.done &&
+          !_isDateRangePlanItem(item)).toList();
+      removedToday = toRemove.where((item) => item.day == today).length;
+      removedFuture = toRemove.where((item) => item.day > today).length;
+      final removedIds = toRemove.map((item) => item.id).toSet();
+      plan.removeWhere((item) => removedIds.contains(item.id));
+      _dailyPriorityActivityIds.remove(updated.id);
+      if (removedToday > 0) {
+        final detail =
+            '🧊 Aujourd’hui · ${updated.name} — activité gelée : $removedToday occurrence(s) prévue(s) retirée(s) du planning du jour. Le Coach n’en proposera pas de nouvelle tant qu’elle restera gelée.';
+        _lastPlanningDecisionDetails = [detail, ..._lastPlanningDecisionDetails].take(30).toList();
+        _lastPlanningCoachExplanation =
+            'J’ai pris en compte le gel de « ${updated.name} » : $removedToday occurrence(s) prévue(s) aujourd’hui ont été retirée(s), sans remplacement automatique.';
+      }
+      _sortPlan();
+    });
+    if (removedToday > 0 || removedFuture > 0) {
+      _showFeedback('🧊 « ${updated.name} » gelée : $removedToday aujourd’hui · $removedFuture à venir. Le Coach en tient compte.');
+    }
   }
 
   Widget _priorityHeroCard(List<Activity> selected) {

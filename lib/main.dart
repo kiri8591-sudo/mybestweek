@@ -40,6 +40,7 @@ part 'parts/app_lifecycle_v922.part.dart';
 part 'parts/undo.part.dart';
 part 'parts/home_adaptive_v927.part.dart';
 part 'parts/priorities_v928.part.dart';
+part 'parts/objectives_v929.part.dart';
 
 void main() {
   _installMascotBrowserIcon();
@@ -56,7 +57,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V9.28';
+  static const version = 'V9.29.4';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -173,6 +174,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   bool _priorityBonusAwarded = false;
   int _priorityBonusTotal = 0;
   String _priorityRewardText = 'un moment plaisir';
+  // V9.29 — Objectifs de réalisation et streak Sport.
+  final List<RealizationGoal> _realizationGoals = <RealizationGoal>[];
 
   // Icônes personnalisables de l'interface (en-têtes, navigation et boutons).
   // La valeur peut être un emoji ou un token customicon:// existant.
