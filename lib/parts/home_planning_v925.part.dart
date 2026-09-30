@@ -375,7 +375,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
               tooltip: _isGenericActivityItem(item) ? 'Déplacer' : 'Voir / modifier',
               visualDensity: VisualDensity.compact,
               onPressed: () { final a = item.activityId == null ? null : findActivity(item.activityId!); if (a != null && _isSportActivity(a)) { addOrEditActivity(original: a); } else if (_isGenericActivityItem(item)) { _movePlanItemDay(item); } else { openItemActions(item); } },
-              icon: _isGenericActivityItem(item) ? _uiIcon('calendar', Icons.event_outlined, size: 18, color: const Color(0xFF718087)) : const Icon(Icons.chevron_right_rounded, size: 20, color: Color(0xFF718087)),
+              icon: _isGenericActivityItem(item) ? _uiIcon('calendar', Icons.event_outlined, size: 18, color: const Color(0xFF718087)) : _uiIcon('planOpen', Icons.chevron_right_rounded, size: 20, color: const Color(0xFF718087)),
             ),
             IconButton(
               tooltip: 'Retirer du jour',

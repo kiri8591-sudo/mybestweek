@@ -618,6 +618,40 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
     return picked;
   }
 
+  bool _activityDiffersOnlyByEmoji(Activity a, Activity b) {
+    if (a.id != b.id ||
+        a.name != b.name ||
+        a.category != b.category ||
+        a.period != b.period ||
+        a.duration != b.duration ||
+        a.frequency != b.frequency ||
+        a.priority != b.priority ||
+        !_sameDays(a.preferredDays, b.preferredDays) ||
+        a.isDateRange != b.isDateRange ||
+        !_sameDateValue(a.rangeStart, b.rangeStart) ||
+        !_sameDateValue(a.rangeEnd, b.rangeEnd) ||
+        a.sportWeight != b.sportWeight ||
+        a.allowMultiplePerDay != b.allowMultiplePerDay ||
+        a.maxDailyOccurrences != b.maxDailyOccurrences ||
+        a.sportGroup != b.sportGroup ||
+        a.sportGroupFrequency != b.sportGroupFrequency ||
+        a.activeInSportRotation != b.activeInSportRotation ||
+        a.isSportProgram != b.isSportProgram ||
+        a.isFrozen != b.isFrozen ||
+        !_mapsEqual(a.sportDailyDurations, b.sportDailyDurations)) {
+      return false;
+    }
+    return a.emoji != b.emoji;
+  }
+
+  bool _mapsEqual(Map<int, int> a, Map<int, int> b) {
+    if (a.length != b.length) return false;
+    for (final entry in a.entries) {
+      if (b[entry.key] != entry.value) return false;
+    }
+    return true;
+  }
+
   Future<void> _editActivityIcon(Activity activity) async {
     final picked = await _chooseActivityIconValue(
       name: activity.name,
@@ -625,7 +659,12 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
       current: activity.emoji,
     );
     if (picked == null || !mounted || picked == activity.emoji) return;
+    final previousIcon = activity.emoji;
     _prepareUndoSnapshot();
+    _undoActionDescription = 'l’icône de « ${activity.name} »';
+    _undoIconActivityId = activity.id;
+    _undoIconPreviousValue = previousIcon;
+    _undoIconActivityName = activity.name;
     setState(() {
       activity.emoji = picked;
       for (var i = 0; i < logs.length; i++) {
@@ -998,7 +1037,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       _activityIconWidget(emoji, size: 26),
                       const SizedBox(width: 9),
                       const Expanded(child: Text('Choisir une icône')),
-                      const Icon(Icons.expand_more_rounded),
+                      _uiIcon('expandMore', Icons.expand_more_rounded, size: 18),
                     ]),
                   ),
                 ),
@@ -1350,6 +1389,20 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   isFrozen: isFrozen,
                   sportDailyDurations: draft.isSportProgram ? {...sportDailyDurations} : draft.sportDailyDurations,
                 );
+                if (edit) {
+                  _prepareUndoSnapshot();
+                  if (_activityDiffersOnlyByEmoji(original, updated)) {
+                    _undoActionDescription = 'l’icône de « ${updated.name} »';
+                    _undoIconActivityId = updated.id;
+                    _undoIconPreviousValue = original.emoji;
+                    _undoIconActivityName = updated.name;
+                  } else {
+                    _undoActionDescription = 'la fiche de « ${updated.name} »';
+                  }
+                } else {
+                  _prepareUndoSnapshot();
+                  _undoActionDescription = 'l’ajout de « ${updated.name} »';
+                }
                 final changedSportDays = <int>[];
                 if (draft.isSportProgram) {
                   for (var day = 0; day < 7; day++) {

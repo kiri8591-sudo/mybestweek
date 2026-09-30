@@ -10,6 +10,7 @@ class _InfoSheet extends StatelessWidget {
 
   Widget _backupStep({
     required IconData icon,
+    required String iconKey,
     required String title,
     required String text,
     required bool done,
@@ -23,8 +24,7 @@ class _InfoSheet extends StatelessWidget {
             color: done ? const Color(0xFFE3F0E7) : const Color(0xFFF1EEE8),
             shape: BoxShape.circle,
           ),
-          child: Icon(done ? Icons.check_rounded : icon, size: 16,
-              color: done ? const Color(0xFF62806E) : const Color(0xFF847A6D)),
+          child: done ? const Icon(Icons.check_rounded, size: 16, color: Color(0xFF62806E)) : _uiIcon(iconKey, icon, size: 16, color: const Color(0xFF847A6D)),
         ),
         const SizedBox(width: 8),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -78,6 +78,7 @@ class _DataPage extends StatelessWidget {
 
   Widget _backupStep({
     required IconData icon,
+    required String iconKey,
     required String title,
     required String text,
     required bool done,
@@ -93,11 +94,7 @@ class _DataPage extends StatelessWidget {
             color: done ? const Color(0xFFE3F0E7) : const Color(0xFFF1EEE8),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            done ? Icons.check_rounded : icon,
-            size: 16,
-            color: done ? const Color(0xFF62806E) : const Color(0xFF847A6D),
-          ),
+          child: done ? const Icon(Icons.check_rounded, size: 16, color: Color(0xFF62806E)) : _uiIcon(iconKey, icon, size: 16, color: const Color(0xFF847A6D)),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -165,7 +162,7 @@ class _DataPage extends StatelessWidget {
     }
   }
 
-  Widget _iconBubble(IconData icon, {required Color background, required Color foreground, String? emoji}) {
+  Widget _iconBubble(IconData icon, {required Color background, required Color foreground, String? emoji, String? systemKey}) {
     return Container(
       width: 46,
       height: 46,
@@ -176,7 +173,7 @@ class _DataPage extends StatelessWidget {
       alignment: Alignment.center,
       child: emoji != null
           ? Text(emoji, style: const TextStyle(fontSize: 23))
-          : Icon(icon, color: foreground, size: 23),
+          : (systemKey == null ? Icon(icon, color: foreground, size: 23) : _uiIcon(systemKey!, icon, size: 23, color: foreground)),
     );
   }
 
@@ -187,6 +184,7 @@ class _DataPage extends StatelessWidget {
     required Color accent,
     required IconData icon,
     String? emoji,
+    String? systemKey,
     required String eyebrow,
     required String title,
     required String description,
@@ -214,7 +212,7 @@ class _DataPage extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _iconBubble(icon, background: border.withValues(alpha: .42), foreground: accent, emoji: emoji),
+              _iconBubble(icon, systemKey: systemKey, background: border.withValues(alpha: .42), foreground: accent, emoji: emoji),
               const SizedBox(width: 11),
               Expanded(
                 child: Column(
@@ -242,7 +240,7 @@ class _DataPage extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900),
               ),
-              icon: Icon(icon, size: 18),
+              icon: systemKey == null ? Icon(icon, size: 18) : _uiIcon(systemKey!, icon, size: 18, color: Colors.white),
               label: Text(buttonLabel),
             ),
           ),
@@ -267,7 +265,7 @@ class _DataPage extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(noBackup ? Icons.schedule_rounded : Icons.check_circle_outline_rounded, size: 14, color: noBackup ? const Color(0xFF9A7541) : const Color(0xFF62806E)),
+          _uiIcon(noBackup ? 'backupDue' : 'backupOk', noBackup ? Icons.schedule_rounded : Icons.check_circle_outline_rounded, size: 14, color: noBackup ? const Color(0xFF9A7541) : const Color(0xFF62806E)),
           const SizedBox(width: 5),
           Flexible(child: Text(noBackup ? 'À faire' : 'À jour', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: noBackup ? const Color(0xFF87663B) : const Color(0xFF5E7566)))),
         ],
@@ -357,21 +355,21 @@ class _DataPage extends StatelessWidget {
                 ]),
                 const SizedBox(height: 9),
                 _backupStep(
-                  icon: Icons.smartphone_rounded,
+                  icon: Icons.smartphone_rounded, iconKey: 'backupDevice',
                   title: 'Sur cet appareil',
                   text: 'Automatique après les modifications.',
                   done: true,
                 ),
                 const SizedBox(height: 6),
                 _backupStep(
-                  icon: Icons.cloud_done_outlined,
+                  icon: Icons.cloud_done_outlined, iconKey: 'backupCloud',
                   title: 'Copie iCloud',
                   text: cloudBackupStatus,
                   done: !cloudBackupStatus.startsWith('Aucune'),
                 ),
                 const SizedBox(height: 6),
                 _backupStep(
-                  icon: Icons.archive_outlined,
+                  icon: Icons.archive_outlined, iconKey: 'backupFile',
                   title: 'Fichier .json',
                   text: 'À conserver où tu veux pour une restauration complète.',
                   done: false,
@@ -385,7 +383,7 @@ class _DataPage extends StatelessWidget {
             background: const Color(0xFFFFFCF7),
             border: const Color(0xFFE5DDD2),
             accent: const Color(0xFF718D7F),
-            icon: Icons.download_rounded,
+            icon: Icons.download_rounded, systemKey: 'backupDownload',
             eyebrow: 'Copie locale',
             title: 'Sauvegarder',
             description: 'Crée un fichier .json complet avec tes activités, ton planning, tes validations, ton historique et tes bilans.',
@@ -406,7 +404,7 @@ class _DataPage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    _iconBubble(Icons.cloud_outlined, background: const Color(0xFFDDE8F7), foreground: const Color(0xFF58708C), emoji: '☁️'),
+                    _iconBubble(Icons.cloud_outlined, systemKey: 'backupCloud', background: const Color(0xFFDDE8F7), foreground: const Color(0xFF58708C)),
                     const SizedBox(width: 11),
                     const Expanded(
                       child: Column(
@@ -437,7 +435,7 @@ class _DataPage extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900),
                     ),
-                    icon: const Icon(Icons.cloud_upload_rounded, size: 18),
+                    icon: _uiIcon('backupUpload', Icons.cloud_upload_rounded, size: 18),
                     label: const Text('Créer une copie iCloud'),
                   ),
                 ),
@@ -457,7 +455,7 @@ class _DataPage extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _iconBubble(Icons.upload_file_rounded, background: const Color(0xFFD9EBDD), foreground: const Color(0xFF628070)),
+                _iconBubble(Icons.upload_file_rounded, systemKey: 'restore', background: const Color(0xFFD9EBDD), foreground: const Color(0xFF628070)),
                 const SizedBox(width: 11),
                 Expanded(
                   child: Column(
@@ -481,7 +479,7 @@ class _DataPage extends StatelessWidget {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                             textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
                           ),
-                          icon: const Icon(Icons.folder_open_rounded, size: 18),
+                          icon: _uiIcon('backupFolder', Icons.folder_open_rounded, size: 18),
                           label: const Text('Choisir un fichier'),
                         ),
                       ),
@@ -514,7 +512,7 @@ class _DataPage extends StatelessWidget {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
                     ),
-                    icon: const Icon(Icons.restart_alt_rounded, size: 17),
+                    icon: _uiIcon('backupReset', Icons.restart_alt_rounded, size: 17),
                     label: const Text('Réinitialiser les données'),
                   ),
                 ),
@@ -835,7 +833,7 @@ class _DailySummarySheetState extends State<_DailySummarySheet> {
           Row(children: [
             Expanded(child: TextButton(onPressed: () => Navigator.pop(context), child: const Text('Fermer'))),
             const SizedBox(width: 9),
-            Expanded(child: FilledButton.icon(onPressed: () => Navigator.pop(context, _selectedMood), icon: const Icon(Icons.check_rounded, size: 17), label: const Text('Conserver'))),
+            Expanded(child: FilledButton.icon(onPressed: () => Navigator.pop(context, _selectedMood), icon: _uiIcon('confirm', Icons.check_rounded, size: 17), label: const Text('Conserver'))),
           ]),
         ]),
       ),

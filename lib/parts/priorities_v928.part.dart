@@ -232,7 +232,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                     width: double.infinity,
                     child: FilledButton.icon(
                       onPressed: () => Navigator.pop(context, working),
-                      icon: const Icon(Icons.check_rounded),
+                      icon: _uiIcon('confirm', Icons.check_rounded, size: 18),
                       label: const Text('Enregistrer mes priorités'),
                     ),
                   ),
@@ -528,7 +528,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
           sliver: SliverToBoxAdapter(
             child: Row(children: [
               const Expanded(child: Text('Ton petit défi', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF4D5A53)))),
-              TextButton.icon(onPressed: _editDailyPriorities, icon: const Icon(Icons.edit_rounded, size: 15), label: const Text('Choisir')),
+              TextButton.icon(onPressed: _editDailyPriorities, icon: _uiIcon('edit', Icons.edit_rounded, size: 15), label: const Text('Choisir')),
             ]),
           ),
         ),
@@ -546,7 +546,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                   const SizedBox(height: 4),
                   const Text('Ici, tu ne gères pas toute la semaine : tu choisis simplement ce qui compte le plus aujourd’hui.', style: TextStyle(fontSize: 10.8, height: 1.3, color: Color(0xFF68756E))),
                   const SizedBox(height: 9),
-                  FilledButton.icon(onPressed: _editDailyPriorities, icon: const Icon(Icons.star_rounded, size: 17), label: const Text('Choisir mes priorités')),
+                  FilledButton.icon(onPressed: _editDailyPriorities, icon: _uiIcon('priority', Icons.star_rounded, size: 17), label: const Text('Choisir mes priorités')),
                 ]),
               ),
             ),
@@ -573,7 +573,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                     const SizedBox(height: 2),
                     Text(_priorityRewardText, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w700, color: Color(0xFF77707D))),
                   ])),
-                  IconButton(visualDensity: VisualDensity.compact, tooltip: 'Modifier ma récompense', onPressed: _editPriorityReward, icon: const Icon(Icons.edit_rounded, size: 17)),
+                  IconButton(visualDensity: VisualDensity.compact, tooltip: 'Modifier ma récompense', onPressed: _editPriorityReward, icon: _uiIcon('edit', Icons.edit_rounded, size: 17)),
                 ]),
               )),
             ]),

@@ -248,7 +248,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: _save,
-                icon: const Icon(Icons.check_rounded),
+                icon: _activityIconWidget(_uiIconValue('objectiveSave', ''), size: 18),
                 label: const Text('Enregistrer'),
               ),
             ),
@@ -258,7 +258,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                 width: double.infinity,
                 child: TextButton.icon(
                   onPressed: _delete,
-                  icon: const Icon(Icons.delete_outline_rounded),
+                  icon: _activityIconWidget(_uiIconValue('objectiveDelete', ''), size: 18),
                   label: const Text('Supprimer cet objectif'),
                 ),
               ),
@@ -334,7 +334,10 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
       for (final log in logs) {
         if (log.activityId != goal.activityId) continue;
         if (log.realisedMinutes <= 0) continue;
-        if (log.date.isBefore(goal.createdAt)) continue;
+        // Un objectif mensuel porte sur le mois en cours : les réalisations
+        // déjà faites avant la création de l'objectif restent comptabilisées.
+        // Pour jour/semaine, on conserve le point de départ à la création.
+        if (goal.cadence != 'mois' && log.date.isBefore(goal.createdAt)) continue;
         if (log.date.isBefore(start) || !log.date.isBefore(end)) continue;
         count++;
       }
@@ -388,6 +391,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
       root['weekKey'] = _currentWeekKey();
       root['savedAt'] = DateTime.now().toIso8601String();
       _undoSnapshotJson = const JsonEncoder.withIndent('  ').convert(root);
+      _undoActionDescription = 'la dernière modification d’objectif';
       _undoActionPrepared = true;
     } catch (_) {
       // L'objectif reste créable même si le snapshot d'annulation échoue.
@@ -425,6 +429,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     if (draft.delete) {
       if (existing == null) return;
       _captureGoalUndoSnapshot();
+      _undoActionDescription = 'la suppression de l’objectif lié à « ${findActivity(existing.activityId)?.name ?? 'l’activité'} »';
       setState(() {
         _realizationGoals.removeWhere((goal) => goal.id == existing.id);
       });
@@ -463,6 +468,14 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     }
 
     _captureGoalUndoSnapshot();
+    final cadenceLabel = draft.cadence == 'jour'
+        ? 'par jour'
+        : draft.cadence == 'mois'
+            ? 'par mois'
+            : 'par semaine';
+    _undoActionDescription = existing == null
+        ? 'la création de l’objectif « ${selectedActivity.name} · $cadenceLabel »'
+        : 'la modification de l’objectif « ${selectedActivity.name} · $cadenceLabel »';
 
     final now = DateTime.now();
     final goal = existing ??
@@ -579,7 +592,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                       borderRadius: BorderRadius.circular(15),
                     ),
                     alignment: Alignment.center,
-                    child: _activityIconWidget(activity.emoji, size: 25),
+                    child: _activityIconWidget(_uiIconValue('objectiveDetail', ''), size: 22),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -608,11 +621,9 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                       ],
                     ),
                   ),
-                  Icon(
-                    complete ? Icons.verified_rounded : Icons.chevron_right_rounded,
-                    color: complete ? const Color(0xFF6E9A78) : const Color(0xFFA3AAA6),
-                    size: 21,
-                  ),
+                  complete
+                      ? _activityIconWidget(_uiIconValue('objectiveState', ''), size: 21)
+                      : _uiIcon('planOpen', Icons.chevron_right_rounded, size: 21, color: const Color(0xFFA3AAA6)),
                 ],
               ),
               const SizedBox(height: 8),
@@ -704,7 +715,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                 borderRadius: BorderRadius.circular(14),
               ),
               alignment: Alignment.center,
-              child: const Text('🔥', style: TextStyle(fontSize: 23)),
+              child: _activityIconWidget(activity.emoji, size: 23),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -796,12 +807,16 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
           pinned: true,
           backgroundColor: const Color(0xFFFFF8EF),
           surfaceTintColor: Colors.transparent,
-          title: const Text('Objectifs'),
+          title: Row(children: [
+            _activityIconWidget(_uiIconValue('objective', ''), size: 22),
+            const SizedBox(width: 8),
+            const Text('Objectifs'),
+          ]),
           actions: [
             IconButton(
               tooltip: 'Nouvel objectif',
               onPressed: () => _addOrEditGoal(),
-              icon: const Icon(Icons.add_rounded),
+              icon: _activityIconWidget(_uiIconValue('add', ''), size: 22),
             ),
           ],
         ),
@@ -931,7 +946,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 5),
             child: Row(
               children: [
-                const Text('🔥', style: TextStyle(fontSize: 19)),
+                _activityIconWidget(_uiIconValue('streak', ''), size: 21),
                 const SizedBox(width: 7),
                 const Expanded(
                   child: Text(

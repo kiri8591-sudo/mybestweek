@@ -576,6 +576,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
         var preferred = _generationRespectPreferredDays;
         var alternate = _generationAlternateActivities;
         var learnHabits = _generationLearnHabits;
+        var rebuildWholeWeek = false;
         final localRules = <String, String>{..._generationActivityRules};
         final ordered = [...activities]
           ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -595,10 +596,23 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(18, 6, 18, 22 + MediaQuery.of(context).viewInsets.bottom),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Repenser le planning', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                const Text('Générer le planning', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 5),
-                const Text('Les jours passés et aujourd’hui sont conservés. Les consignes ci-dessous agissent uniquement sur les jours futurs.', style: TextStyle(fontSize: 12.2, color: Color(0xFF66716E), height: 1.35)),
-                const SizedBox(height: 12),
+                const Text('Par défaut, les jours passés et aujourd’hui sont conservés. Tu peux aussi choisir de reconstruire toute la semaine.', style: TextStyle(fontSize: 12.2, color: Color(0xFF66716E), height: 1.35)),
+                const SizedBox(height: 10),
+                SwitchListTile.adaptive(
+                  value: rebuildWholeWeek,
+                  onChanged: (v) => setSheetState(() => rebuildWholeWeek = v),
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Reconstruire toute la semaine', style: TextStyle(fontWeight: FontWeight.w900)),
+                  subtitle: Text(
+                    rebuildWholeWeek
+                        ? 'Lundi → dimanche seront recréés. Le planning actuel de la semaine sera remplacé ; l’historique des réalisations reste conservé.'
+                        : 'Les jours passés et aujourd’hui restent inchangés ; seuls les jours futurs sont repensés.',
+                    style: const TextStyle(fontSize: 11.5, height: 1.3),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 criterion(title: 'Priorités', subtitle: 'Faire remonter les activités importantes.', value: priorities, onChanged: (v) => setSheetState(() => priorities = v)),
                 criterion(title: 'Historique', subtitle: 'Tenir compte de ce qui a été fait récemment et des ressentis.', value: history, onChanged: (v) => setSheetState(() => history = v)),
                 criterion(title: 'Équilibre de la charge', subtitle: 'Éviter de concentrer trop de minutes sur une même journée.', value: balance, onChanged: (v) => setSheetState(() => balance = v)),
@@ -659,6 +673,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                       'alternate': alternate,
                       'learnHabits': learnHabits,
                       'activityRules': localRules,
+                      'rebuildWholeWeek': rebuildWholeWeek,
                     }),
                     icon: _uiIcon('coach', Icons.auto_awesome_outlined, size: 18, color: const Color(0xFF9C8866)),
                     label: const Text('Générer le planning futur'),
@@ -684,7 +699,11 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
         ..addAll(Map<String, String>.from((result['activityRules'] as Map?)?.map((k, v) => MapEntry(k.toString(), v.toString())) ?? {}));
     });
     _queueLocalStatePersist();
-    generateWeek(showSnack: true, markAsRegenerated: true);
+    generateWeek(
+      showSnack: true,
+      markAsRegenerated: true,
+      fullWeekRebuildOverride: result['rebuildWholeWeek'] == true,
+    );
   }
 
   bool get _showMondayRegenerationPrompt {
@@ -699,12 +718,16 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
     setState(() => _mondayRegenPromptDismissed = true);
   }
 
-  void generateWeek({bool showSnack = true, bool markAsRegenerated = false}) {
+  void generateWeek({
+    bool showSnack = true,
+    bool markAsRegenerated = false,
+    bool? fullWeekRebuildOverride,
+  }) {
     // En usage normal, « Repenser » protège le passé et aujourd'hui.
     // Exception : juste après une réinitialisation complète, le planning est
     // volontairement vide ; la première régénération doit alors reconstruire
     // toute la semaine à partir du lundi.
-    final fullWeekRebuild = _regenerateWholeWeekAfterReset;
+    final fullWeekRebuild = fullWeekRebuildOverride ?? _regenerateWholeWeekAfterReset;
     final cutoffDay = fullWeekRebuild ? -1 : today;
     _regeneratedSportBudgets.removeWhere((day, _) => day > cutoffDay);
     final preservedPastAndToday = plan.where((p) => p.day <= cutoffDay).toList();

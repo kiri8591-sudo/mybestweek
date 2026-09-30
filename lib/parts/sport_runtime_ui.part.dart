@@ -230,7 +230,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                           onPressed: () => _editActivityIcon(activity),
                           icon: _uiIcon('edit', Icons.edit_outlined, size: 17),
                         ),
-                        Icon(canAdd ? Icons.add_circle_outline : Icons.block_outlined),
+                        _uiIcon(canAdd ? 'add' : 'sportWarning', canAdd ? Icons.add_circle_outline : Icons.block_outlined, size: 18),
                       ],
                     ),
                     onTap: canAdd ? () => Navigator.pop(context, activity) : null,

@@ -57,7 +57,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V9.29.4';
+  static const version = 'V9.29.14';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -118,6 +118,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   static const String _localStateKey = 'ma_belle_semaine_local_state_v2';
   static const int _cloudBackupReminderDays = 7;
   bool _persistenceQueued = false;
+  // Numéro de génération des écritures différées : un Undo invalide
+  // toute écriture programmée avant sa restauration.
+  int _persistenceGeneration = 0;
   final Set<String> _sportValidationInProgress = <String>{};
 
   // Critères utilisés uniquement pour les nouvelles occurrences générées.
@@ -151,6 +154,13 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   String? _undoSnapshotJson;
   bool _undoInProgress = false;
   bool _undoActionPrepared = false;
+  String? _undoActionDescription;
+  // Contexte ciblé pour une restauration d’icône. Le snapshot global reste
+  // la source de vérité, mais cette information garantit que l’objet affiché
+  // reprend explicitement son ancienne icône après un Undo.
+  String? _undoIconActivityId;
+  String? _undoIconPreviousValue;
+  String? _undoIconActivityName;
   DateTime? _lastICloudBackupAt;
   String _userName = '';
   String _weatherCity = '';

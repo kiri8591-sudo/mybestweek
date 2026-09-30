@@ -103,11 +103,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(
-                          Icons.check_circle_outline_rounded,
-                          size: 17,
-                          color: Color(0xFF6F8E80),
-                        ),
+                        _uiIcon('missionDone', Icons.check_circle_outline_rounded, size: 17, color: const Color(0xFF6F8E80)),
                         const SizedBox(width: 7),
                         Expanded(
                           child: Text(
@@ -385,7 +381,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
               const Text('🔭', style: TextStyle(fontSize: 19)),
               const SizedBox(width: 7),
               const Expanded(child: Text('Aperçu de la semaine prochaine', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w900, color: Color(0xFF49594F)))),
-              TextButton.icon(onPressed: _openNextWeekCoachDirections, icon: const Icon(Icons.tune_rounded, size: 15), label: const Text('Diriger le Coach'), style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4), minimumSize: const Size(0, 30))),
+              TextButton.icon(onPressed: _openNextWeekCoachDirections, icon: _systemIconWidget('nextWeekDirections', fallback: '🎛️', size: 15), label: const Text('Diriger le Coach'), style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4), minimumSize: const Size(0, 30))),
             ]),
             const SizedBox(height: 4),
             Text(directionLabel, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 9.8, color: Color(0xFF6F7770), height: 1.2)),
@@ -576,7 +572,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       subtitle = 'Choisis 4 ou 5 habitudes prioritaires et essaie de toutes les réaliser aujourd’hui.';
       actionLabel = 'Préparer';
       badge = '⭐ Challenge';
-      icon = '🎯';
+      icon = _systemIconValue('challenge', '🎯');
     } else if (allDone) {
       title = 'Challenge réussi !';
       subtitle = bonusWon
@@ -584,13 +580,13 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
           : 'Toutes tes priorités sont réalisées. Le bonus se prépare…';
       actionLabel = 'Voir';
       badge = bonusWon ? '⭐ +1 bonus' : '⭐ Bravo';
-      icon = '🏆';
+      icon = _systemIconValue('challenge', '🏆');
     } else {
       title = 'Challenge du jour';
       subtitle = '$doneCount/${selected.length} habitudes prioritaires réalisées';
       actionLabel = 'Continuer';
       badge = '⭐ ${selected.length - doneCount} restantes';
-      icon = '🎯';
+      icon = _systemIconValue('challenge', '🎯');
     }
 
     return Padding(
@@ -653,7 +649,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     ),
                   ),
                   const SizedBox(width: 5),
-                  Icon(Icons.chevron_right_rounded, size: 21, color: const Color(0xFF8A7D94)),
+                  _uiIcon('planOpen', Icons.chevron_right_rounded, size: 21, color: const Color(0xFF8A7D94)),
                 ],
               ),
               if (hasChallenge) ...[
@@ -768,7 +764,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                   ),
                   if (highlighted) ...[
                     const SizedBox(width: 7),
-                    const Icon(Icons.south, size: 15, color: Color(0xFF6F8E80)),
+                    _systemIconWidget('dragDown', fallback: '↓', size: 15),
                     const SizedBox(width: 3),
                     const Text('Déposer ici', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
                   ],
@@ -1260,14 +1256,14 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 Container(width: 38, height: 38, decoration: BoxDecoration(color: const Color(0xFFE7D6F0), borderRadius: BorderRadius.circular(13)), child: const Center(child: Text('📊', style: TextStyle(fontSize: 20)))),
                 const SizedBox(width: 8),
                 const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Bilan', style: TextStyle(fontSize: 12.3, fontWeight: FontWeight.w900, color: Color(0xFF5C5165))), SizedBox(height: 2), Text('Ma semaine', style: TextStyle(fontSize: 9.4, color: Color(0xFF756B7D)))])),
-                const Icon(Icons.chevron_right_rounded, size: 19, color: Color(0xFF8A7D94)),
+                _uiIcon('planOpen', Icons.chevron_right_rounded, size: 19, color: const Color(0xFF8A7D94)),
               ])))),
               const SizedBox(width: 9),
               Expanded(child: InkWell(borderRadius: BorderRadius.circular(20), onTap: openSportWeekOverview, child: softCard(color: const Color(0xFFEAF7EF), borderColor: const Color(0xFFD7E9DD), radius: 22, padding: const EdgeInsets.fromLTRB(11, 11, 9, 11), child: Row(children: [
                 Container(width: 38, height: 38, decoration: BoxDecoration(color: const Color(0xFFD8EEDC), borderRadius: BorderRadius.circular(13)), child: Center(child: _activityIconWidget(_sportProgram?.emoji ?? '🏃', size: 22))),
                 const SizedBox(width: 8),
                 const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Sport', style: TextStyle(fontSize: 12.3, fontWeight: FontWeight.w900, color: Color(0xFF4D6858))), SizedBox(height: 2), Text('Semaine Sport', style: TextStyle(fontSize: 9.4, color: Color(0xFF68796E)))])),
-                const Icon(Icons.chevron_right_rounded, size: 19, color: Color(0xFF789082)),
+                _uiIcon('planOpen', Icons.chevron_right_rounded, size: 19, color: const Color(0xFF789082)),
               ])))),
             ]),
           ),
@@ -1596,7 +1592,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     ]),
                                   ),
                                   if (highlighted) ...[
-                                    const SizedBox(width: 7), const Icon(Icons.south, size: 15, color: Color(0xFF6F8E80)),
+                                    const SizedBox(width: 7), _systemIconWidget('dragDown', fallback: '↓', size: 15),
                                     const SizedBox(width: 3), const Text('Déposer ici', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
                                   ],
                                 ]),
@@ -1658,11 +1654,11 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                           textInputAction: TextInputAction.search,
                           decoration: InputDecoration(
                             hintText: 'Rechercher une activité',
-                            prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                            prefixIcon: _systemIconWidget('search', fallback: '🔎', size: 20),
                             suffixIcon: IconButton(
                               tooltip: 'Fermer la recherche',
                               onPressed: _closeActivitySearch,
-                              icon: const Icon(Icons.close_rounded, size: 19),
+                              icon: _uiIcon('close', Icons.close_rounded, size: 19),
                             ),
                             isDense: true,
                             filled: true,
@@ -1849,7 +1845,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                             padding: const EdgeInsets.all(6),
                             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                             onPressed: () => _toggleActivityFrozen(a),
-                            icon: Icon(frozen ? Icons.play_circle_outline_rounded : Icons.pause_circle_outline_rounded, size: 19, color: const Color(0xFF7A827D)),
+                            icon: _uiIcon(frozen ? 'add' : 'remove', frozen ? Icons.play_circle_outline_rounded : Icons.pause_circle_outline_rounded, size: 19, color: const Color(0xFF7A827D)),
                           ),
                           const SizedBox(width: 2),
                           IconButton(
@@ -1860,7 +1856,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                             onPressed: () => _evo8OpenActivityMiniHistory(a),
                             icon: _systemIconWidget('history', fallback: '📖', size: 19),
                           ),
-                          const Icon(Icons.chevron_right_rounded, color: Color(0xFF899398)),
+                          _uiIcon('planOpen', Icons.chevron_right_rounded, size: 20, color: const Color(0xFF899398)),
                             ],
                           ),
                           if (a.category != 'Sport' && !a.isSportProgram && !a.isDateRange)

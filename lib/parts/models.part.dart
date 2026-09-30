@@ -27,14 +27,23 @@ String _uiIconValue(String key, String fallback) =>
 
 double _standardUiIconSize(String key, double requested) {
   const headerKeys = {
-    'navHome', 'navWeek', 'navActivities', 'periodMorning', 'periodAfternoon',
-    'periodEvening', 'sport', 'coach', 'system',
+    'navHome', 'navWeek', 'navActivities', 'navPriorities', 'navObjectives',
+    'periodMorning', 'periodAfternoon', 'periodEvening', 'sport', 'coach',
+    'system', 'challenge', 'objective', 'objectiveDetail', 'streak', 'priority',
+    'history', 'review', 'backup', 'restore', 'reset', 'calendar', 'week',
   };
   const actionKeys = {
-    'add', 'edit', 'remove', 'delete', 'confirm', 'history', 'help', 'photo',
-    'emoji', 'manageIcons', 'save', 'backup', 'restore', 'reset', 'filter',
-    'calendar', 'week', 'duration', 'move', 'repeat', 'close', 'apply',
-    'settings', 'identity', 'location', 'refresh', 'insights',
+    'add', 'edit', 'remove', 'delete', 'confirm', 'help', 'photo',
+    'emoji', 'manageIcons', 'save', 'filter', 'duration', 'move', 'repeat', 'close', 'apply',
+    'settings', 'identity', 'location', 'refresh', 'insights', 'undo', 'reviewBack',
+    'histTrend', 'histStable', 'histSortUp', 'histSortDown', 'histEmpty',
+    'backupDevice', 'backupCloud', 'backupFile', 'backupShield', 'backupDownload', 'backupUpload', 'backupFolder',
+    'backupReset', 'backupDue', 'backupOk', 'reviewMoments', 'reviewRegularity',
+    'reviewPlanned', 'reviewRealized', 'reviewRemaining', 'reviewMoved', 'reviewValidated',
+    'reviewUnexpected', 'reviewActiveDays', 'reviewTime', 'reviewDifficult', 'reviewPiano', 'reviewMood',
+    'sportActive', 'sportMinutes', 'sportRate', 'sportMissing', 'sportFilter', 'sportBack', 'sportNext',
+    'sportReactivate', 'sportWarning', 'sportTimer', 'objectiveSave', 'objectiveDelete', 'objectiveState',
+    'nextWeekDirections', 'dragDown', 'expandMore', 'planOpen', 'missionDone',
   };
   if (headerKeys.contains(key)) return requested < 20 ? 20 : requested.clamp(20, 23).toDouble();
   if (actionKeys.contains(key)) return requested.clamp(17, 19).toDouble();

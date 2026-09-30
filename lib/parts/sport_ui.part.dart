@@ -71,7 +71,7 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
                     borderRadius: BorderRadius.circular(12),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(Icons.timer_outlined, size: 21, color: Color(0xFF6F8E80)),
+                  child: _activityIconWidget(_uiIconValue('sportTimer', ''), size: 21),
                 ),
                 const SizedBox(width: 9),
                 Expanded(
@@ -429,7 +429,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     final doneMinutes = done.fold<int>(0, (s, p) => s + p.duration);
     final rate = plannedMinutes == 0 ? 0 : (doneMinutes * 100 / plannedMinutes).round();
 
-    Widget stat(String value, String label, IconData icon) => Container(
+    Widget stat(String value, String label, String iconKey, IconData icon) => Container(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFDF9),
@@ -437,7 +437,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         border: Border.all(color: const Color(0xFFE0DDD5)),
       ),
       child: Column(children: [
-        Icon(icon, size: 18, color: const Color(0xFF6F8E80)),
+        _uiIcon(iconKey, icon, size: 18, color: const Color(0xFF6F8E80)),
         const SizedBox(height: 4),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: Color(0xFF33414A))),
         const SizedBox(height: 2),
@@ -449,10 +449,10 @@ class _SportWeekPageState extends State<_SportWeekPage> {
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 520;
         final stats = [
-          stat('${active.length}', 'actives', Icons.directions_run_outlined),
-          stat('$doneMinutes / $plannedMinutes', 'min réalisées / prévues', Icons.timelapse_outlined),
-          stat('$rate %', 'taux de réalisation', Icons.check_circle_outline),
-          stat('$missing', 'non prises en compte', Icons.warning_amber_rounded),
+          stat('${active.length}', 'actives', 'sportActive', Icons.directions_run_outlined),
+          stat('$doneMinutes / $plannedMinutes', 'min réalisées / prévues', 'sportMinutes', Icons.timelapse_outlined),
+          stat('$rate %', 'taux de réalisation', 'sportRate', Icons.check_circle_outline),
+          stat('$missing', 'non prises en compte', 'sportMissing', Icons.warning_amber_rounded),
         ];
         if (wide) {
           return Row(children: [
@@ -532,7 +532,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
               _sort = 'Nom';
               _view = 'Semaine';
             }),
-            icon: _uiIcon('filter', Icons.filter_alt_off_outlined, size: 18),
+            icon: _uiIcon('sportFilter', Icons.filter_alt_off_outlined, size: 18),
           ),
         ]),
         const SizedBox(height: 8),
@@ -589,7 +589,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
             _dateStripStart = _dateStripStart.subtract(const Duration(days: 7));
             _selectedDate = _selectedDate.subtract(const Duration(days: 7));
           }),
-          icon: const Icon(Icons.chevron_left_rounded),
+          icon: _activityIconWidget(_uiIconValue('sportBack', ''), size: 20),
         ),
         Expanded(
           child: Text(
@@ -605,7 +605,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
             _dateStripStart = _dateStripStart.add(const Duration(days: 7));
             _selectedDate = _selectedDate.add(const Duration(days: 7));
           }),
-          icon: const Icon(Icons.chevron_right_rounded),
+          icon: _activityIconWidget(_uiIconValue('sportNext', ''), size: 20),
         ),
       ]),
       Row(
@@ -914,9 +914,9 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                       style: labelStyle,
                     ),
                   ),
-                  if (missing) const Padding(
-                    padding: EdgeInsets.only(left: 3),
-                    child: Icon(Icons.warning_amber_rounded, size: 13, color: Color(0xFFAA624B)),
+                  if (missing) Padding(
+                    padding: const EdgeInsets.only(left: 3),
+                    child: _activityIconWidget(_uiIconValue('sportWarning', ''), size: 13),
                   ),
                 ]),
               ),
@@ -1018,7 +1018,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
           onPressed: () => setState(() => _month = DateTime(_month.year, _month.month - 1, 1)),
-          icon: const Icon(Icons.chevron_left, size: 20),
+          icon: _activityIconWidget(_uiIconValue('sportBack', ''), size: 20),
         ),
         Expanded(
           child: Text(
@@ -1031,7 +1031,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
           onPressed: () => setState(() => _month = DateTime(_month.year, _month.month + 1, 1)),
-          icon: const Icon(Icons.chevron_right, size: 20),
+          icon: _activityIconWidget(_uiIconValue('sportNext', ''), size: 20),
         ),
       ]),
       const SizedBox(height: 3),
@@ -1186,7 +1186,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                   const SizedBox(height: 2),
                   Text('${activity.duration} min · ⏸ PLUS TARD', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: Color(0xFF9A7566))),
                 ])),
-                OutlinedButton.icon(onPressed: () { widget.onReactivate(activity); Navigator.pop(context); }, icon: _uiIcon('refresh', Icons.refresh_rounded, size: 16), label: const Text('Réactiver')),
+                OutlinedButton.icon(onPressed: () { widget.onReactivate(activity); Navigator.pop(context); }, icon: _uiIcon('sportReactivate', Icons.refresh_rounded, size: 16), label: const Text('Réactiver')),
               ]),
             )),
           ],

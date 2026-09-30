@@ -305,7 +305,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                     Navigator.pop(sheetContext);
                     togglePlanItemDone(item, !item.done);
                   },
-                  icon: Icon(item.done ? Icons.undo : Icons.check_circle_outline),
+                  icon: item.done ? _systemIconWidget('undo', fallback: '↩️', size: 18) : _systemIconWidget('confirm', fallback: '✅', size: 18),
                   label: Text(item.done ? 'Annuler la validation' : 'Valider ce moment'),
                 ),
               ),

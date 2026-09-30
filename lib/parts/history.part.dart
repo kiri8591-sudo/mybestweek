@@ -142,7 +142,7 @@ class _HistorySheetState extends State<_HistorySheet> {
     return result.take(4).toList();
   }
 
-  Widget _metric(String label, String value, IconData icon) {
+  Widget _metric(String label, String value, String iconKey, IconData icon) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(11),
@@ -153,7 +153,7 @@ class _HistorySheetState extends State<_HistorySheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 19, color: const Color(0xFF6F8E80)),
+            _uiIcon(iconKey, icon, size: 19, color: const Color(0xFF6F8E80)),
             const SizedBox(height: 6),
             Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF33414A))),
             const SizedBox(height: 2),
@@ -164,7 +164,7 @@ class _HistorySheetState extends State<_HistorySheet> {
     );
   }
 
-  Widget _insightTile({required String title, required String text, required IconData icon}) {
+  Widget _insightTile({required String title, required String text, required String iconKey, required IconData icon}) {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(
@@ -177,7 +177,7 @@ class _HistorySheetState extends State<_HistorySheet> {
               color: const Color(0xFFE5EEE9),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 17, color: const Color(0xFF6F8E80)),
+            child: _uiIcon(iconKey, icon, size: 17, color: const Color(0xFF6F8E80)),
           ),
           const SizedBox(width: 9),
           Expanded(
@@ -336,7 +336,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                 style: const TextStyle(fontSize: 10.5, color: Color(0xFF737C7B))),
           ])),
           const SizedBox(width: 5),
-          const Icon(Icons.chevron_right, size: 19, color: Color(0xFF8A9491)),
+          _uiIcon('planOpen', Icons.chevron_right, size: 19, color: const Color(0xFF8A9491)),
         ]),
       ),
     );
@@ -504,11 +504,11 @@ class _HistorySheetState extends State<_HistorySheet> {
               ]),
               const SizedBox(height: 11),
               Row(children: [
-                _metric('moments · 7 j', '${last7.length}', Icons.check_circle_outline),
+                _metric('moments · 7 j', '${last7.length}', 'reviewMoments', Icons.check_circle_outline),
                 const SizedBox(width: 7),
-                _metric('temps · 7 j', _durationLabel(minutes7), Icons.timer_outlined),
+                _metric('temps · 7 j', _durationLabel(minutes7), 'reviewTime', Icons.timer_outlined),
                 const SizedBox(width: 7),
-                _metric('jours actifs · 7 j', '$activeDays/7', Icons.calendar_month_outlined),
+                _metric('jours actifs · 7 j', '$activeDays/7', 'reviewActiveDays', Icons.calendar_month_outlined),
               ]),
               const SizedBox(height: 7),
               Text('Sur 30 jours : ${last30.length} moments · ${_durationLabel(minutes30)} · $avgWeek moments/semaine en moyenne.', style: const TextStyle(fontSize: 11.7, color: Color(0xFF65706F))),
@@ -537,6 +537,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                 const Text('Aucune activité ne présente un écart important sur les 30 derniers jours.', style: TextStyle(fontSize: 12.2, color: Color(0xFF697271)))
               else
                 ...under.map((a) => _insightTile(
+                      iconKey: 'histTrend',
                       title: a.name,
                       text: 'Prévue ${a.frequency}×/sem. · réalisée ${_countFor(a, 30)}× sur 30 jours. Elle mérite d’être davantage visible dans le planning.',
                       icon: Icons.trending_down_outlined,
@@ -545,6 +546,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                 const SizedBox(height: 11),
                 const Text('Bien ancrées', style: TextStyle(fontWeight: FontWeight.w900)),
                 ...anchored.map((a) => _insightTile(
+                      iconKey: 'histStable',
                       title: a.name,
                       text: 'Rythme bien installé : ${_countFor(a, 30)} réalisation(s) sur les 30 derniers jours.',
                       icon: Icons.check_circle_outline,
@@ -657,7 +659,8 @@ class _HistorySheetState extends State<_HistorySheet> {
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: const Color(0xFFD3DED7)),
                       ),
-                      child: Icon(
+                      child: _uiIcon(
+                        _memorySortAscending ? 'histSortUp' : 'histSortDown',
                         _memorySortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
                         size: 18,
                         color: const Color(0xFF526B78),
@@ -866,10 +869,10 @@ class _HistorySheetState extends State<_HistorySheet> {
                       padding: const EdgeInsets.symmetric(vertical: 35),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.history, size: 42, color: Color(0xFF879197)),
-                          SizedBox(height: 10),
-                          Text('Aucune activité dans cette période.'),
+                        children: [
+                          _activityIconWidget(_uiIconValue('histEmpty', '📖'), size: 42),
+                          const SizedBox(height: 10),
+                          const Text('Aucune activité dans cette période.'),
                         ],
                       ),
                     )

@@ -34,6 +34,11 @@ extension _StatePersistence on _MaBelleSemaineAppState {
   }
 
   void _queueLocalStatePersist() {
+    // Chaque nouvelle mutation invalide les écritures différées plus anciennes.
+    // Cela évite qu'une écriture programmée avant un Undo rétablisse ensuite
+    // l'état qui vient précisément d'être annulé.
+    final generation = ++_persistenceGeneration;
+
     // IMPORTANT : ne plus attendre le frame suivant pour la sauvegarde
     // principale. Sur iPhone, l'application peut être terminée avant
     // l'exécution d'un addPostFrameCallback.
@@ -45,7 +50,9 @@ extension _StatePersistence on _MaBelleSemaineAppState {
     _persistenceQueued = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _persistenceQueued = false;
-      if (mounted) _persistLocalState(recordUndo: false);
+      if (mounted && generation == _persistenceGeneration) {
+        _persistLocalState(recordUndo: false);
+      }
     });
   }
 
@@ -690,6 +697,8 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _priorityBonusAwarded = false;
       _priorityBonusTotal = 0;
       _priorityRewardText = 'un moment plaisir';
+      // Une réinitialisation complète repart aussi sans objectifs de réalisation.
+      _realizationGoals.clear();
       _systemIconOverrides.clear();
       _systemUiIconOverrides.clear();
       categoryFilter = 'Toutes';

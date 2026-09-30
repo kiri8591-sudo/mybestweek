@@ -204,7 +204,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
                 heroTag: 'undo-last-action',
                 tooltip: 'Annuler la dernière action',
                 onPressed: _undoLastAction,
-                child: const Icon(Icons.undo_rounded),
+                child: _systemIconWidget('undo', fallback: '↩️', size: 20),
               )
             : null,
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,

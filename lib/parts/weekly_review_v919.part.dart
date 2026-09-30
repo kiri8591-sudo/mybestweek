@@ -81,7 +81,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
         title: const Text('Bilan de la semaine'),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back),
+          icon: _uiIconValue('reviewBack', '←').startsWith('customicon://') ? _activityIconWidget(_uiIconValue('reviewBack', '←'), size: 20) : Text(_uiIconValue('reviewBack', '←'), style: const TextStyle(fontSize: 20)),
           tooltip: 'Retour',
         ),
       ),
@@ -97,27 +97,27 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                   Text('Cette semaine en quelques chiffres', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
                   const SizedBox(height: 14),
                   Row(children: [
-                    Expanded(child: _ReviewStat(label: 'Moments réalisés', value: '$completed/${trackedPlan.length}', icon: Icons.check_circle_outline)),
+                    Expanded(child: _ReviewStat(label: 'Moments réalisés', value: '$completed/${trackedPlan.length}', iconKey: 'reviewMoments', icon: Icons.check_circle_outline)),
                     const SizedBox(width: 10),
-                    Expanded(child: _ReviewStat(label: 'Régularité', value: '${(completionRate * 100).round()} %', icon: Icons.calendar_month_outlined)),
+                    Expanded(child: _ReviewStat(label: 'Régularité', value: '${(completionRate * 100).round()} %', iconKey: 'reviewRegularity', icon: Icons.calendar_month_outlined)),
                   ]),
                   const SizedBox(height: 10),
                   Row(children: [
-                    Expanded(child: _ReviewStat(label: 'Prévu', value: '$plannedMinutes min', icon: Icons.schedule_outlined)),
+                    Expanded(child: _ReviewStat(label: 'Prévu', value: '$plannedMinutes min', iconKey: 'reviewPlanned', icon: Icons.schedule_outlined)),
                     const SizedBox(width: 10),
-                    Expanded(child: _ReviewStat(label: 'Réalisé', value: '$realisedMinutes min', icon: Icons.play_circle_outline)),
+                    Expanded(child: _ReviewStat(label: 'Réalisé', value: '$realisedMinutes min', iconKey: 'reviewRealized', icon: Icons.play_circle_outline)),
                   ]),
                   const SizedBox(height: 10),
                   Row(children: [
-                    Expanded(child: _ReviewStat(label: 'À faire', value: '$remainingMinutes min', icon: Icons.hourglass_empty_outlined)),
+                    Expanded(child: _ReviewStat(label: 'À faire', value: '$remainingMinutes min', iconKey: 'reviewRemaining', icon: Icons.hourglass_empty_outlined)),
                     const SizedBox(width: 10),
-                    Expanded(child: _ReviewStat(label: 'Déplacées', value: '${weekMoves.length}', icon: Icons.open_with_outlined)),
+                    Expanded(child: _ReviewStat(label: 'Déplacées', value: '${weekMoves.length}', iconKey: 'reviewMoved', icon: Icons.open_with_outlined)),
                   ]),
                   const SizedBox(height: 10),
                   Row(children: [
-                    Expanded(child: _ReviewStat(label: 'Temps validé', value: '$validatedMinutes min', icon: Icons.timer_outlined)),
+                    Expanded(child: _ReviewStat(label: 'Temps validé', value: '$validatedMinutes min', iconKey: 'reviewValidated', icon: Icons.timer_outlined)),
                     const SizedBox(width: 10),
-                    Expanded(child: _ReviewStat(label: 'Imprévus', value: '$unplanned', icon: Icons.auto_awesome_outlined)),
+                    Expanded(child: _ReviewStat(label: 'Imprévus', value: '$unplanned', iconKey: 'reviewUnexpected', icon: Icons.auto_awesome_outlined)),
                   ]),
                   const SizedBox(height: 12),
                   LinearProgressIndicator(value: completionRate, minHeight: 9, borderRadius: BorderRadius.circular(20)),
@@ -204,15 +204,15 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                       ),
                       const SizedBox(height: 11),
                       Row(children: [
-                        Expanded(child: _ReviewStat(label: 'Jours actifs', value: '$totalActiveDays/28', icon: Icons.event_available_outlined)),
+                        Expanded(child: _ReviewStat(label: 'Jours actifs', value: '$totalActiveDays/28', iconKey: 'reviewActiveDays', icon: Icons.event_available_outlined)),
                         const SizedBox(width: 8),
-                        Expanded(child: _ReviewStat(label: 'Moments', value: '$totalFourWeeksMoments', icon: Icons.check_circle_outline)),
+                        Expanded(child: _ReviewStat(label: 'Moments', value: '$totalFourWeeksMoments', iconKey: 'reviewMoments', icon: Icons.check_circle_outline)),
                       ]),
                       const SizedBox(height: 8),
                       Row(children: [
-                        Expanded(child: _ReviewStat(label: 'Temps vécu', value: '$totalFourWeeksMinutes min', icon: Icons.timer_outlined)),
+                        Expanded(child: _ReviewStat(label: 'Temps vécu', value: '$totalFourWeeksMinutes min', iconKey: 'reviewTime', icon: Icons.timer_outlined)),
                         const SizedBox(width: 8),
-                        Expanded(child: _ReviewStat(label: 'Difficiles', value: '$totalFourWeeksDifficult', icon: Icons.battery_alert_outlined)),
+                        Expanded(child: _ReviewStat(label: 'Difficiles', value: '$totalFourWeeksDifficult', iconKey: 'reviewDifficult', icon: Icons.battery_alert_outlined)),
                       ]),
                       const SizedBox(height: 13),
                       ...fourWeekRows.asMap().entries.map((entry) {
@@ -275,7 +275,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                 padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    const Icon(Icons.piano_outlined, color: Color(0xFFC67E67)),
+                    _uiIcon('reviewPiano', Icons.piano_outlined, size: 21, color: const Color(0xFFC67E67)),
                     const SizedBox(width: 8),
                     Text('Musique & mouvement', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
                   ]),
@@ -295,7 +295,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                 padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    const Icon(Icons.sentiment_satisfied_alt_outlined, color: Color(0xFF6F8E80)),
+                    _uiIcon('reviewMood', Icons.sentiment_satisfied_alt_outlined, size: 21, color: const Color(0xFF6F8E80)),
                     const SizedBox(width: 8),
                     Text('Comment s’est passée la semaine ?', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
                   ]),
@@ -458,9 +458,10 @@ class _ReviewWeekRow extends StatelessWidget {
 class _ReviewStat extends StatelessWidget {
   final String label;
   final String value;
+  final String iconKey;
   final IconData icon;
 
-  const _ReviewStat({required this.label, required this.value, required this.icon});
+  const _ReviewStat({required this.label, required this.value, required this.iconKey, required this.icon});
 
   @override
   Widget build(BuildContext context) {
@@ -473,7 +474,7 @@ class _ReviewStat extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: const Color(0xFF526B78)),
+          _uiIcon(iconKey, icon, size: 20, color: const Color(0xFF526B78)),
           const SizedBox(width: 8),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),

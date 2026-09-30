@@ -52,7 +52,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                 ),
                 if (highlighted) ...[
                   const SizedBox(width: 7),
-                  const Icon(Icons.south, size: 16, color: Color(0xFF6F8E80)),
+                  _systemIconWidget('dragDown', fallback: '↓', size: 16),
                   const SizedBox(width: 3),
                   const Text('Déposer ici', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
                 ],
@@ -139,7 +139,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
               tooltip: _isGenericActivityItem(item) ? 'Déplacer' : 'Voir / modifier',
               visualDensity: VisualDensity.compact,
               onPressed: () { final a = item.activityId == null ? null : findActivity(item.activityId!); if (a != null && _isSportActivity(a)) { addOrEditActivity(original: a); } else if (_isGenericActivityItem(item)) { _movePlanItemDay(item); } else { openItemActions(item); } },
-              icon: _isGenericActivityItem(item) ? _uiIcon('calendar', Icons.event_outlined, size: 18) : const Icon(Icons.chevron_right_rounded, size: 20),
+              icon: _isGenericActivityItem(item) ? _uiIcon('calendar', Icons.event_outlined, size: 18) : _uiIcon('planOpen', Icons.chevron_right_rounded, size: 20),
             ),
             IconButton(
               tooltip: 'Retirer du jour',

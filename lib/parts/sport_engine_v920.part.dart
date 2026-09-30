@@ -579,7 +579,10 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
         .toList();
     if (sportActivities.isEmpty || _sportProgram == null) return;
 
-    final days = _futureSportGenerationDays();
+    // Après une réinitialisation complète (startDay == 0), le planning est
+    // vierge : le Sport doit pouvoir reconstruire toute la semaine, y compris
+    // aujourd’hui et les jours déjà passés dans la semaine.
+    final days = startDay <= 0 ? _sportDays() : _futureSportGenerationDays();
     final generatedCount = <String, int>{for (final a in sportActivities) a.id: 0};
     var seq = seqStart;
     Set<String> previousDayIds = {};
