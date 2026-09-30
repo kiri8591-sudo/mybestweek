@@ -4,16 +4,29 @@ part of '../main.dart';
 // Cette partie partage volontairement la même bibliothèque que main.dart afin
 // de conserver les membres privés et l'état existant sans introduire de rupture.
 extension _StatePersistence on _MaBelleSemaineAppState {
-  void _persistLocalState() {
+  void _persistLocalState({bool recordUndo = true}) {
     // Au tout premier démarrage, le planning par défaut est construit avant
     // que l'ancienne sauvegarde ait été lue. Il ne faut surtout pas écrire
     // cette version intermédiaire et écraser la sauvegarde précédente.
     if (_isHydratingLocalState) return;
     try {
+      final previousRaw = html.window.localStorage[_MaBelleSemaineAppState._localStateKey];
       final root = jsonDecode(_backupJson()) as Map<String, dynamic>;
       root['weekKey'] = _currentWeekKey();
       root['savedAt'] = DateTime.now().toIso8601String();
-      html.window.localStorage[_MaBelleSemaineAppState._localStateKey] = const JsonEncoder.withIndent('  ').convert(root);
+      final nextRaw = const JsonEncoder.withIndent('  ').convert(root);
+      var undoChanged = false;
+      if (recordUndo && !_undoInProgress &&
+          previousRaw != null && previousRaw.trim().isNotEmpty &&
+          previousRaw != nextRaw) {
+        if (!_undoActionPrepared) {
+          _undoSnapshotJson = previousRaw;
+          undoChanged = true;
+        }
+        _undoActionPrepared = false;
+      }
+      html.window.localStorage[_MaBelleSemaineAppState._localStateKey] = nextRaw;
+      if (undoChanged && mounted) setState(() {});
     } catch (_) {
       // La persistance locale est facultative : une politique de stockage
       // navigateur restrictive ne doit jamais empêcher l'application de vivre.
@@ -24,7 +37,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
     // IMPORTANT : ne plus attendre le frame suivant pour la sauvegarde
     // principale. Sur iPhone, l'application peut être terminée avant
     // l'exécution d'un addPostFrameCallback.
-    _persistLocalState();
+    _persistLocalState(recordUndo: true);
 
     // Une seconde écriture après le frame protège les mutations réalisées
     // dans des enchaînements UI complexes et garde le coût raisonnable.
@@ -32,7 +45,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
     _persistenceQueued = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _persistenceQueued = false;
-      if (mounted) _persistLocalState();
+      if (mounted) _persistLocalState(recordUndo: false);
     });
   }
 
@@ -58,7 +71,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       // mutation est sauvegardée immédiatement. Cela évite de perdre les
       // dernières modifications lors de la fermeture définitive de l'iPhone.
       _isHydratingLocalState = false;
-      if (mounted) _persistLocalState();
+      if (mounted) _persistLocalState(recordUndo: false);
     }
   }
 
@@ -98,6 +111,8 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       'lastPlanningRegeneratedWeekKey': _lastPlanningRegeneratedWeekKey,
       'lastPlanningRegeneratedDays': [..._lastPlanningRegeneratedDays],
       'lastPlanningRegeneratedAt': _lastPlanningRegeneratedAt?.toIso8601String(),
+      'regenerateWholeWeekAfterReset': _regenerateWholeWeekAfterReset,
+      'lastPlanningWasFullWeek': _lastPlanningWasFullWeek,
       'generationActivityRules': {..._generationActivityRules},
       'regeneratedSportBudgets': {for (final e in _regeneratedSportBudgets.entries) '${e.key}': e.value},
       'generationCriteria': {
@@ -518,6 +533,8 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         _lastPlanningRegeneratedDays = _asIntList(root['lastPlanningRegeneratedDays']);
         final regeneratedAtRaw = _asString(root['lastPlanningRegeneratedAt']);
         _lastPlanningRegeneratedAt = regeneratedAtRaw == null ? null : DateTime.tryParse(regeneratedAtRaw);
+        _regenerateWholeWeekAfterReset = _asBool(root['regenerateWholeWeekAfterReset'], false);
+        _lastPlanningWasFullWeek = _asBool(root['lastPlanningWasFullWeek'], false);
         _generationActivityRules.clear();
         final rawActivityRules = root['generationActivityRules'];
         if (rawActivityRules is Map) {
@@ -632,6 +649,8 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _lastPlanningRegeneratedWeekKey = '';
       _lastPlanningRegeneratedDays = [];
       _lastPlanningRegeneratedAt = null;
+      _regenerateWholeWeekAfterReset = true;
+      _lastPlanningWasFullWeek = false;
       _lastPlanningCoachExplanation = '';
       _lastPlanningDecisionDetails = [];
       _generationActivityRules.clear();
@@ -690,7 +709,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       setState(() => _lastICloudBackupAt = confirmedAt);
       // Persistance immédiate : le rappel doit rester masqué même après
       // fermeture/réouverture de l’application.
-      _persistLocalState();
+      _persistLocalState(recordUndo: false);
       _showFeedback('✓ Sauvegarde iCloud enregistrée comme effectuée.');
     }
   }

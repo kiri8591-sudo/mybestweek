@@ -919,7 +919,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     _uiIcon('refresh', Icons.autorenew_rounded, size: 18, color: const Color(0xFF6F8E80)),
                     const SizedBox(width: 7),
                     Expanded(child: Text(
-                      'Planning régénéré : ${_regeneratedDaysMessage()}. Le passé et aujourd’hui ont été conservés.',
+                      'Planning régénéré : ${_regeneratedDaysMessage()}. ${_lastPlanningWasFullWeek ? 'La semaine entière a été reconstruite après la réinitialisation.' : 'Le passé et aujourd’hui ont été conservés.'}',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 10.3, fontWeight: FontWeight.w800, color: Color(0xFF526A5E), height: 1.2),
@@ -1221,7 +1221,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                   child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                     _uiIcon('refresh', Icons.autorenew_rounded, size: 18, color: const Color(0xFF6F8E80)),
                     const SizedBox(width: 7),
-                    Expanded(child: Text('Régénération : ${_regeneratedDaysMessage()}. Le passé et aujourd’hui restent inchangés.', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF526A5E)))),
+                    Expanded(child: Text('Régénération : ${_regeneratedDaysMessage()}. ${_lastPlanningWasFullWeek ? 'La semaine entière a été reconstruite après la réinitialisation.' : 'Le passé et aujourd’hui restent inchangés.'}', style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF526A5E)))),
                     TextButton(
                       onPressed: openPlanningCoachDecisions,
                       child: const Text('Pourquoi ?'),

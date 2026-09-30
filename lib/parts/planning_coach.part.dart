@@ -268,12 +268,13 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
   }
 
   String _regeneratedDaysMessage() {
-    // Seuls les jours strictement futurs peuvent être annoncés comme
-    // régénérés. Cela évite qu'une information conservée d'une régénération
-    // précédente affiche par erreur hier ou aujourd'hui.
+    // Après une réinitialisation complète, toute la semaine a été reconstruite :
+    // les jours passés de la semaine courante peuvent donc être annoncés.
+    // Dans une régénération normale, seuls les jours strictement futurs le sont.
     final currentDay = today;
-    final days = _lastPlanningRegeneratedDays
-        .where((d) => d >= 0 && d < 7 && d > currentDay)
+    final days = (_lastPlanningWasFullWeek
+            ? _lastPlanningRegeneratedDays.where((d) => d >= 0 && d < 7)
+            : _lastPlanningRegeneratedDays.where((d) => d >= 0 && d < 7 && d > currentDay))
         .toList();
     if (days.isEmpty) return '';
     final names = days.map((d) => dayNames[d]).toList();
@@ -699,15 +700,23 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
   }
 
   void generateWeek({bool showSnack = true, bool markAsRegenerated = false}) {
-    // « Repenser » ne réécrit jamais le passé ni aujourd’hui.
-    final cutoffDay = today;
+    // En usage normal, « Repenser » protège le passé et aujourd'hui.
+    // Exception : juste après une réinitialisation complète, le planning est
+    // volontairement vide ; la première régénération doit alors reconstruire
+    // toute la semaine à partir du lundi.
+    final fullWeekRebuild = _regenerateWholeWeekAfterReset;
+    final cutoffDay = fullWeekRebuild ? -1 : today;
     _regeneratedSportBudgets.removeWhere((day, _) => day > cutoffDay);
     final preservedPastAndToday = plan.where((p) => p.day <= cutoffDay).toList();
 
-    // Les éléments explicitement placés/manuels des jours futurs sont conservés.
-    final preservedFutureManual = plan.where((p) =>
-        p.day > cutoffDay &&
-        (p.activityId == null || p.manualPlacement || p.fixedInWeeklyTemplate)).toList();
+    // Les éléments explicitement placés/manuels des jours futurs sont conservés
+    // en génération normale. Après réinitialisation, le planning étant vierge,
+    // rien n'est à protéger.
+    final preservedFutureManual = fullWeekRebuild
+        ? <PlanItem>[]
+        : plan.where((p) =>
+            p.day > cutoffDay &&
+            (p.activityId == null || p.manualPlacement || p.fixedInWeeklyTemplate)).toList();
 
     // On garde une empreinte du planning automatique précédent afin que le
     // coach puisse dire explicitement lorsqu'une génération n'a rien changé.
@@ -898,6 +907,8 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
 
     setState(() {
       if (markAsRegenerated) {
+        _lastPlanningWasFullWeek = fullWeekRebuild;
+        _regenerateWholeWeekAfterReset = false;
         _lastPlanningRegeneratedWeekKey = _currentWeekKey();
         _lastPlanningRegeneratedDays = List<int>.generate(
           max(0, 7 - (cutoffDay + 1)),
@@ -946,8 +957,11 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
       final ruleMessage = activityRules.isEmpty ? '' : ' Consignes : $activityRules.';
       final sportMessage = sportDays == 0 ? '' : ' Sport : $sportDays jour(s) futur(s) · $totalSportMinutes min.';
       final decisionMessage = noChange ? ' Aucun changement automatique n’était nécessaire.' : '';
+      final snack = fullWeekRebuild
+          ? 'Planning de la semaine reconstruit (7 jours) selon $criteria.$ruleMessage$sportMessage$decisionMessage'
+          : 'Planning futur repensé ($futureDaysCount jour(s)) selon $criteria.$ruleMessage$sportMessage$decisionMessage';
       _scaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(content: Text('Planning futur repensé ($futureDaysCount jour(s)) selon $criteria.$ruleMessage$sportMessage$decisionMessage')),
+        SnackBar(content: Text(snack)),
       );
     }
   }
@@ -1152,7 +1166,11 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
   String _buildPlanningCoachExplanation(List<PlanItem> generated, {bool noChange = false, int preservedFutureManual = 0}) {
     final parts = <String>[];
     final futureGeneratedDays = generated.map((p) => p.day).toSet().length;
-    if (noChange) {
+    if (_regenerateWholeWeekAfterReset) {
+      parts.add(noChange
+          ? 'La semaine a été reconstruite après la réinitialisation complète ; aucune occurrence supplémentaire n’était nécessaire avec les critères actuels.'
+          : 'J’ai reconstruit ${generated.length} moment(s) sur $futureGeneratedDays jour(s) de la semaine après la réinitialisation complète.');
+    } else if (noChange) {
       parts.add('Je n’ai pas changé les créneaux automatiques futurs : après comparaison entre fréquence restante, historique, habitudes apprises, jours préférés et charge, le planning actuel reste cohérent.');
     } else {
       parts.add('J’ai reconstruit ${generated.length} moment(s) futur(s) sur $futureGeneratedDays jour(s), sans toucher au passé ni à aujourd’hui.');

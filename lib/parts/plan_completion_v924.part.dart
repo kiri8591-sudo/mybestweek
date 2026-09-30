@@ -9,6 +9,7 @@ extension _PlanCompletionPart on _MaBelleSemaineAppState {
       _showFeedback('Une activité sur plusieurs jours ne se valide pas.');
       return;
     }
+    _prepareUndoSnapshot();
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
     if (checked && activity != null && _isSportActivity(activity)) {
       _validateSportItemQuick(item, activity);

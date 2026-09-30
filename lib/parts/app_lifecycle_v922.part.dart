@@ -20,11 +20,11 @@ extension _AppLifecyclePart on _MaBelleSemaineAppState {
     // immédiate faite après chaque modification de données.
     _visibilitySubscription = html.document.onVisibilityChange.listen((_) {
       if (html.document.visibilityState == 'hidden') {
-        _persistLocalState();
+        _persistLocalState(recordUndo: false);
       }
     });
     _pageHideSubscription = html.window.onPageHide.listen((_) {
-      _persistLocalState();
+      _persistLocalState(recordUndo: false);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _loadLocalState();
@@ -35,13 +35,17 @@ extension _AppLifecyclePart on _MaBelleSemaineAppState {
         // Après restauration de l'état et de la météo, le message du matin
         // reflète à nouveau la journée réellement proposée.
         refreshMorningThought();
+        // Le recalcul initial de la pensée est une mise à jour automatique,
+        // pas une action utilisateur : il ne doit pas armer « Annuler ».
+        _undoSnapshotJson = null;
+        if (mounted) setState(() {});
       }
     });
   }
 
   void _disposeAppLifecycle() {
     // Dernière tentative synchrone avant destruction du State.
-    _persistLocalState();
+    _persistLocalState(recordUndo: false);
     _visibilitySubscription?.cancel();
     _pageHideSubscription?.cancel();
     _clockTimer?.cancel();

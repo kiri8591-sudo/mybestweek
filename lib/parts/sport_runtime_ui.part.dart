@@ -243,6 +243,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
       ),
     );
     if (selected == null || !mounted) return;
+    _prepareUndoSnapshot();
     final newItem = PlanItem(
       id: 'sport_manual_plan_${selected.id}_${day}_${DateTime.now().microsecondsSinceEpoch}',
       day: day,
@@ -305,6 +306,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
       activity,
     );
     if (realised == null || !mounted) return;
+    _prepareUndoSnapshot();
 
     final manualItem = PlanItem(
       id: 'sport_manual_${activity.id}_${day}_${DateTime.now().microsecondsSinceEpoch}',

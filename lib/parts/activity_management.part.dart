@@ -624,7 +624,8 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
       category: activity.category,
       current: activity.emoji,
     );
-    if (picked == null || !mounted) return;
+    if (picked == null || !mounted || picked == activity.emoji) return;
+    _prepareUndoSnapshot();
     setState(() {
       activity.emoji = picked;
       for (var i = 0; i < logs.length; i++) {

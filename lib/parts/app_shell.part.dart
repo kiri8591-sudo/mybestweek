@@ -199,6 +199,15 @@ extension _AppShellPart on _MaBelleSemaineAppState {
             child: IndexedStack(index: tab, children: [buildHome(), buildWeek(), buildActivities()]),
           ),
         ),
+        floatingActionButton: _canUndoLastAction
+            ? FloatingActionButton.small(
+                heroTag: 'undo-last-action',
+                tooltip: 'Annuler la dernière action',
+                onPressed: _undoLastAction,
+                child: const Icon(Icons.undo_rounded),
+              )
+            : null,
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         bottomNavigationBar: SafeArea(
           top: false,
           minimum: const EdgeInsets.fromLTRB(12, 5, 12, 8),

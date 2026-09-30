@@ -37,6 +37,7 @@ part 'parts/app_shell.part.dart';
 part 'parts/completion_celebration.part.dart';
 part 'parts/branding.part.dart';
 part 'parts/app_lifecycle_v922.part.dart';
+part 'parts/undo.part.dart';
 
 void main() {
   _installMascotBrowserIcon();
@@ -53,7 +54,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V9.25.1';
+  static const version = 'V9.25.6';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -135,7 +136,18 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   // Ils ne modifient pas la configuration récurrente de l'activité Sport.
   final Map<int, int> _regeneratedSportBudgets = {};
   bool _mondayRegenPromptDismissed = false;
+  // Après une réinitialisation complète, la prochaine régénération repart
+  // du lundi de la semaine courante au lieu de préserver le passé.
+  bool _regenerateWholeWeekAfterReset = false;
+  bool _lastPlanningWasFullWeek = false;
   bool _isHydratingLocalState = true;
+
+  // Une seule annulation, valable pour la dernière modification de données.
+  // Le snapshot reste en mémoire uniquement : il ne fait pas partie de la
+  // sauvegarde utilisateur.
+  String? _undoSnapshotJson;
+  bool _undoInProgress = false;
+  bool _undoActionPrepared = false;
   DateTime? _lastICloudBackupAt;
   String _userName = '';
   String _weatherCity = '';
