@@ -11,6 +11,55 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
     return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
+  bool _isDailyPriorityActivityId(String? activityId) =>
+      activityId != null && _dailyPriorityActivityIds.contains(activityId);
+
+  bool _planContainsPriorityToday(String activityId) => plan.any(
+        (item) => item.day == today && item.activityId == activityId,
+      );
+
+  void _ensureDailyPrioritiesInTodayPlan() {
+    if (!mounted) return;
+    final selected = _dailyPriorityActivities();
+    final missing = selected
+        .where((activity) => !_planContainsPriorityToday(activity.id))
+        .toList();
+    if (missing.isEmpty) return;
+
+    var seq = 0;
+    setState(() {
+      for (final activity in missing) {
+        final done = _priorityActivityDoneToday(activity);
+        plan.add(PlanItem(
+          id: 'priority_${DateTime.now().microsecondsSinceEpoch}_$seq',
+          day: today,
+          period: activity.period,
+          timeLabel: null,
+          activityId: activity.id,
+          title: activity.name,
+          details: 'Priorité du jour — ajoutée automatiquement car elle n’était pas présente dans le planning.',
+          duration: _isSportActivity(activity)
+              ? _sportGenerationDuration(activity)
+              : _learnedDurationForGeneration(activity),
+          optional: false,
+          userAdded: true,
+          fixedInWeeklyTemplate: false,
+          manualPlacement: true,
+          done: done,
+          realisedMinutes: done ? max(1, activity.duration) : null,
+        ));
+        seq++;
+      }
+      _sortPlan();
+    });
+    _queueLocalStatePersist();
+    _showFeedback(
+      missing.length == 1
+          ? '⭐ Priorité ajoutée aux activités du jour.'
+          : '⭐ ${missing.length} priorités ajoutées aux activités du jour.',
+    );
+  }
+
   List<Activity> _dailyPriorityActivities() {
     final selected = <Activity>[];
     for (final id in _dailyPriorityActivityIds) {
@@ -245,15 +294,33 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
     );
 
     if (picked == null || !mounted) return;
-    final changed = picked.length != _dailyPriorityActivityIds.length || !picked.containsAll(_dailyPriorityActivityIds);
+
+    final previousIds = <String>{..._dailyPriorityActivityIds};
+    final nextIds = <String>{...picked.take(5)};
+    final changed = previousIds.length != nextIds.length || !previousIds.containsAll(nextIds);
     if (!changed) return;
+
     _prepareUndoSnapshot();
     setState(() {
       _dailyPriorityActivityIds
         ..clear()
-        ..addAll(picked.take(5));
+        ..addAll(nextIds);
+
+      // Si une priorité avait nécessité l'insertion automatique d'une
+      // occurrence dans la journée, cette occurrence doit disparaître lorsque
+      // la priorité est retirée. Les activités déjà présentes dans le
+      // planning (manuel ou généré) ne sont jamais touchées.
+      final removedPriorityIds = previousIds.difference(nextIds);
+      if (removedPriorityIds.isNotEmpty) {
+        plan.removeWhere((item) =>
+            item.day == today &&
+            removedPriorityIds.contains(item.activityId) &&
+            item.id.startsWith('priority_'));
+        _sortPlan();
+      }
     });
     _queueLocalStatePersist();
+    _ensureDailyPrioritiesInTodayPlan();
     _maybeAwardDailyPriorityBonus();
   }
 

@@ -330,18 +330,43 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              item.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w800,
-                                fontFamily: GoogleFonts.nunitoSans().fontFamily,
-                                color: const Color(0xFF3F4B45),
-                                height: 1.18,
-                                decoration: item.done ? TextDecoration.lineThrough : null,
-                              ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w800,
+                                      fontFamily: GoogleFonts.nunitoSans().fontFamily,
+                                      color: const Color(0xFF3F4B45),
+                                      height: 1.18,
+                                      decoration: item.done ? TextDecoration.lineThrough : null,
+                                    ),
+                                  ),
+                                ),
+                                if (item.day == today && _isDailyPriorityActivityId(item.activityId)) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFEBC8),
+                                      borderRadius: BorderRadius.circular(7),
+                                      border: Border.all(color: const Color(0xFFE8C98B)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        _uiIcon('priority', Icons.star_rounded, size: 13, color: const Color(0xFFA27432)),
+                                        const SizedBox(width: 2),
+                                        const Text('PRIORITÉ', style: TextStyle(fontSize: 7.5, fontWeight: FontWeight.w900, color: Color(0xFFA27432))),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                           if (_isGenericActivityItem(item))

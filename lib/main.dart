@@ -1,4 +1,4 @@
-// V9.30.2 — identité visuelle renforcée.
+// V9.30.5 — priorités du jour intégrées et visibles dans le planning.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -58,7 +58,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V9.30.2';
+  static const version = 'V9.31.1';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
