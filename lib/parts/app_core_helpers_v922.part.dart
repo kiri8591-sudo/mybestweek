@@ -174,6 +174,7 @@ extension _AppCoreHelpersPart on _MaBelleSemaineAppState {
           onImport: importBackupFile,
           onReset: resetDatabaseCompletely,
           cloudBackupStatus: _cloudBackupStatusText(),
+          fileBackupStatus: _fileBackupStatusText(),
           cloudReminderDays: _MaBelleSemaineAppState._cloudBackupReminderDays,
         ),
       ),

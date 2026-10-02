@@ -65,6 +65,7 @@ class _DataPage extends StatelessWidget {
   final Future<bool> Function() onImport;
   final Future<void> Function() onReset;
   final String cloudBackupStatus;
+  final String fileBackupStatus;
   final int cloudReminderDays;
 
   const _DataPage({
@@ -73,6 +74,7 @@ class _DataPage extends StatelessWidget {
     required this.onImport,
     required this.onReset,
     required this.cloudBackupStatus,
+    required this.fileBackupStatus,
     required this.cloudReminderDays,
   });
 
@@ -254,7 +256,7 @@ class _DataPage extends StatelessWidget {
   }
 
   Widget _statusPill() {
-    final noBackup = cloudBackupStatus.startsWith('Aucune');
+    final noBackup = cloudBackupStatus.startsWith('Aucune') || fileBackupStatus.startsWith('Aucune');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
@@ -371,8 +373,8 @@ class _DataPage extends StatelessWidget {
                 _backupStep(
                   icon: Icons.archive_outlined, iconKey: 'backupFile',
                   title: 'Fichier .json',
-                  text: 'À conserver où tu veux pour une restauration complète.',
-                  done: false,
+                  text: fileBackupStatus,
+                  done: !fileBackupStatus.startsWith('Aucune'),
                 ),
               ],
             ),

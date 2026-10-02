@@ -241,59 +241,42 @@ extension _WeatherHomePart on _MaBelleSemaineAppState {
   }
 
   Future<String?> _pickHomeMascotImage() async {
-    final input = html.FileUploadInputElement()
-      ..accept = 'image/*'
-      ..multiple = false;
-    input.style
-      ..position = 'fixed'
-      ..left = '-10000px'
-      ..top = '0'
-      ..width = '1px'
-      ..height = '1px'
-      ..opacity = '0';
-    html.document.body?.children.add(input);
     try {
-      try {
-        input.click();
-        await input.onChange.first;
-      } catch (_) {
-        _showFeedback('Impossible d’ouvrir le sélecteur de photo dans ce navigateur.');
-        return null;
-      }
-      final files = input.files;
-      if (files == null || files.isEmpty) {
+      final result = await FilePicker.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) {
         _showFeedback('Aucune photo n’a été sélectionnée.');
         return null;
       }
-      final file = files.first;
-      final mime = file.type.toLowerCase();
-      if (mime.isNotEmpty && !mime.startsWith('image/')) {
-        _showFeedback('Ce fichier n’est pas une photo compatible.');
-        return null;
-      }
+      final file = result.files.first;
       if (file.size > 1024 * 1024) {
         _showFeedback('Photo trop lourde. Choisis une image de moins de 1 Mo.');
         return null;
       }
-      final reader = html.FileReader();
-      try {
-        reader.readAsDataUrl(file);
-        await reader.onLoad.first;
-      } catch (_) {
-        _showFeedback('Impossible de lire cette photo. Essaie une image PNG ou JPEG.');
+      var bytes = file.bytes;
+      if (bytes == null) bytes = await file.xFile.readAsBytes();
+      if (bytes == null || bytes.isEmpty) {
+        _showFeedback('Impossible de lire cette photo.');
         return null;
       }
-      final data = reader.result?.toString();
-      if (data == null || data.isEmpty || !data.startsWith('data:image/')) {
-        _showFeedback('La photo sélectionnée n’a pas pu être importée.');
-        return null;
+      String mime;
+      switch ((file.extension ?? '').toLowerCase()) {
+        case 'png': mime = 'image/png'; break;
+        case 'jpg':
+        case 'jpeg': mime = 'image/jpeg'; break;
+        case 'gif': mime = 'image/gif'; break;
+        case 'webp': mime = 'image/webp'; break;
+        case 'heic':
+        case 'heif': mime = 'image/heic'; break;
+        default: mime = 'image/jpeg';
       }
-      return data;
+      return 'data:$mime;base64,${base64Encode(bytes)}';
     } catch (_) {
       _showFeedback('L’importation de la photo a échoué.');
       return null;
-    } finally {
-      input.remove();
     }
   }
 

@@ -330,110 +330,59 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
   }
 
   Future<String?> _compressCustomActivityIconDataUrl(String dataUrl) async {
-    try {
-      final image = html.ImageElement();
-      final loaded = image.onLoad.first.then<bool>((_) => true);
-      final failed = image.onError.first.then<bool>((_) => false);
-      image.src = dataUrl;
-      final ok = await Future.any<bool>([loaded, failed]);
-      if (!ok) return null;
-      final sourceWidth = image.naturalWidth;
-      final sourceHeight = image.naturalHeight;
-      if (sourceWidth <= 0 || sourceHeight <= 0) return null;
+    // Sur toutes les plateformes, l’image est déjà limitée en taille lors
+    // du choix. On conserve le data URL tel quel pour éviter une dépendance
+    // au DOM/CANVAS qui n’existe pas sur iOS natif.
+    return dataUrl;
+  }
 
-      const maxDimension = 192;
-      final scale = min(1.0, maxDimension / max(sourceWidth, sourceHeight));
-      final targetWidth = max(1, (sourceWidth * scale).round());
-      final targetHeight = max(1, (sourceHeight * scale).round());
-
-      // Conversion systématique en PNG : cela évite de stocker un GIF/WebP/HEIC
-      // que Flutter Web pourrait ne pas réussir à décoder ensuite.
-      final canvas = html.CanvasElement(width: targetWidth, height: targetHeight);
-      canvas.context2D.drawImageScaled(image, 0, 0, targetWidth, targetHeight);
-      final compressed = canvas.toDataUrl('image/png');
-      return compressed.isEmpty ? null : compressed;
-    } catch (_) {
-      return null;
+  String _imageMimeFromExtension(String? extension) {
+    switch ((extension ?? '').toLowerCase()) {
+      case 'png': return 'image/png';
+      case 'jpg':
+      case 'jpeg': return 'image/jpeg';
+      case 'gif': return 'image/gif';
+      case 'webp': return 'image/webp';
+      case 'heic':
+      case 'heif': return 'image/heic';
+      default: return 'image/png';
     }
   }
 
   Future<String?> _pickCustomActivityIconImage() async {
-    final input = html.FileUploadInputElement()
-      ..accept = 'image/*'
-      ..multiple = false;
-    input.style
-      ..position = 'fixed'
-      ..left = '-10000px'
-      ..top = '0'
-      ..width = '1px'
-      ..height = '1px'
-      ..opacity = '0';
-    html.document.body?.children.add(input);
     try {
-      try {
-        input.click();
-        await input.onChange.first;
-      } catch (_) {
-        _showFeedback('Impossible d’ouvrir le sélecteur d’image dans ce navigateur.');
-        return null;
-      }
-
-      final files = input.files;
-      if (files == null || files.isEmpty) {
+      final result = await FilePicker.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) {
         _showFeedback('Aucune image n’a été sélectionnée.');
         return null;
       }
-      final file = files.first;
-      final mime = file.type.toLowerCase();
-      if (mime.isNotEmpty && !mime.startsWith('image/')) {
-        _showFeedback('Ce fichier n’est pas une image compatible.');
-        return null;
-      }
+      final file = result.files.first;
       if (file.size > 512 * 1024) {
         _showFeedback('Icône trop lourde. Choisis une image de moins de 512 Ko.');
         return null;
       }
-
-      final reader = html.FileReader();
-      try {
-        reader.readAsDataUrl(file);
-        await reader.onLoad.first;
-      } catch (_) {
-        _showFeedback('Impossible de lire cette image. Essaie un fichier PNG ou JPEG.');
-        return null;
-      }
-
-      final originalData = reader.result?.toString();
-      if (originalData == null || originalData.isEmpty || !originalData.startsWith('data:image/')) {
-        _showFeedback('Le fichier sélectionné n’a pas pu être converti en image.');
-        return null;
-      }
-
-      final data = await _compressCustomActivityIconDataUrl(originalData);
-      if (data == null || data.isEmpty) {
-        _showFeedback('Cette image ne peut pas être importée comme icône. Essaie un PNG ou JPEG.');
-        return null;
-      }
-      final finalData = data;
-      final bytes = _decodeCustomIconData(finalData);
+      var bytes = file.bytes;
+      if (bytes == null) bytes = await file.xFile.readAsBytes();
       if (bytes == null || bytes.isEmpty) {
-        _showFeedback('Cette image ne peut pas être utilisée comme icône personnelle.');
+        _showFeedback('Impossible de lire cette image.');
         return null;
       }
-
+      final data = 'data:${_imageMimeFromExtension(file.extension)};base64,${base64Encode(bytes)}';
       final id = 'icon_${DateTime.now().microsecondsSinceEpoch}';
       final label = file.name.isEmpty ? 'Icône personnelle' : file.name;
-      final entry = _CustomActivityIcon(id: id, label: label, data: finalData);
+      final entry = _CustomActivityIcon(id: id, label: label, data: data);
       _customActivityIcons.add(entry);
       _customActivityIconData[id] = entry.data;
-      _customActivityIconBytes[id] = bytes;
+      _customActivityIconBytes[id] = Uint8List.fromList(bytes);
       _queueLocalStatePersist();
-      return 'customicon://$id';
+      return data;
     } catch (_) {
-      _showFeedback('L’importation de cette image a échoué. Essaie un PNG ou JPEG de moins de 512 Ko.');
+      _showFeedback('L’importation de cette image a échoué.');
       return null;
-    } finally {
-      input.remove();
     }
   }
 

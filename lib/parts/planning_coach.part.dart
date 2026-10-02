@@ -6,6 +6,63 @@ part of '../main.dart';
 extension _PlanningCoachPart on _MaBelleSemaineAppState {
   String _generationActivityRule(String activityId) => _generationActivityRules[activityId] ?? 'normal';
 
+  bool get _applyNextWeekCoachDirections =>
+      _nextWeekCoachDirections.isNotEmpty && _clockNow.weekday == DateTime.monday;
+
+  int _generationNextWeekDirectionScore(Activity activity) {
+    if (!_applyNextWeekCoachDirections) return 0;
+    if (_isSportActivity(activity) || activity.isSportProgram || activity.isDateRange) return 0;
+    final category = activity.category.trim().toLowerCase();
+    final name = activity.name.trim().toLowerCase();
+    var score = 0;
+    if (_nextWeekCoachDirections.contains('outdoor') &&
+        _isOutdoorPlanningActivity(activity)) {
+      score += 4;
+    }
+    if (_nextWeekCoachDirections.contains('culture') &&
+        (category == 'culture' ||
+            name.contains('piano') ||
+            name.contains('musique') ||
+            name.contains('lecture') ||
+            name.contains('livre'))) {
+      score += 4;
+    }
+    if (_nextWeekCoachDirections.contains('social') && category == 'social') {
+      score += 4;
+    }
+    if (_nextWeekCoachDirections.contains('wellness') &&
+        (category == 'bien-être' ||
+            name.contains('bien-être') ||
+            name.contains('bien etre') ||
+            name.contains('relax') ||
+            name.contains('méditation') ||
+            name.contains('meditation'))) {
+      score += 4;
+    }
+    return score;
+  }
+
+  String _generationNextWeekDirectionLabel(Activity activity) {
+    final labels = <String>[];
+    if (_nextWeekCoachDirections.contains('outdoor') && _isOutdoorPlanningActivity(activity)) {
+      labels.add('plein air');
+    }
+    final category = activity.category.trim().toLowerCase();
+    final name = activity.name.trim().toLowerCase();
+    if (_nextWeekCoachDirections.contains('culture') &&
+        (category == 'culture' || name.contains('piano') || name.contains('musique') || name.contains('lecture') || name.contains('livre'))) {
+      labels.add('musique / culture');
+    }
+    if (_nextWeekCoachDirections.contains('social') && category == 'social') {
+      labels.add('vie sociale');
+    }
+    if (_nextWeekCoachDirections.contains('wellness') &&
+        (category == 'bien-être' || name.contains('bien-être') || name.contains('bien etre') || name.contains('relax') || name.contains('méditation') || name.contains('meditation'))) {
+      labels.add('bien-être');
+    }
+    return labels.isEmpty ? '' : labels.join(' · ');
+  }
+
   int _effectiveGenerationFrequency(Activity activity) {
     final base = activity.frequency.clamp(1, 7).toInt();
     switch (_generationActivityRule(activity.id)) {
@@ -391,6 +448,8 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
     if (rule == 'more') reasons.add('consigne « Plus de »');
     if (rule == 'less') reasons.add('consigne « Moins de »');
     if (_generationRespectPriorities && activity.priority >= 4) reasons.add('priorité ${activity.priority}/5');
+    final directionLabel = _generationNextWeekDirectionLabel(activity);
+    if (directionLabel.isNotEmpty) reasons.add('direction du Coach : $directionLabel');
     if (_generationRespectPreferredDays && activity.preferredDays.contains(day)) {
       reasons.add('${dayNames[day]} fait partie de tes jours préférés');
     }
@@ -799,6 +858,8 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
           final priorityCompare = b.priority.compareTo(a.priority);
           if (priorityCompare != 0) return priorityCompare;
         }
+        final directionCompare = _generationNextWeekDirectionScore(b).compareTo(_generationNextWeekDirectionScore(a));
+        if (directionCompare != 0) return directionCompare;
         if (_generationUseHistory) {
           final historyCompare = _historyPlanningScore(b, today).compareTo(_historyPlanningScore(a, today));
           if (historyCompare != 0) return historyCompare;
@@ -954,6 +1015,9 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
         }
         _lastPlanningDecisionDetails = savedDetails;
         _mondayRegenPromptDismissed = true;
+        if (_applyNextWeekCoachDirections) {
+          _nextWeekCoachDirections.clear();
+        }
       }
       plan
         ..removeWhere((p) => p.day > cutoffDay && !(p.activityId == null || p.manualPlacement || p.fixedInWeeklyTemplate))

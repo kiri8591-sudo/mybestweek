@@ -10,7 +10,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
     // cette version intermédiaire et écraser la sauvegarde précédente.
     if (_isHydratingLocalState) return;
     try {
-      final previousRaw = html.window.localStorage[_MaBelleSemaineAppState._localStateKey];
+      final previousRaw = _preferences?.getString(_MaBelleSemaineAppState._localStateKey);
       final root = jsonDecode(_backupJson()) as Map<String, dynamic>;
       root['weekKey'] = _currentWeekKey();
       root['savedAt'] = DateTime.now().toIso8601String();
@@ -25,7 +25,10 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         }
         _undoActionPrepared = false;
       }
-      html.window.localStorage[_MaBelleSemaineAppState._localStateKey] = nextRaw;
+      final prefs = _preferences;
+      if (prefs != null) {
+        unawaited(prefs.setString(_MaBelleSemaineAppState._localStateKey, nextRaw));
+      }
       if (undoChanged && mounted) setState(() {});
     } catch (_) {
       // La persistance locale est facultative : une politique de stockage
@@ -56,9 +59,31 @@ extension _StatePersistence on _MaBelleSemaineAppState {
     });
   }
 
-  void _loadLocalState() {
+  Future<void> _loadLocalState() async {
     try {
-      final raw = html.window.localStorage[_MaBelleSemaineAppState._localStateKey];
+      _preferences ??= await SharedPreferencesWithCache.create(
+        cacheOptions: const SharedPreferencesWithCacheOptions(),
+      );
+      var raw = _preferences?.getString(_MaBelleSemaineAppState._localStateKey);
+
+      // Migration douce de l'ancien stockage Web V9/V10/V11 : la clé
+      // historique était directement dans localStorage, alors que
+      // shared_preferences ajoute son propre espace de nommage sur le Web.
+      if ((raw == null || raw.trim().isEmpty) && kIsWeb) {
+        try {
+          final legacy = html.window.localStorage[_MaBelleSemaineAppState._localStateKey];
+          if (legacy != null && legacy.trim().isNotEmpty) {
+            raw = legacy;
+            final prefs = _preferences;
+            if (prefs != null) {
+              await prefs.setString(_MaBelleSemaineAppState._localStateKey, legacy);
+            }
+          }
+        } catch (_) {
+          // Migration Web facultative.
+        }
+      }
+
       if (raw == null || raw.trim().isEmpty) return;
       final root = jsonDecode(raw);
       if (root is! Map) return;
@@ -74,9 +99,6 @@ extension _StatePersistence on _MaBelleSemaineAppState {
     } catch (_) {
       // On repart simplement avec les données de démarrage.
     } finally {
-      // La phase de lecture est terminée : à partir de maintenant toute
-      // mutation est sauvegardée immédiatement. Cela évite de perdre les
-      // dernières modifications lors de la fermeture définitive de l'iPhone.
       _isHydratingLocalState = false;
       if (mounted) _persistLocalState(recordUndo: false);
     }
@@ -96,6 +118,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       'appVersion': _MaBelleSemaineAppState.version,
       'createdAt': DateTime.now().toIso8601String(),
       'lastICloudBackupAt': _lastICloudBackupAt?.toIso8601String(),
+      'lastFileBackupAt': _lastFileBackupAt?.toIso8601String(),
       'userName': _userName,
       'weatherCity': _weatherCity,
       'weatherText': _weatherText,
@@ -478,6 +501,8 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         }
         final cloudBackupDate = _asString(root['lastICloudBackupAt']);
         _lastICloudBackupAt = cloudBackupDate == null ? null : DateTime.tryParse(cloudBackupDate);
+        final fileBackupDate = _asString(root['lastFileBackupAt']);
+        _lastFileBackupAt = fileBackupDate == null ? null : DateTime.tryParse(fileBackupDate);
         _userName = _asString(root['userName']) ?? '';
         _weatherCity = _asString(root['weatherCity']) ?? '';
         _weatherText = _asString(root['weatherText']) ?? '';
@@ -737,30 +762,45 @@ extension _StatePersistence on _MaBelleSemaineAppState {
     }
   }
 
-  void exportBackupFile() {
-    final bytes = utf8.encode(_backupJson());
-    final blob = html.Blob([bytes], 'application/json;charset=utf-8');
-    final url = html.Url.createObjectUrlFromBlob(blob);
+  Future<bool> exportBackupFile() async {
+    final bytes = Uint8List.fromList(utf8.encode(_backupJson()));
     final dateStr = DateTime.now().toIso8601String().split('T').first;
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute('download', 'mybestweek_backup_$dateStr.json')
-      ..style.display = 'none';
-    html.document.body?.children.add(anchor);
-    anchor.click();
-    anchor.remove();
-    html.Url.revokeObjectUrl(url);
-    _showFeedback('Sauvegarde téléchargée.');
+    final fileName = 'mybestweek_backup_$dateStr.json';
+    try {
+      final saved = await FilePicker.saveFile(
+        dialogTitle: 'Enregistrer ma sauvegarde MyBestWeek',
+        fileName: fileName,
+        bytes: bytes,
+        type: FileType.custom,
+        allowedExtensions: const ['json'],
+      );
+      if (saved == null) {
+        _showFeedback('Sauvegarde annulée.');
+        return false;
+      }
+
+      final now = DateTime.now();
+      if (mounted) {
+        setState(() => _lastFileBackupAt = now);
+        _persistLocalState(recordUndo: false);
+      }
+      _showFeedback(kIsWeb ? 'Sauvegarde téléchargée.' : '✓ Sauvegarde enregistrée dans Fichiers.');
+      return true;
+    } catch (_) {
+      _showFeedback('Impossible de créer la sauvegarde.');
+      return false;
+    }
   }
 
   Future<void> exportBackupToICloud() async {
-    exportBackupFile();
-    if (!mounted) return;
+    final exported = await exportBackupFile();
+    if (!exported || !mounted) return;
     final confirmed = await showDialog<bool>(
       context: _navigatorKey.currentContext!,
       builder: (c) => AlertDialog(
         title: const Text('Sauvegarde iCloud'),
         content: const Text(
-          'Le fichier de sauvegarde vient d’être créé. Sur iPhone, enregistre-le dans « Fichiers » puis choisis « iCloud Drive ». Quand l’enregistrement est terminé, confirme ici.',
+          'Le fichier vient d’être créé. Sur iPhone, vérifie qu’il est enregistré dans « Fichiers » → « iCloud Drive », puis confirme ici.',
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Plus tard')),
@@ -771,8 +811,6 @@ extension _StatePersistence on _MaBelleSemaineAppState {
     if (confirmed == true && mounted) {
       final confirmedAt = DateTime.now();
       setState(() => _lastICloudBackupAt = confirmedAt);
-      // Persistance immédiate : le rappel doit rester masqué même après
-      // fermeture/réouverture de l’application.
       _persistLocalState(recordUndo: false);
       _showFeedback('✓ Sauvegarde iCloud enregistrée comme effectuée.');
     }
@@ -785,29 +823,38 @@ extension _StatePersistence on _MaBelleSemaineAppState {
     return 'Dernière sauvegarde iCloud : ${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')} à ${d.hour.toString().padLeft(2, '0')}h${d.minute.toString().padLeft(2, '0')}';
   }
 
+  String _fileBackupStatusText() {
+    final last = _lastFileBackupAt;
+    if (last == null) return 'Aucune copie de fichier créée.';
+    final d = last.toLocal();
+    return 'Dernière copie : ${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')} à ${d.hour.toString().padLeft(2, '0')}h${d.minute.toString().padLeft(2, '0')}';
+  }
+
   Future<bool> importBackupFile() async {
-    final input = html.FileUploadInputElement()
-      ..accept = '.json,application/json'
-      ..multiple = false;
-    input.style
-      ..position = 'fixed'
-      ..left = '-10000px'
-      ..top = '0'
-      ..width = '1px'
-      ..height = '1px'
-      ..opacity = '0';
-    html.document.body?.children.add(input);
-
     try {
-      input.click();
-      await input.onChange.first;
-      final files = input.files;
-      if (files == null || files.isEmpty) return false;
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['json'],
+        allowMultiple: false,
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return false;
 
-      final reader = html.FileReader();
-      reader.readAsText(files[0]);
-      await reader.onLoad.first;
-      final raw = reader.result?.toString() ?? '';
+      final file = result.files.first;
+      var bytes = file.bytes;
+      if (bytes == null) {
+        try {
+          bytes = await file.xFile.readAsBytes();
+        } catch (_) {
+          bytes = null;
+        }
+      }
+      if (bytes == null || bytes.isEmpty) {
+        _showFeedback('Impossible de lire le fichier de sauvegarde.');
+        return false;
+      }
+
+      final raw = utf8.decode(bytes, allowMalformed: true);
       if (raw.trim().isEmpty) return false;
 
       final ok = restoreBackup(raw);
@@ -817,8 +864,9 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       }
       _showFeedback('Sauvegarde restaurée.');
       return true;
-    } finally {
-      input.remove();
+    } catch (_) {
+      _showFeedback('Impossible d’ouvrir cette sauvegarde.');
+      return false;
     }
   }
 

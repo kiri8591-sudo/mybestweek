@@ -189,8 +189,46 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                     .toSet()
                     .length;
 
-                return Card(
-                  color: const Color(0xFFF3EEE8),
+                String directionTitle;
+                String directionText;
+                final averageActiveDays = totalActiveDays / 4.0;
+                final averageMinutes = totalFourWeeksMinutes / 4.0;
+                if (totalFourWeeksDifficult >= 4) {
+                  directionTitle = 'Cap conseillé : garder de la respiration';
+                  directionText = 'Les ressentis difficiles sont assez présents sur les quatre semaines. Pour la suite, le Coach préservera davantage les espaces libres et évitera de charger inutilement les journées déjà denses.';
+                } else if (averageActiveDays < 2.0) {
+                  directionTitle = 'Cap conseillé : retrouver un petit rythme';
+                  directionText = 'Le rythme reste léger sur les quatre dernières semaines. Le Coach cherchera surtout à installer quelques rendez-vous réguliers et faciles à tenir, plutôt qu’à augmenter brutalement le volume.';
+                } else if (averageMinutes >= 180) {
+                  directionTitle = 'Cap conseillé : consolider ce qui fonctionne';
+                  directionText = 'Le temps réellement vécu est déjà bien installé. La suite peut privilégier la continuité, les activités qui apportent du plaisir et quelques ajustements ciblés plutôt qu’une augmentation générale.';
+                } else {
+                  directionTitle = 'Cap conseillé : avancer sans forcer';
+                  directionText = 'Le rythme est présent mais encore perfectible. Le Coach cherchera à conserver les habitudes qui fonctionnent, tout en rééquilibrant progressivement les moments moins réguliers.';
+                }
+
+                return Column(
+                  children: [
+                    Card(
+                      color: const Color(0xFFEAF1EB),
+                      child: Padding(
+                        padding: const EdgeInsets.all(15),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Row(children: [
+                            _uiIcon('coach', Icons.auto_awesome_outlined, size: 19, color: const Color(0xFF6F8E80)),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text('La direction pour la suite', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                          ]),
+                          const SizedBox(height: 7),
+                          Text(directionTitle, style: const TextStyle(fontSize: 13.2, fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 5),
+                          Text(directionText, style: const TextStyle(fontSize: 11.9, height: 1.35, color: Color(0xFF5E6B65))),
+                        ]),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Card(
+                      color: const Color(0xFFF3EEE8),
                   child: Padding(
                     padding: const EdgeInsets.all(15),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -230,6 +268,8 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                       }),
                     ]),
                   ),
+                    ),
+                  ],
                 );
               },
             ),

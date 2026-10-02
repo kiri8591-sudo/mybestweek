@@ -1,4 +1,4 @@
-// V9.30.5 — priorités du jour intégrées et visibles dans le planning.
+// V12.0.0 — finale : socle Coach stabilisé + persistance/fichiers multiplateformes.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -9,7 +9,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:html' as html;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:universal_html/universal_html.dart' as html;
 
 part 'parts/models.part.dart';
 part 'parts/default_data.part.dart';
@@ -44,7 +46,7 @@ part 'parts/priorities_v928.part.dart';
 part 'parts/objectives_v929.part.dart';
 
 void main() {
-  _installMascotBrowserIcon();
+  if (kIsWeb) _installMascotBrowserIcon();
   runApp(const MaBelleSemaineApp());
 }
 
@@ -58,7 +60,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V9.32.0';
+  static const version = 'V12.0.0';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -116,6 +118,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   int _resetGeneration = 0;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+  SharedPreferencesWithCache? _preferences;
   static const String _localStateKey = 'ma_belle_semaine_local_state_v2';
   static const int _cloudBackupReminderDays = 7;
   bool _persistenceQueued = false;
@@ -163,6 +166,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   String? _undoIconPreviousValue;
   String? _undoIconActivityName;
   DateTime? _lastICloudBackupAt;
+  DateTime? _lastFileBackupAt;
   String _userName = '';
   String _weatherCity = '';
   String _todayNameday = '';

@@ -423,67 +423,158 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
         if (dailyPriorityCompare != 0) return dailyPriorityCompare;
         final pa = a.activityId == null ? 1 : (findActivity(a.activityId!)?.priority ?? 1);
         final pb = b.activityId == null ? 1 : (findActivity(b.activityId!)?.priority ?? 1);
-        final priority = pb.compareTo(pa);
-        if (priority != 0) return priority;
+        final priorityCompare = pb.compareTo(pa);
+        if (priorityCompare != 0) return priorityCompare;
+        final periodOrder = {'Matin': 0, 'Midi': 1, 'Après-midi': 2, 'Soir': 3};
+        final periodCompare = (periodOrder[a.period] ?? 9).compareTo(periodOrder[b.period] ?? 9);
+        if (periodCompare != 0) return periodCompare;
         return a.duration.compareTo(b.duration);
       });
       mission = remaining.first;
     }
+
     final activity = mission?.activityId == null ? null : findActivity(mission!.activityId!);
+    final isPriority = mission != null && _isDailyPriorityActivityId(mission!.activityId);
     final title = mission == null ? 'Journée libre' : mission.title;
     final reason = mission == null
         ? 'Aucun moment actif ne reste à vivre aujourd’hui. Le Coach te laisse de l’espace.'
-        : _isDailyPriorityActivityId(mission.activityId)
-            ? '⭐ Priorité du jour : je te propose de commencer par ce moment de ${mission.duration} min.'
+        : isPriority
+            ? 'Je te propose cette priorité du jour.'
             : activity != null
-                ? 'Je te propose ce moment en priorité : ${activity.category.toLowerCase()} · ${mission.duration} min.'
-                : 'Je te propose de commencer par ce moment de ${mission.duration} min.';
+                ? 'Je te propose ce moment ${activity.category.toLowerCase()}.'
+                : 'Je te propose ce moment.';
+
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 1, 16, 8),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF7E9),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE9DDC4)),
-            boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 18, offset: Offset(0, 6))],
+            color: const Color(0xFFFFFAF2),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFE8DDCA)),
+            boxShadow: const [
+              BoxShadow(color: Color(0x14000000), blurRadius: 18, offset: Offset(0, 6)),
+            ],
           ),
-          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(13, 12, 12, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 40, height: 40, alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEDCF),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(mission == null ? '🌿' : '🎯', style: const TextStyle(fontSize: 20)),
+              Row(
+                children: [
+                  _systemIconWidget('coach', fallback: '🧠', size: 18),
+                  const SizedBox(width: 7),
+                  const Expanded(
+                    child: Text(
+                      'Mission du jour',
+                      style: TextStyle(fontSize: 12.2, fontWeight: FontWeight.w900, color: Color(0xFF987659)),
+                    ),
+                  ),
+                  if (isPriority)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3E5C9),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: const Color(0xFFE2D0AE)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFF9A7B44)),
+                          const SizedBox(width: 3),
+                          const Text('Priorité', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF7F6940))),
+                        ],
+                      ),
+                    ),
+                ],
               ),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('MISSION DU JOUR', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: .45, color: Color(0xFF9A7758))),
-                  const SizedBox(height: 2),
-                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12.8, fontWeight: FontWeight.w900, color: Color(0xFF4E5149))),
-                  const SizedBox(height: 2),
-                  Text(reason, maxLines: 2, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 10.1, height: 1.22, color: Color(0xFF736E62))),
-                ]),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEFD7),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: mission == null
+                        ? const Text('🌿', style: TextStyle(fontSize: 21))
+                        : _activityIconWidget(_planItemIconValue(mission!, activities), size: 24),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 14.5, height: 1.15, fontWeight: FontWeight.w900, color: Color(0xFF414C46)),
+                        ),
+                        if (mission != null) ...[
+                          const SizedBox(height: 5),
+                          Wrap(
+                            spacing: 5,
+                            runSpacing: 4,
+                            children: [
+                              _coachMissionMetaChip(mission!.period, _periodEmoji(mission!.period)),
+                              _coachMissionMetaChip('${mission!.duration} min', '⏱️'),
+                              if (activity != null) _coachMissionMetaChip(activity.category, null),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 6),
-              if (mission != null)
-                IconButton(
-                  tooltip: 'Voir ce moment',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () => openItemActions(mission!),
-                  icon: _systemIconWidget('coach', fallback: '→', size: 19),
-                ),
+              const SizedBox(height: 9),
+              Text(
+                reason,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 10.8, height: 1.28, color: Color(0xFF6C6F66), fontWeight: FontWeight.w600),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _coachMissionMetaChip(String label, String? emoji) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F0E9),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (emoji != null) ...[
+            Text(emoji, style: const TextStyle(fontSize: 10.5)),
+            const SizedBox(width: 3),
+          ],
+          Text(label, style: const TextStyle(fontSize: 9.7, fontWeight: FontWeight.w800, color: Color(0xFF667069))),
+        ],
+      ),
+    );
+  }
+
+  String _periodEmoji(String period) {
+    switch (period) {
+      case 'Matin': return '🌤️';
+      case 'Midi': return '☀️';
+      case 'Après-midi': return '🌿';
+      case 'Soir': return '🌙';
+      default: return '📅';
+    }
   }
 
   Widget _kawaiiNavIcon(String emoji, Color bg, Color fg, {bool selected = false}) {

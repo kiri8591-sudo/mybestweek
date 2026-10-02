@@ -18,16 +18,18 @@ extension _AppLifecyclePart on _MaBelleSemaineAppState {
     // iPhone / Safari / PWA : sauvegarde synchrone dès que la page passe
     // en arrière-plan ou qu'elle est masquée. Cela complète la sauvegarde
     // immédiate faite après chaque modification de données.
-    _visibilitySubscription = html.document.onVisibilityChange.listen((_) {
-      if (html.document.visibilityState == 'hidden') {
+    if (kIsWeb) {
+      _visibilitySubscription = html.document.onVisibilityChange.listen((_) {
+        if (html.document.visibilityState == 'hidden') {
+          _persistLocalState(recordUndo: false);
+        }
+      });
+      _pageHideSubscription = html.window.onPageHide.listen((_) {
         _persistLocalState(recordUndo: false);
-      }
-    });
-    _pageHideSubscription = html.window.onPageHide.listen((_) {
-      _persistLocalState(recordUndo: false);
-    });
+      });
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      _loadLocalState();
+      await _loadLocalState();
       if (mounted && _weatherCity.trim().isNotEmpty) {
         await _loadWeather();
       }
