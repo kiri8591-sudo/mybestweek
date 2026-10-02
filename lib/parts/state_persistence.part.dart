@@ -511,7 +511,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
                   id: _asString(rawGoal['id']) ?? 'goal_${createdAt.microsecondsSinceEpoch}',
                   activityId: activityId ?? '',
                   cadence: const {'jour', 'semaine', 'mois'}.contains(cadence) ? cadence : 'semaine',
-                  target: max(1, min(31, _asInt(rawGoal['target'], 1))),
+                  target: max(1, min(99, _asInt(rawGoal['target'], 1))),
                   rewardText: (_asString(rawGoal['rewardText']) ?? 'un petit plaisir').trim().isEmpty ? 'un petit plaisir' : (_asString(rawGoal['rewardText']) ?? 'un petit plaisir').trim(),
                   createdAt: createdAt,
                   rewardedPeriodKeys: rawGoal['rewardedPeriodKeys'] is List

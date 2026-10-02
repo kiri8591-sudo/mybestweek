@@ -106,7 +106,10 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                   padding: const EdgeInsets.symmetric(vertical: 3),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
-                      Expanded(child: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null))),
+                      Expanded(child: Row(children: [
+                        Expanded(child: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null))),
+                        _frozenActivityMarker(activity),
+                      ])),
                       if (_isGenericActivityItem(item)) ...[
                         if (plan.where((p) => p.day == item.day && p.activityId == item.activityId).length > 1)
                           Padding(

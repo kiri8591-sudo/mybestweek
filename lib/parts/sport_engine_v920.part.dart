@@ -138,6 +138,8 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
           onRemoveItem: _removePlanOccurrence,
           onAddSportActivity: _addSportActivityToDay,
           onSetBudget: _setSportDailyBudget,
+          getNow: () => _clockNow,
+          isDailyPriority: _isDailyPriorityActivityId,
         ),
       ),
     );

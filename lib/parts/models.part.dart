@@ -76,6 +76,17 @@ Uint8List? _decodeCustomIconData(String data) {
   }
 }
 
+Widget _frozenActivityMarker(Activity? activity, {double size = 16}) {
+  if (activity == null || !activity.isFrozen) return const SizedBox.shrink();
+  return Padding(
+    padding: const EdgeInsets.only(left: 5),
+    child: Tooltip(
+      message: 'Activité gelée · ajout manuel possible',
+      child: _activityIconWidget(_uiIconValue('frozen', '🧊'), size: size),
+    ),
+  );
+}
+
 String _planItemIconValue(PlanItem item, Iterable<Activity> activities) {
   if (item.activityId != null) {
     for (final activity in activities) {

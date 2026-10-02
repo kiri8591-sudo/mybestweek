@@ -417,6 +417,10 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
     PlanItem? mission;
     if (remaining.isNotEmpty) {
       remaining.sort((a, b) {
+        final dailyA = _isDailyPriorityActivityId(a.activityId) ? 0 : 1;
+        final dailyB = _isDailyPriorityActivityId(b.activityId) ? 0 : 1;
+        final dailyPriorityCompare = dailyA.compareTo(dailyB);
+        if (dailyPriorityCompare != 0) return dailyPriorityCompare;
         final pa = a.activityId == null ? 1 : (findActivity(a.activityId!)?.priority ?? 1);
         final pb = b.activityId == null ? 1 : (findActivity(b.activityId!)?.priority ?? 1);
         final priority = pb.compareTo(pa);
@@ -429,9 +433,11 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
     final title = mission == null ? 'Journée libre' : mission.title;
     final reason = mission == null
         ? 'Aucun moment actif ne reste à vivre aujourd’hui. Le Coach te laisse de l’espace.'
-        : activity != null
-            ? 'Je te propose ce moment en priorité : ${activity.category.toLowerCase()} · ${mission.duration} min.'
-            : 'Je te propose de commencer par ce moment de ${mission.duration} min.';
+        : _isDailyPriorityActivityId(mission.activityId)
+            ? '⭐ Priorité du jour : je te propose de commencer par ce moment de ${mission.duration} min.'
+            : activity != null
+                ? 'Je te propose ce moment en priorité : ${activity.category.toLowerCase()} · ${mission.duration} min.'
+                : 'Je te propose de commencer par ce moment de ${mission.duration} min.';
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 1, 16, 8),

@@ -92,11 +92,43 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(children: [
                       Expanded(
-                        child: Text(
-                          item.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: titleStyle.copyWith(decoration: item.done ? TextDecoration.lineThrough : null),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      item.title,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: titleStyle.copyWith(decoration: item.done ? TextDecoration.lineThrough : null),
+                                    ),
+                                  ),
+                                  _frozenActivityMarker(activity),
+                                ],
+                              ),
+                            ),
+                            if (item.day == today && _isDailyPriorityActivityId(item.activityId)) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFEBC8),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFFE8C98B)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFFA27432)),
+                                    const SizedBox(width: 2),
+                                    const Text('Priorité', style: TextStyle(fontSize: 8.2, fontWeight: FontWeight.w800, letterSpacing: 0.05, color: Color(0xFFA27432))),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                       if (repeated) ...[

@@ -576,7 +576,11 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
         var preferred = _generationRespectPreferredDays;
         var alternate = _generationAlternateActivities;
         var learnHabits = _generationLearnHabits;
-        var rebuildWholeWeek = false;
+        // Après une réinitialisation complète, la règle « reconstruire toute
+        // la semaine » doit être réellement appliquée par défaut. Avant ce
+        // correctif, false écrasait ici le drapeau posé par le reset.
+        final rebuildLockedAfterReset = _regenerateWholeWeekAfterReset;
+        var rebuildWholeWeek = rebuildLockedAfterReset;
         final localRules = <String, String>{..._generationActivityRules};
         final ordered = [...activities]
           ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
@@ -602,12 +606,14 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                 const SizedBox(height: 10),
                 SwitchListTile.adaptive(
                   value: rebuildWholeWeek,
-                  onChanged: (v) => setSheetState(() => rebuildWholeWeek = v),
+                  onChanged: rebuildLockedAfterReset ? null : (v) => setSheetState(() => rebuildWholeWeek = v),
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Reconstruire toute la semaine', style: TextStyle(fontWeight: FontWeight.w900)),
                   subtitle: Text(
-                    rebuildWholeWeek
-                        ? 'Lundi → dimanche seront recréés. Le planning actuel de la semaine sera remplacé ; l’historique des réalisations reste conservé.'
+                    rebuildLockedAfterReset
+                        ? 'Après une réinitialisation, cette première génération reconstruit obligatoirement lundi → dimanche. L’historique ayant été remis à zéro reste vide.'
+                        : rebuildWholeWeek
+                            ? 'Lundi → dimanche seront recréés. Le planning actuel de la semaine sera remplacé ; l’historique des réalisations reste conservé.'
                         : 'Les jours passés et aujourd’hui restent inchangés ; seuls les jours futurs sont repensés.',
                     style: const TextStyle(fontSize: 11.5, height: 1.3),
                   ),
@@ -676,7 +682,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                       'rebuildWholeWeek': rebuildWholeWeek,
                     }),
                     icon: _uiIcon('coach', Icons.auto_awesome_outlined, size: 18, color: const Color(0xFF9C8866)),
-                    label: const Text('Générer le planning futur'),
+                    label: Text(rebuildWholeWeek ? 'Reconstruire la semaine' : 'Générer le planning futur'),
                   ),
                 ),
               ]),
@@ -702,7 +708,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
     generateWeek(
       showSnack: true,
       markAsRegenerated: true,
-      fullWeekRebuildOverride: result['rebuildWholeWeek'] == true,
+      fullWeekRebuildOverride: _regenerateWholeWeekAfterReset ? true : result['rebuildWholeWeek'] == true,
     );
   }
 
@@ -926,6 +932,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
       generated,
       noChange: noChange,
       preservedFutureManual: preservedFutureManual.length,
+      fullWeekRebuild: fullWeekRebuild,
     );
 
     setState(() {
@@ -965,6 +972,9 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
       _sortPlan();
     });
 
+    // Une priorité du jour doit rester visible dans la journée même après
+    // une régénération. Cela ne crée aucune occurrence sur les autres jours.
+    _ensureDailyPrioritiesInTodayPlan();
     _queueLocalStatePersist();
     if (showSnack && mounted) {
       final futureDaysCount = max(0, 6 - cutoffDay);
@@ -1186,10 +1196,15 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
     return '${activity.name} : ${parts.join(' · ')}.';
   }
 
-  String _buildPlanningCoachExplanation(List<PlanItem> generated, {bool noChange = false, int preservedFutureManual = 0}) {
+  String _buildPlanningCoachExplanation(
+    List<PlanItem> generated, {
+    bool noChange = false,
+    int preservedFutureManual = 0,
+    bool fullWeekRebuild = false,
+  }) {
     final parts = <String>[];
     final futureGeneratedDays = generated.map((p) => p.day).toSet().length;
-    if (_regenerateWholeWeekAfterReset) {
+    if (fullWeekRebuild) {
       parts.add(noChange
           ? 'La semaine a été reconstruite après la réinitialisation complète ; aucune occurrence supplémentaire n’était nécessaire avec les critères actuels.'
           : 'J’ai reconstruit ${generated.length} moment(s) sur $futureGeneratedDays jour(s) de la semaine après la réinitialisation complète.');

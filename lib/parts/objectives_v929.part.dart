@@ -182,10 +182,14 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                   final activity = widget.activities[index];
                   final selected = activity.id == activityId;
                   final frozen = activity.isFrozen;
+                  final frozenLinkedToExisting = frozen &&
+                      widget.existing != null &&
+                      widget.existing!.activityId == activity.id;
+                  final selectable = !frozen || frozenLinkedToExisting;
                   return ListTile(
                     dense: true,
-                    enabled: !frozen,
-                    selected: selected && !frozen,
+                    enabled: selectable,
+                    selected: selected,
                     selectedTileColor: const Color(0xFFEAF0FA),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
                     leading: Stack(
@@ -211,17 +215,19 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                       ),
                     ),
                     subtitle: frozen
-                        ? const Text(
-                            'Activité gelée · non sélectionnable',
-                            style: TextStyle(fontSize: 10.2, color: Color(0xFF9A9F9B), fontWeight: FontWeight.w700),
+                        ? Text(
+                            frozenLinkedToExisting
+                                ? 'Activité gelée · liée à cet objectif · sélection conservée'
+                                : 'Activité gelée · non sélectionnable pour un nouvel objectif',
+                            style: const TextStyle(fontSize: 10.2, color: Color(0xFF9A9F9B), fontWeight: FontWeight.w700),
                           )
                         : null,
-                    trailing: frozen
-                        ? const Text('GELÉE', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF8C9490)))
-                        : selected
-                            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF6D8EA8), size: 20)
+                    trailing: selected
+                        ? const Icon(Icons.check_circle_rounded, color: Color(0xFF6D8EA8), size: 20)
+                        : frozen
+                            ? const Text('GELÉE', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF8C9490)))
                             : const Icon(Icons.radio_button_unchecked_rounded, color: Color(0xFFB0B7B3), size: 19),
-                    onTap: frozen ? null : () => setState(() => activityId = activity.id),
+                    onTap: selectable ? () => setState(() => activityId = activity.id) : null,
                   );
                 },
               ),
@@ -469,13 +475,10 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     final selectableForNewGoal = editableActivities.where((a) => !a.isFrozen).toList();
-    final availableForEditor = existing != null &&
-            selectableForNewGoal.every((a) => a.id != existing.activityId)
-        ? [
-            ...selectableForNewGoal,
-            ...editableActivities.where((a) => a.id == existing.activityId),
-          ]
-        : selectableForNewGoal;
+    // Pour un nouvel objectif, on affiche aussi les activités gelées : elles
+    // doivent rester visibles dans le sélecteur, grisées et non sélectionnables.
+    // La vraie sélection reste limitée aux activités actives dans _GoalEditorSheet.
+    final availableForEditor = editableActivities;
 
     if (existing == null && selectableForNewGoal.isEmpty) {
       _showFeedback('Aucune activité disponible pour créer un objectif : toutes les activités sont gelées.');
@@ -491,7 +494,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
       isScrollControlled: true,
       showDragHandle: true,
       builder: (_) => _GoalEditorSheet(
-        activities: editableActivities,
+        activities: availableForEditor,
         existing: existing,
       ),
     );
@@ -575,6 +578,10 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
       }
     });
 
+    // Vérifie immédiatement si le nouvel objectif est déjà atteint avec
+    // les réalisations présentes dans sa période. C'est particulièrement
+    // important pour un objectif mensuel créé après plusieurs réalisations.
+    _refreshGoalsAfterRealization();
     _queueLocalStatePersist();
     _showFeedback(existing == null ? '🎯 Objectif créé.' : '🎯 Objectif modifié.');
   }
@@ -675,15 +682,25 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          activity.name,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 13.2,
-                            fontWeight: FontWeight.w900,
-                            color: complete ? const Color(0xFF53725E) : const Color(0xFF4D5A54),
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                activity.name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13.2,
+                                  fontWeight: FontWeight.w900,
+                                  color: complete ? const Color(0xFF53725E) : const Color(0xFF4D5A54),
+                                ),
+                              ),
+                            ),
+                            if (activity.isFrozen) ...[
+                              const SizedBox(width: 5),
+                              _activityIconWidget(_uiIconValue('frozen', '🧊'), size: 14),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(

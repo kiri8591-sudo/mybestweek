@@ -912,8 +912,11 @@ class _AddMomentPageState extends State<_AddMomentPage> {
     titleController = TextEditingController();
     durationController = TextEditingController(text: '60');
     if (availableActivities.isNotEmpty) {
-      selectedActivityId = availableActivities.first.id;
-      final a = availableActivities.first;
+      final a = availableActivities.firstWhere(
+        (activity) => !activity.isFrozen,
+        orElse: () => availableActivities.first,
+      );
+      selectedActivityId = a.id;
       period = a.period == 'Midi' ? 'Après-midi' : (['Matin', 'Après-midi', 'Soir'].contains(a.period) ? a.period : 'Après-midi');
       category = a.category;
       emoji = a.emoji;
@@ -1079,9 +1082,35 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                               ),
                               const SizedBox(width: 9),
                               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text(a.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                                Row(children: [
+                                  Expanded(
+                                    child: Text(
+                                      a.name,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontWeight: FontWeight.w800),
+                                    ),
+                                  ),
+                                  if (a.isFrozen) ...[
+                                    const SizedBox(width: 5),
+                                    Tooltip(
+                                      message: 'Activité gelée · ajout manuel autorisé',
+                                      child: _activityIconWidget(_uiIconValue('frozen', '🧊'), size: 16),
+                                    ),
+                                  ],
+                                ]),
                                 const SizedBox(height: 2),
-                                Text('${a.category} · ${a.duration} min', style: const TextStyle(fontSize: 11.5, color: Color(0xFF707775))),
+                                Text(
+                                  a.isFrozen
+                                      ? '${a.category} · ${a.duration} min · gelée · ajout manuel possible'
+                                      : '${a.category} · ${a.duration} min',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: a.isFrozen ? const Color(0xFF8A8178) : const Color(0xFF707775),
+                                  ),
+                                ),
                               ])),
                               IconButton(
                                 tooltip: 'Modifier l’icône',

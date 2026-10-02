@@ -165,6 +165,8 @@ class _SportWeekPage extends StatefulWidget {
   final Future<void> Function(PlanItem item) onRemoveItem;
   final Future<void> Function(int day) onAddSportActivity;
   final void Function(int day, int minutes) onSetBudget;
+  final DateTime Function() getNow;
+  final bool Function(String?) isDailyPriority;
 
   const _SportWeekPage({
     required this.dayNames,
@@ -181,6 +183,8 @@ class _SportWeekPage extends StatefulWidget {
     required this.onRemoveItem,
     required this.onAddSportActivity,
     required this.onSetBudget,
+    required this.getNow,
+    required this.isDailyPriority,
   });
 
   @override
@@ -725,11 +729,36 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                       onTap: activity == null ? null : () => widget.onOpenActivity(activity),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: Text(
-                          item.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: titleStyle.copyWith(decoration: item.done ? TextDecoration.lineThrough : null),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: titleStyle.copyWith(decoration: item.done ? TextDecoration.lineThrough : null),
+                              ),
+                            ),
+                            if (item.day == _planDayIndex(widget.getNow()) && widget.isDailyPriority(item.activityId)) ...[
+                              const SizedBox(width: 5),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFEBC8),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFFE8C98B)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _uiIcon('priority', Icons.star_rounded, size: 11, color: const Color(0xFFA27432)),
+                                    const SizedBox(width: 2),
+                                    const Text('Priorité', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, letterSpacing: 0.05, color: Color(0xFFA27432))),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ),

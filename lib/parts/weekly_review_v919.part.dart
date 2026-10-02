@@ -1,6 +1,6 @@
-// V9.19 — Bilan : rythme sur 4 semaines
-// La page reste basée sur le bilan de la semaine courante, complété par un
-// historique lisible des quatre dernières semaines calendaires.
+// V9.32.0 — Bilan final : semaine courante + rythme sur 4 semaines.
+// La page conserve la lecture de la semaine en cours et ajoute une vue
+// réellement calculée sur les quatre dernières semaines calendaires.
 
 part of '../main.dart';
 
@@ -16,6 +16,7 @@ class _WeeklyReviewPage extends StatefulWidget {
   final String coachSummary;
   final List<String> coachInsights;
   final VoidCallback onOpenCoachDecisions;
+  final DateTime referenceNow;
 
   const _WeeklyReviewPage({
     required this.plan,
@@ -29,6 +30,7 @@ class _WeeklyReviewPage extends StatefulWidget {
     required this.coachSummary,
     required this.coachInsights,
     required this.onOpenCoachDecisions,
+    required this.referenceNow,
   });
 
   @override
@@ -59,11 +61,11 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
     final plannedMinutes = trackedPlan.fold<int>(0, (sum, item) => sum + item.duration);
     final realisedMinutes = trackedPlan.where((item) => item.done).fold<int>(0, (sum, item) => sum + (item.realisedMinutes ?? item.duration));
     final remainingMinutes = max(0, plannedMinutes - realisedMinutes);
-    final currentWeekStart = DateTime.now();
+    final currentWeekStart = widget.referenceNow;
     final monday = DateTime(currentWeekStart.year, currentWeekStart.month, currentWeekStart.day).subtract(Duration(days: currentWeekStart.weekday - 1));
     final nextMonday = monday.add(const Duration(days: 7));
     final weekMoves = widget.moveLogs.where((m) => !m.date.isBefore(monday) && m.date.isBefore(nextMonday)).toList()..sort((a,b) => b.date.compareTo(a.date));
-    final weekLogs = widget.logs.where((log) => !log.date.isBefore(monday) && log.date.isBefore(nextMonday)).toList();
+    final weekLogs = widget.logs.where((log) => !log.date.isBefore(monday) && log.date.isBefore(nextMonday) && log.realisedMinutes > 0).toList();
     final validatedMinutes = weekLogs.fold<int>(0, (sum, log) => sum + log.realisedMinutes);
     final unplanned = weekLogs.where((log) => log.unplanned).length;
     final pianoMinutes = weekLogs
@@ -72,13 +74,13 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
     final sportMinutes = weekLogs
         .where((log) => log.category == 'Sport')
         .fold<int>(0, (sum, log) => sum + log.realisedMinutes);
-    final veryGood = weekLogs.where((log) => log.feeling == 'Très bien').length;
-    final good = weekLogs.where((log) => log.feeling == 'Bien').length;
-    final difficult = weekLogs.where((log) => log.feeling == 'Difficile').length;
+    final veryGood = weekLogs.where((log) => _normalizeFeeling(log.feeling) == 'Très bien').length;
+    final good = weekLogs.where((log) => _normalizeFeeling(log.feeling) == 'Bien').length;
+    final difficult = weekLogs.where((log) => _normalizeFeeling(log.feeling) == 'Difficile').length;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bilan de la semaine'),
+        title: const Text('Bilan · 4 semaines'),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: _uiIconValue('reviewBack', '←').startsWith('customicon://') ? _activityIconWidget(_uiIconValue('reviewBack', '←'), size: 20) : Text(_uiIconValue('reviewBack', '←'), style: const TextStyle(fontSize: 20)),
@@ -162,13 +164,13 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                 final fourWeekRows = List.generate(4, (index) {
                   final start = weekStart.subtract(Duration(days: index * 7));
                   final end = start.add(const Duration(days: 7));
-                  final rowLogs = widget.logs.where((log) => !log.date.isBefore(start) && log.date.isBefore(end)).toList();
+                  final rowLogs = widget.logs.where((log) => !log.date.isBefore(start) && log.date.isBefore(end) && log.realisedMinutes > 0).toList();
                   final minutes = rowLogs.fold<int>(0, (sum, log) => sum + max(0, log.realisedMinutes));
                   final activeDays = rowLogs
                       .map((log) => DateTime(log.date.year, log.date.month, log.date.day))
                       .toSet()
                       .length;
-                  final difficultCount = rowLogs.where((log) => log.feeling == 'Difficile').length;
+                  final difficultCount = rowLogs.where((log) => _normalizeFeeling(log.feeling) == 'Difficile').length;
                   return _ReviewWeekSummary(
                     start: start,
                     end: end,
@@ -182,7 +184,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                 final totalFourWeeksMoments = fourWeekRows.fold<int>(0, (sum, row) => sum + row.moments);
                 final totalFourWeeksDifficult = fourWeekRows.fold<int>(0, (sum, row) => sum + row.difficult);
                 final totalActiveDays = widget.logs
-                    .where((log) => !log.date.isBefore(weekStart.subtract(const Duration(days: 21))) && log.date.isBefore(nextMonday))
+                    .where((log) => !log.date.isBefore(weekStart.subtract(const Duration(days: 21))) && log.date.isBefore(nextMonday) && log.realisedMinutes > 0)
                     .map((log) => DateTime(log.date.year, log.date.month, log.date.day))
                     .toSet()
                     .length;
@@ -244,7 +246,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                   ]),
                   const SizedBox(height: 7),
                   const Text(
-                    'Le bilan compare ce qui était prévu avec ce qui a réellement été vécu cette semaine. Il rassemble tes validations, tes durées, tes ressentis et tes déplacements pour aider MyBestWeek à mieux comprendre ton rythme.',
+                    'Le bilan compare ce qui était prévu avec ce qui a réellement été vécu. Il rassemble tes validations, tes durées, tes ressentis et tes déplacements pour aider MyBestWeek à mieux comprendre ton rythme.',
                     style: TextStyle(fontSize: 12.1, height: 1.35, color: Color(0xFF606B6A)),
                   ),
                   const SizedBox(height: 10),
@@ -310,7 +312,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(widget.logs.isEmpty
+                  Text(weekLogs.isEmpty
                       ? 'Pas encore de retour cette semaine. Le bilan se remplira au fil des moments validés.'
                       : difficult >= 2
                           ? 'Plusieurs moments ont été difficiles : la semaine suivante pourra garder davantage de respiration.'

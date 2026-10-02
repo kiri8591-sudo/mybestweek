@@ -137,7 +137,9 @@ extension _DateRangeNavigationPart on _MaBelleSemaineAppState {
     _navigatorKey.currentState?.push(
       MaterialPageRoute(builder: (_) => _WeeklyReviewPage(
         plan: plan,
-        logs: _currentWeekLogs(),
+        // Le Bilan 4 semaines doit recevoir l'historique complet.
+        // La page filtre elle-même chaque semaine pour ses indicateurs.
+        logs: logs,
         moveLogs: activityMoveLogs,
         activities: activities,
         weeklyNote: weeklyNote,
@@ -152,6 +154,7 @@ extension _DateRangeNavigationPart on _MaBelleSemaineAppState {
         coachSummary: _coachWeeklySummary(),
         coachInsights: _coachWeeklyInsights(),
         onOpenCoachDecisions: openPlanningCoachDecisions,
+        referenceNow: _clockNow,
       )),
     );
   }
