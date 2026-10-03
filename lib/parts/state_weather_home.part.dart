@@ -6,10 +6,10 @@ part of '../main.dart';
 extension _WeatherHomePart on _MaBelleSemaineAppState {
   String _dayMoment() {
     final hour = _clockNow.hour;
-    if (hour < 12) return 'Bon matin ☀️';
-    if (hour < 18) return 'Bon après-midi 🌿';
-    if (hour < 22) return 'Bonne soirée 🌙';
-    return 'Bonne nuit ✨';
+    if (hour < 12) return 'Matin ☀️';
+    if (hour < 18) return 'Après-midi 🌿';
+    if (hour < 22) return 'Soir 🌙';
+    return 'Nuit ✨';
   }
 
   String _greetingLabel() {

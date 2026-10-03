@@ -287,20 +287,160 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
     );
   }
 
-  Widget planRow(PlanItem item) {
+  bool _isPastPlanPeriod(PlanItem item) {
+    if (item.day != today || item.done) return false;
+    final h = _clockNow.hour;
+    switch (item.period) {
+      case 'Matin':
+        return h >= 12;
+      case 'Après-midi':
+        return h >= 18;
+      case 'Soir':
+        return h >= 22;
+      default:
+        return false;
+    }
+  }
+
+  Future<void> _markPlanItemDoneQuick(PlanItem item) async {
+    if (!mounted) return;
+    setState(() => item.done = true);
+    _queueLocalStatePersist();
+    _showFeedback('« ${item.title} » marqué comme fait.');
+  }
+
+  void _showPastPlanQuickActions(PlanItem item) {
+    showModalBottomSheet<void>(
+      context: _navigatorKey.currentContext!,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(item.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 4),
+              const Text('Ce créneau est passé. Que veux-tu en faire ?', style: TextStyle(color: Color(0xFF68736D))),
+              const SizedBox(height: 12),
+              ListTile(
+                leading: _uiIcon('confirm', Icons.check_circle_outline_rounded, size: 22),
+                title: const Text('Fait'),
+                onTap: () { Navigator.pop(context); _markPlanItemDoneQuick(item); },
+              ),
+              ListTile(
+                leading: _uiIcon('move', Icons.event_repeat_outlined, size: 22),
+                title: const Text('Reporter'),
+                onTap: () { Navigator.pop(context); _moveGenericOrRegularPlanItem(item); },
+              ),
+              ListTile(
+                leading: _uiIcon('remove', Icons.remove_circle_outline, size: 22),
+                title: const Text('Passer'),
+                onTap: () { Navigator.pop(context); _removePlanOccurrence(item); },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _moveGenericOrRegularPlanItem(PlanItem item) async {
+    if (_isGenericActivityItem(item)) {
+      await _movePlanItemDay(item);
+      return;
+    }
+    await _moveRegularPlanItemDay(item);
+  }
+
+  Future<void> _moveRegularPlanItemDay(PlanItem item) async {
+    var selectedDay = item.day;
+    var selectedPeriod = item.period == 'Midi' ? 'Après-midi' : item.period;
+    final result = await showDialog<Map<String, dynamic>>(
+      context: _navigatorKey.currentContext!,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Reporter l’activité'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            DropdownButtonFormField<int>(
+              initialValue: selectedDay,
+              decoration: const InputDecoration(labelText: 'Jour'),
+              items: List.generate(7, (day) => DropdownMenuItem<int>(value: day, child: Text(dayNames[day]))),
+              onChanged: (value) { if (value != null) setDialogState(() => selectedDay = value); },
+            ),
+            const SizedBox(height: 10),
+            DropdownButtonFormField<String>(
+              initialValue: selectedPeriod,
+              decoration: const InputDecoration(labelText: 'Moment'),
+              items: const ['Matin', 'Après-midi', 'Soir'].map((v) => DropdownMenuItem<String>(value: v, child: Text(v))).toList(),
+              onChanged: (value) { if (value != null) setDialogState(() => selectedPeriod = value); },
+            ),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Annuler')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, {'day': selectedDay, 'period': selectedPeriod}), child: const Text('Reporter')),
+          ],
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    final newDay = result['day'] as int;
+    final newPeriod = result['period'] as String;
+    setState(() {
+      final index = plan.indexOf(item);
+      if (index >= 0) {
+        plan[index] = PlanItem(
+          id: 'reschedule_${DateTime.now().microsecondsSinceEpoch}',
+          day: newDay,
+          period: newPeriod,
+          timeLabel: item.timeLabel,
+          activityId: item.activityId,
+          title: item.title,
+          duration: item.duration,
+          details: item.details,
+          customEmoji: item.customEmoji,
+          customCategory: item.customCategory,
+          optional: item.optional,
+          userAdded: item.userAdded,
+          fixedInWeeklyTemplate: item.fixedInWeeklyTemplate,
+          manualPlacement: true,
+          done: false,
+          realisedMinutes: null,
+          feeling: null,
+        );
+      }
+    });
+    _sortPlan();
+    _queueLocalStatePersist();
+    _showFeedback('« ${item.title} » reporté.');
+  }
+
+  Widget planRow(
+    PlanItem item, {
+    bool highlightMission = false,
+    bool showPastQuickActions = false,
+  }) {
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
     final emoji = _planItemIconValue(item, activities);
     final isGeneric = _isGenericActivityItem(item);
 
+    final isPast = showPastQuickActions && _isPastPlanPeriod(item);
+
     return Padding(
       padding: const EdgeInsets.only(top: 6),
-      child: Container(
+      child: Opacity(
+        opacity: isPast ? .60 : 1,
+        child: Container(
         constraints: const BoxConstraints(minHeight: 60),
         padding: const EdgeInsets.fromLTRB(7, 6, 5, 6),
         decoration: BoxDecoration(
           color: const Color(0xFFFFFEFC),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE0E5E1)),
+          border: Border.all(
+          color: highlightMission ? const Color(0xFFE6D8D1) : const Color(0xFFE0E5E1),
+          width: highlightMission ? 1.25 : 1,
+        ),
           boxShadow: const [BoxShadow(color: Color(0x09000000), blurRadius: 5, offset: Offset(0, 2))],
         ),
         child: Row(
@@ -320,6 +460,10 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
               child: InkWell(
                 borderRadius: BorderRadius.circular(10),
                 onTap: () {
+                  if (isPast) {
+                    _showPastPlanQuickActions(item);
+                    return;
+                  }
                   final a = item.activityId == null ? null : findActivity(item.activityId!);
                   if (a != null && _isSportActivity(a)) {
                     addOrEditActivity(original: a);
@@ -334,20 +478,57 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Expanded(child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null))),
-                            _frozenActivityMarker(activity),
-                            if (item.day == today && _isDailyPriorityActivityId(item.activityId)) ...[
-                              const SizedBox(width: 5),
-                              _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFFA27432)),
+                            Row(
+                              children: [
+                                if (highlightMission) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFBEAE6),
+                                      borderRadius: BorderRadius.circular(7),
+                                      border: Border.all(color: const Color(0xFFE4B9AE)),
+                                    ),
+                                    child: const Text(
+                                      'MISSION',
+                                      style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: .45, color: Color(0xFFC74F43)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                ],
+                                Expanded(child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null))),
+                                _frozenActivityMarker(activity),
+                                if (item.day == today && _isDailyPriorityActivityId(item.activityId)) ...[
+                                  const SizedBox(width: 5),
+                                  _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFFA27432)),
+                                ],
+                              ],
+                            ),
+                            if (highlightMission) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                activity != null
+                                    ? 'Je te propose de commencer par ce moment ${activity.category.toLowerCase()}, puis de laisser une place à la curiosité.'
+                                    : 'Je te propose de commencer par ce moment, puis de laisser une place à la curiosité.',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 9.2, fontWeight: FontWeight.w700, color: Color(0xFF7A7770), height: 1.15),
+                              ),
                             ],
                           ],
                         ),
                       ),
-                      if (activity != null && _isSportActivity(activity)) ...[
+                      if ((activity != null && _isSportActivity(activity)) || highlightMission) ...[
                         const SizedBox(width: 8),
-                        Text(item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min', style: _detailMetaStyle()),
+                        Text(
+                          highlightMission && (activity == null || !_isSportActivity(activity))
+                              ? '${item.duration} min · ${item.period}'
+                              : (item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min'),
+                          style: _detailMetaStyle(),
+                        ),
                       ],
                     ],
                   ),
@@ -381,15 +562,18 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                   }
                 }
                 if (value == 'remove') _removePlanOccurrence(item);
+                if (value == 'past') _showPastPlanQuickActions(item);
               },
               itemBuilder: (context) => [
                 if (isGeneric && item.details != null) const PopupMenuItem<String>(value: 'why', child: Text('Pourquoi ce moment ?')),
                 PopupMenuItem<String>(value: 'edit', child: Text(isGeneric ? 'Déplacer' : 'Voir / modifier')),
+                if (isPast) const PopupMenuItem<String>(value: 'past', child: Text('Fait · Reporter · Passer')),
                 const PopupMenuItem<String>(value: 'remove', child: Text('Retirer du jour')),
               ],
             ),
           ],
         ),
+      ),
       ),
     );
   }

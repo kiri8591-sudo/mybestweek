@@ -38,10 +38,9 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
   }
 
   bool _homeShouldShowPeriod(String period, List<PlanItem> periodItems, List<PlanItem> todayItems) {
-    if (periodItems.isNotEmpty) {
-      if (!_homePeriodIsPast(period)) return true;
-      return periodItems.any((item) => !item.done);
-    }
+    // Garder l’en-tête visible même lorsque le créneau est passé et entièrement réalisé,
+    // afin de permettre son dépliage manuel. Le contenu sera automatiquement replié.
+    if (periodItems.isNotEmpty) return true;
     if (!_homePeriodIsPast(period)) return true;
     return _homePeriodHasUnfinishedItems(period, todayItems);
   }

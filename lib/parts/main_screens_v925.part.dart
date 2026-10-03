@@ -537,101 +537,6 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
     }
   }
 
-  Widget _homeMissionFocusHeader(PlanItem? mission, bool todayCompleted) {
-    final activity = mission?.activityId == null ? null : findActivity(mission!.activityId!);
-    final isPriority = mission != null && _isDailyPriorityActivityId(mission.activityId);
-    final missionTitle = mission?.title ?? 'Journée libre';
-    final missionReason = mission == null
-        ? 'Le Coach te laisse de l’espace aujourd’hui.'
-        : isPriority
-            ? 'Priorité du jour'
-            : activity != null
-                ? 'Proposition ${activity.category.toLowerCase()}'
-                : 'Proposition du Coach';
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 7, 10, 9),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(9, 8, 9, 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFFAF3),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE9DEC9)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(color: const Color(0xFFFFEFD7), borderRadius: BorderRadius.circular(13)),
-              alignment: Alignment.center,
-              child: mission == null
-                  ? const Text('🌿', style: TextStyle(fontSize: 19))
-                  : _activityIconWidget(_planItemIconValue(mission, activities), size: 21),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Text('Mission', style: TextStyle(fontSize: 8.2, fontWeight: FontWeight.w900, color: Color(0xFF9A7758), letterSpacing: .2)),
-                      const SizedBox(width: 5),
-                      if (isPriority)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _uiIcon('priority', Icons.star_rounded, size: 11, color: const Color(0xFF9A7B44)),
-                            const SizedBox(width: 2),
-                            const Text('Priorité', style: TextStyle(fontSize: 8.2, fontWeight: FontWeight.w900, color: Color(0xFF7F6940))),
-                          ],
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 1),
-                  Text(missionTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12.7, fontWeight: FontWeight.w900, color: Color(0xFF414C46))),
-                  const SizedBox(height: 2),
-                  Text(
-                    mission == null ? missionReason : '${_periodLabelIcon(mission.period)} ${mission.period} · ${mission.duration} min · $missionReason',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 8.9, fontWeight: FontWeight.w700, color: Color(0xFF6C6F66)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 7),
-            todayCompleted
-                ? SizedBox(
-                    width: 30,
-                    height: 30,
-                    child: _CompletionCelebration(key: const ValueKey('home-completion')),
-                  )
-                : Text(_focusIcon, style: const TextStyle(fontSize: 18)),
-            ],
-            ),
-            if (!todayCompleted && _todayFocus().trim().isNotEmpty) ...[
-              const SizedBox(height: 5),
-              Padding(
-                padding: const EdgeInsets.only(left: 46),
-                child: Text(
-                  _todayFocus(),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 9.4, height: 1.18, fontWeight: FontWeight.w700, color: Color(0xFF6E6860)),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _kawaiiNavIcon(String emoji, Color bg, Color fg, {bool selected = false}) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
@@ -734,6 +639,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
     final todayActionItems = todayItems.where((x) => !_isDateRangePlanItem(x)).toList();
     final todayCompleted = todayActionItems.isNotEmpty && todayActionItems.every((x) => x.done);
     final todayDone = todayActionItems.where((x) => x.done).length;
+    final homeMission = _homeCoachMission();
     final sportBudget = _sportBudgetForDay(today);
     final todayWeather = _weatherForWeekDay(today);
     final hasOutdoorRemaining = todayActionItems.where((x) => !x.done).any((item) {
@@ -772,6 +678,13 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
         }
         return true;
       }).toList();
+      final trackedPeriodItems = periodItems
+          .where((item) => item.activityId != null)
+          .toList();
+      // Un créneau devient repliable lorsque toutes ses activités réelles
+      // sont réalisées. Les blocs de temps libre ne bloquent pas le repli.
+      final allDone = trackedPeriodItems.isNotEmpty && trackedPeriodItems.every((item) => item.done);
+      final collapsed = allDone && !_homeExpandedPeriods.contains(period);
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 5),
@@ -789,35 +702,64 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 border: highlighted ? Border.all(color: const Color(0xFF8EAD9F), width: 1.5) : null,
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  _systemIconWidget(period == 'Matin' ? 'periodMorning' : period == 'Après-midi' ? 'periodAfternoon' : 'periodEvening', fallback: period == 'Matin' ? '🌤️' : period == 'Après-midi' ? '🌿' : '🌙', size: 17),
-                  const SizedBox(width: 6),
-                  Text(period, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w900, color: Color(0xFF4E5B54))),
-                  const SizedBox(width: 9),
-                  const Expanded(child: Divider(height: 1, thickness: .8, color: Color(0xFFD7DFDA))),
-                  if (highlighted) ...[
-                    const SizedBox(width: 7),
-                    _systemIconWidget('dragDown', fallback: '↓', size: 15),
-                    const SizedBox(width: 3),
-                    const Text('Déposer ici', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
-                  ],
-                ]),
-                if (periodItems.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(9, 7, 9, 3),
-                    child: Text(
-                      highlighted ? 'Déposer l’activité ici' : 'Temps libre',
-                      style: TextStyle(fontSize: 12.5, color: highlighted ? const Color(0xFF6F8E80) : const Color(0xFF7A807D), fontWeight: highlighted ? FontWeight.w700 : FontWeight.normal),
-                    ),
-                  )
-                else
-                  ...periodItems.map(planRow),
+                InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: allDone
+                      ? () => setState(() {
+                            if (_homeExpandedPeriods.contains(period)) {
+                              _homeExpandedPeriods.remove(period);
+                            } else {
+                              _homeExpandedPeriods.add(period);
+                            }
+                          })
+                      : null,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(children: [
+                      _systemIconWidget(period == 'Matin' ? 'periodMorning' : period == 'Après-midi' ? 'periodAfternoon' : 'periodEvening', fallback: period == 'Matin' ? '🌤️' : period == 'Après-midi' ? '🌿' : '🌙', size: 17),
+                      const SizedBox(width: 6),
+                      Text(period, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w900, color: Color(0xFF4E5B54))),
+                      if (allDone) ...[
+                        const SizedBox(width: 7),
+                        const Text('✓', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF7A8A82)),),
+                        const Spacer(),
+                        _uiIcon(collapsed ? 'chevronDown' : 'chevronUp', collapsed ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_up_rounded, size: 18, color: const Color(0xFF7A8580)),
+                      ] else ...[
+                        const SizedBox(width: 9),
+                        const Expanded(child: Divider(height: 1, thickness: .8, color: Color(0xFFD7DFDA))),
+                      ],
+                      if (highlighted) ...[
+                        const SizedBox(width: 7),
+                        _systemIconWidget('dragDown', fallback: '↓', size: 15),
+                        const SizedBox(width: 3),
+                        const Text('Déposer ici', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
+                      ],
+                    ]),
+                  ),
+                ),
+                if (!collapsed) ...[
+                  if (periodItems.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(9, 7, 9, 3),
+                      child: Text(
+                        highlighted ? 'Déposer l’activité ici' : 'Temps libre',
+                        style: TextStyle(fontSize: 12.5, color: highlighted ? const Color(0xFF6F8E80) : const Color(0xFF7A807D), fontWeight: highlighted ? FontWeight.w700 : FontWeight.normal),
+                      ),
+                    )
+                  else
+                    ...periodItems.map((item) => planRow(
+                          item,
+                          highlightMission: homeMission?.id == item.id,
+                          showPastQuickActions: true,
+                        )),
+                ],
               ]),
             );
           },
         ),
       );
     }
+
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -829,14 +771,14 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
               color: headerColor,
               borderColor: headerBorderColor,
               radius: 26,
-              padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
+              padding: const EdgeInsets.fromLTRB(12, 9, 10, 9),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _homeMascotAvatar(size: 70),
+                      _homeMascotAvatar(size: 60),
                       const SizedBox(width: 9),
                       Expanded(
                         child: Column(
@@ -1028,9 +970,9 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                       Expanded(
                         child: Text(
                           _morningThought,
-                          maxLines: 3,
-                          softWrap: true,
-                          overflow: TextOverflow.visible,
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 10.1, height: 1.16, fontStyle: FontStyle.italic, color: Color(0xFF5D554B)),
                         ),
                       ),
@@ -1107,14 +1049,28 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     ),
                   ],
                 ),
-                _homeMissionFocusHeader(_homeCoachMission(), todayCompleted),
-                const SizedBox(height: 4),
-                Text(todayItems.isEmpty ? 'Journée libre. Profite-en.' : 'Tes petits moments de la journée.', style: const TextStyle(fontSize: 10.2, color: Color(0xFF6C7771))),
+                if (_todayFocus().trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 2, 10, 5),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(_focusIcon, style: const TextStyle(fontSize: 15)),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            _todayFocus(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 9.6, fontWeight: FontWeight.w800, color: Color(0xFF6E6860)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 9),
                 if (todayOtherItems.where(_isDateRangePlanItem).isNotEmpty)
                   _multiDaySection(todayOtherItems.where(_isDateRangePlanItem).toList(), day: today),
-                if (sportBudget > 0 || todaySportItems.isNotEmpty) _sportDayCard(today, compactHome: true),
-                if (sportBudget > 0 || todaySportItems.isNotEmpty) const SizedBox(height: 5),
                 ...const ['Matin', 'Après-midi', 'Soir']
                     .where((period) {
                       final periodItems = todayItems.where((item) {
@@ -1128,6 +1084,11 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                       return _homeShouldShowPeriod(period, periodItems, todayItems);
                     })
                     .map(todayPeriod),
+                if (sportBudget > 0 || todaySportItems.isNotEmpty) ...[
+                  const SizedBox(height: 7),
+                  _sportDayCard(today, compactHome: true),
+                  const SizedBox(height: 1),
+                ],
                 const SizedBox(height: 2),
                 Align(
                   alignment: Alignment.centerLeft,

@@ -60,7 +60,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V12.3.2';
+  static const version = 'V12.3.11';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -126,6 +126,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   // toute écriture programmée avant sa restauration.
   int _persistenceGeneration = 0;
   final Set<String> _sportValidationInProgress = <String>{};
+  bool _homeSportExpanded = false;
+  final Set<String> _homeExpandedPeriods = <String>{};
 
   // Critères utilisés uniquement pour les nouvelles occurrences générées.
   // Ils n'autorisent jamais « Repenser » à modifier les jours passés ni aujourd'hui.
