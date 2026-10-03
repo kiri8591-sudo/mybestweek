@@ -60,7 +60,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V12.3.11';
+  static const version = 'V12.3.12';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -120,6 +120,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
   SharedPreferencesWithCache? _preferences;
   static const String _localStateKey = 'ma_belle_semaine_local_state_v2';
+  static const String _localStateMirrorKey = 'ma_belle_semaine_local_state_v2_last_good';
   static const int _cloudBackupReminderDays = 7;
   bool _persistenceQueued = false;
   // Numéro de génération des écritures différées : un Undo invalide

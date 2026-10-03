@@ -424,160 +424,168 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
     final emoji = _planItemIconValue(item, activities);
     final isGeneric = _isGenericActivityItem(item);
-
+    final isSport = activity != null && _isSportActivity(activity);
     final isPast = showPastQuickActions && _isPastPlanPeriod(item);
+    final isDailyPriority = item.day == today && _isDailyPriorityActivityId(item.activityId);
 
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Opacity(
         opacity: isPast ? .60 : 1,
         child: Container(
-        constraints: const BoxConstraints(minHeight: 60),
-        padding: const EdgeInsets.fromLTRB(7, 6, 5, 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFFEFC),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-          color: highlightMission ? const Color(0xFFE6D8D1) : const Color(0xFFE0E5E1),
-          width: highlightMission ? 1.25 : 1,
-        ),
-          boxShadow: const [BoxShadow(color: Color(0x09000000), blurRadius: 5, offset: Offset(0, 2))],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Checkbox(
-              value: item.done,
-              onChanged: (_) => openPlanItem(item),
-              visualDensity: VisualDensity.compact,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          constraints: const BoxConstraints(minHeight: 60),
+          padding: const EdgeInsets.fromLTRB(7, 6, 5, 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFEFC),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: highlightMission ? const Color(0xFFE6D8D1) : const Color(0xFFE0E5E1),
+              width: highlightMission ? 1.25 : 1,
             ),
-            const SizedBox(width: 3),
-            _activityIconWidget(emoji, size: 28),
-            const SizedBox(width: 8),
-            Expanded(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: () {
-                  if (isPast) {
-                    _showPastPlanQuickActions(item);
-                    return;
-                  }
-                  final a = item.activityId == null ? null : findActivity(item.activityId!);
-                  if (a != null && _isSportActivity(a)) {
-                    addOrEditActivity(original: a);
-                  } else if (isGeneric) {
-                    _openGenericActivity(item);
-                  } else {
-                    openItemActions(item);
-                  }
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
+            boxShadow: const [BoxShadow(color: Color(0x09000000), blurRadius: 5, offset: Offset(0, 2))],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Checkbox(
+                value: item.done,
+                onChanged: (_) => openPlanItem(item),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              ),
+              const SizedBox(width: 3),
+              _activityIconWidget(emoji, size: 28),
+              const SizedBox(width: 8),
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () {
+                    if (isPast) {
+                      _showPastPlanQuickActions(item);
+                      return;
+                    }
+                    if (activity != null && isSport) {
+                      addOrEditActivity(original: activity);
+                    } else if (isGeneric) {
+                      _openGenericActivity(item);
+                    } else {
+                      openItemActions(item);
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Row(
-                              children: [
-                                if (highlightMission) ...[
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFBEAE6),
-                                      borderRadius: BorderRadius.circular(7),
-                                      border: Border.all(color: const Color(0xFFE4B9AE)),
-                                    ),
-                                    child: const Text(
-                                      'MISSION',
-                                      style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: .45, color: Color(0xFFC74F43)),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                ],
-                                Expanded(child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null))),
-                                _frozenActivityMarker(activity),
-                                if (item.day == today && _isDailyPriorityActivityId(item.activityId)) ...[
-                                  const SizedBox(width: 5),
-                                  _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFFA27432)),
-                                ],
-                              ],
-                            ),
                             if (highlightMission) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                activity != null
-                                    ? 'Je te propose de commencer par ce moment ${activity.category.toLowerCase()}, puis de laisser une place à la curiosité.'
-                                    : 'Je te propose de commencer par ce moment, puis de laisser une place à la curiosité.',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 9.2, fontWeight: FontWeight.w700, color: Color(0xFF7A7770), height: 1.15),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFBEAE6),
+                                  borderRadius: BorderRadius.circular(7),
+                                  border: Border.all(color: const Color(0xFFE4B9AE)),
+                                ),
+                                child: const Text(
+                                  'MISSION',
+                                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: .45, color: Color(0xFFC74F43)),
+                                ),
                               ),
+                              const SizedBox(width: 6),
                             ],
+                            Expanded(
+                              child: Text(
+                                item.title,
+                                maxLines: 2,
+                                softWrap: true,
+                                overflow: TextOverflow.ellipsis,
+                                style: _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null),
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                      if ((activity != null && _isSportActivity(activity)) || highlightMission) ...[
-                        const SizedBox(width: 8),
-                        Text(
-                          highlightMission && (activity == null || !_isSportActivity(activity))
-                              ? '${item.duration} min · ${item.period}'
-                              : (item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min'),
-                          style: _detailMetaStyle(),
-                        ),
+                        if (highlightMission) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            activity != null
+                                ? 'Je te propose de commencer par ce moment ${activity.category.toLowerCase()}, puis de laisser une place à la curiosité.'
+                                : 'Je te propose de commencer par ce moment, puis de laisser une place à la curiosité.',
+                            maxLines: 2,
+                            softWrap: true,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 9.2, fontWeight: FontWeight.w700, color: Color(0xFF7A7770), height: 1.15),
+                          ),
+                        ],
+                        if (isSport || highlightMission || isDailyPriority || activity != null) ...[
+                          const SizedBox(height: 3),
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 6,
+                            runSpacing: 2,
+                            children: [
+                              if (isSport)
+                                Text(
+                                  item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min',
+                                  style: _detailMetaStyle(),
+                                ),
+                              if (highlightMission && !isSport)
+                                Text('${item.duration} min · ${item.period}', style: _detailMetaStyle()),
+                              if (isDailyPriority)
+                                _uiIcon('priority', Icons.star_rounded, size: 13, color: const Color(0xFFA27432)),
+                              if (activity != null) _frozenActivityMarker(activity),
+                            ],
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            if (activity != null && _isSportActivity(activity))
-              IconButton(
-                tooltip: 'Modifier le temps réalisé',
-                visualDensity: VisualDensity.compact,
+              if (isSport)
+                IconButton(
+                  tooltip: 'Modifier le temps réalisé',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                  onPressed: () => _editSportRealisedMinutes(item, activity!),
+                  icon: _uiIcon('duration', Icons.timer_outlined, size: 18, color: const Color(0xFF718077)),
+                ),
+              PopupMenuButton<String>(
+                tooltip: 'Autres actions',
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-                onPressed: () => _editSportRealisedMinutes(item, activity),
-                icon: _uiIcon('duration', Icons.timer_outlined, size: 18, color: const Color(0xFF718077)),
-              ),
-            PopupMenuButton<String>(
-              tooltip: 'Autres actions',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
-              icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: const Color(0xFF748079)),
-              onSelected: (value) {
-                if (value == 'why') _showPlanItemCoachReason(item);
-                if (value == 'edit') {
-                  final a = item.activityId == null ? null : findActivity(item.activityId!);
-                  if (a != null && _isSportActivity(a)) {
-                    addOrEditActivity(original: a);
-                  } else if (isGeneric) {
-                    _movePlanItemDay(item);
-                  } else {
-                    openItemActions(item);
+                constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
+                icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: const Color(0xFF748079)),
+                onSelected: (value) {
+                  if (value == 'why') _showPlanItemCoachReason(item);
+                  if (value == 'edit') {
+                    final a = item.activityId == null ? null : findActivity(item.activityId!);
+                    if (a != null && _isSportActivity(a)) {
+                      addOrEditActivity(original: a);
+                    } else if (isGeneric) {
+                      _movePlanItemDay(item);
+                    } else {
+                      openItemActions(item);
+                    }
                   }
-                }
-                if (value == 'remove') _removePlanOccurrence(item);
-                if (value == 'past') _showPastPlanQuickActions(item);
-              },
-              itemBuilder: (context) => [
-                if (isGeneric && item.details != null) const PopupMenuItem<String>(value: 'why', child: Text('Pourquoi ce moment ?')),
-                PopupMenuItem<String>(value: 'edit', child: Text(isGeneric ? 'Déplacer' : 'Voir / modifier')),
-                if (isPast) const PopupMenuItem<String>(value: 'past', child: Text('Fait · Reporter · Passer')),
-                const PopupMenuItem<String>(value: 'remove', child: Text('Retirer du jour')),
-              ],
-            ),
-          ],
+                  if (value == 'remove') _removePlanOccurrence(item);
+                  if (value == 'past') _showPastPlanQuickActions(item);
+                },
+                itemBuilder: (context) => [
+                  if (isGeneric && item.details != null) const PopupMenuItem<String>(value: 'why', child: Text('Pourquoi ce moment ?')),
+                  PopupMenuItem<String>(value: 'edit', child: Text(isGeneric ? 'Déplacer' : 'Voir / modifier')),
+                  if (isPast) const PopupMenuItem<String>(value: 'past', child: Text('Fait · Reporter · Passer')),
+                  const PopupMenuItem<String>(value: 'remove', child: Text('Retirer du jour')),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
-
-
 
 }

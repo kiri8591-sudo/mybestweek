@@ -27,7 +27,11 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       }
       final prefs = _preferences;
       if (prefs != null) {
+        // On conserve une copie miroir du dernier état valide.
+        // Cela permet de récupérer l'état sur iPhone si une lecture du cache
+        // principal échoue lors d'un redémarrage.
         unawaited(prefs.setString(_MaBelleSemaineAppState._localStateKey, nextRaw));
+        unawaited(prefs.setString(_MaBelleSemaineAppState._localStateMirrorKey, nextRaw));
       }
       if (undoChanged && mounted) setState(() {});
     } catch (_) {
@@ -60,15 +64,23 @@ extension _StatePersistence on _MaBelleSemaineAppState {
   }
 
   Future<void> _loadLocalState() async {
+    var safeToPersistAfterHydration = false;
     try {
       _preferences ??= await SharedPreferencesWithCache.create(
         cacheOptions: const SharedPreferencesWithCacheOptions(),
       );
-      var raw = _preferences?.getString(_MaBelleSemaineAppState._localStateKey);
 
-      // Migration douce de l'ancien stockage Web V9/V10/V11 : la clé
-      // historique était directement dans localStorage, alors que
-      // shared_preferences ajoute son propre espace de nommage sur le Web.
+      // Lecture directe depuis le stockage natif : on évite de dépendre d'un
+      // cache éventuellement périmé après une relance de l'app iPhone.
+      final asyncPrefs = SharedPreferencesAsync();
+      var raw = await asyncPrefs.getString(_MaBelleSemaineAppState._localStateKey);
+
+      // Secours : dernier état valide miroir.
+      if (raw == null || raw.trim().isEmpty) {
+        raw = await asyncPrefs.getString(_MaBelleSemaineAppState._localStateMirrorKey);
+      }
+
+      // Migration douce de l'ancien stockage Web V9/V10/V11.
       if ((raw == null || raw.trim().isEmpty) && kIsWeb) {
         try {
           final legacy = html.window.localStorage[_MaBelleSemaineAppState._localStateKey];
@@ -77,6 +89,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
             final prefs = _preferences;
             if (prefs != null) {
               await prefs.setString(_MaBelleSemaineAppState._localStateKey, legacy);
+              await prefs.setString(_MaBelleSemaineAppState._localStateMirrorKey, legacy);
             }
           }
         } catch (_) {
@@ -84,11 +97,40 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         }
       }
 
-      if (raw == null || raw.trim().isEmpty) return;
+      // Première installation : rien à restaurer, on pourra enregistrer l'état
+      // initial une fois l'hydratation terminée.
+      if (raw == null || raw.trim().isEmpty) {
+        safeToPersistAfterHydration = true;
+        return;
+      }
+
       final root = jsonDecode(raw);
       if (root is! Map) return;
+
       final savedWeek = root['weekKey']?.toString();
-      if (!restoreBackup(raw)) return;
+      var restored = restoreBackup(raw);
+
+      // Si le fichier principal est corrompu/incomplet, essayer le miroir avant
+      // de considérer la restauration comme échouée.
+      if (!restored) {
+        final mirror = await asyncPrefs.getString(_MaBelleSemaineAppState._localStateMirrorKey);
+        if (mirror != null && mirror.trim().isNotEmpty && mirror != raw) {
+          final mirrorRoot = jsonDecode(mirror);
+          if (mirrorRoot is Map) {
+            restored = restoreBackup(mirror);
+            if (restored) {
+              raw = mirror;
+            }
+          }
+        }
+      }
+
+      // Surtout : ne jamais réécrire l'état par défaut si une sauvegarde existe
+      // mais n'a pas pu être restaurée. Cela évite la perte silencieuse des
+      // données au prochain lancement.
+      if (!restored) return;
+      safeToPersistAfterHydration = true;
+
       if (savedWeek != _currentWeekKey()) {
         setState(() {
           plan.clear();
@@ -97,10 +139,13 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         generateWeek(showSnack: false);
       }
     } catch (_) {
-      // On repart simplement avec les données de démarrage.
+      // Une erreur de lecture ne doit jamais écraser la dernière sauvegarde.
+      safeToPersistAfterHydration = false;
     } finally {
       _isHydratingLocalState = false;
-      if (mounted) _persistLocalState(recordUndo: false);
+      if (mounted && safeToPersistAfterHydration) {
+        _persistLocalState(recordUndo: false);
+      }
     }
   }
 
