@@ -167,6 +167,7 @@ class _SportWeekPage extends StatefulWidget {
   final void Function(int day, int minutes) onSetBudget;
   final DateTime Function() getNow;
   final bool Function(String?) isDailyPriority;
+  final VoidCallback onOpenCoachJournal;
 
   const _SportWeekPage({
     required this.dayNames,
@@ -185,6 +186,7 @@ class _SportWeekPage extends StatefulWidget {
     required this.onSetBudget,
     required this.getNow,
     required this.isDailyPriority,
+    required this.onOpenCoachJournal,
   });
 
   @override
@@ -1138,7 +1140,14 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Semaine Sport'),
-        actions: [IconButton(tooltip: 'Accueil', onPressed: () => Navigator.pop(context), icon: _uiIcon('navHome', Icons.home_outlined, size: 20))],
+        actions: [
+          IconButton(
+            tooltip: 'Journal du coach Sport',
+            onPressed: widget.onOpenCoachJournal,
+            icon: _uiIcon('history', Icons.menu_book_rounded, size: 20),
+          ),
+          IconButton(tooltip: 'Accueil', onPressed: () => Navigator.pop(context), icon: _uiIcon('navHome', Icons.home_outlined, size: 20)),
+        ],
       ),
       body: SafeArea(
         top: false,
@@ -1179,7 +1188,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                       ),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Row(children: [
-                          _uiIcon('week', Icons.view_week_outlined, size: 17, color: const Color(0xFF6F8E80)),
+                          _uiIcon('sportWeek', Icons.view_week_outlined, size: 17, color: const Color(0xFF6F8E80)),
                           const SizedBox(width: 6),
                           const Expanded(child: Text('Suivi des activités · 7 jours', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5))),
                         ]),

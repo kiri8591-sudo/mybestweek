@@ -5,6 +5,23 @@
 
 part of '../main.dart';
 
+const List<String> _automaticPriorityRewards = [
+  'un bon café tranquille',
+  'un épisode de ta série préférée',
+  'une balade sans objectif',
+  'un bon livre au calme',
+  'un morceau de musique juste pour le plaisir',
+  'un petit dessert plaisir',
+  'un moment de détente rien qu’à toi',
+  'une sortie improvisée',
+  'un bon repas que tu aimes',
+  'une sieste ou une vraie pause',
+  'un film choisi sur un coup de cœur',
+  'un après-midi sans contrainte',
+];
+
+String _randomPriorityReward() => _automaticPriorityRewards[Random().nextInt(_automaticPriorityRewards.length)];
+
 extension _PrioritiesV928Part on _MaBelleSemaineAppState {
   String _priorityDateKey() {
     final d = _clockNow;
@@ -98,17 +115,23 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
 
     final dateKey = _priorityDateKey();
     final rewardBefore = _priorityBonusTotal ~/ 5;
+    var generatedReward = '';
     setState(() {
       _priorityBonusAwardedDateKey = dateKey;
       _priorityBonusAwarded = true;
       _priorityBonusTotal += 1;
+      final rewardAfterNow = _priorityBonusTotal ~/ 5;
+      if (rewardAfterNow > rewardBefore) {
+        generatedReward = _randomPriorityReward();
+        _priorityRewardText = generatedReward;
+      }
     });
     _persistLocalState(recordUndo: false);
 
     final rewardAfter = _priorityBonusTotal ~/ 5;
     if (rewardAfter > rewardBefore) {
       HapticFeedback.heavyImpact();
-      _showFeedback('🎁 Récompense gagnée : ${_priorityRewardText.isEmpty ? 'un moment plaisir' : _priorityRewardText}.');
+      _showFeedback('🎁 Récompense surprise : $generatedReward.');
     } else {
       HapticFeedback.mediumImpact();
       _showFeedback('⭐ Bonus du jour gagné !');
@@ -322,35 +345,6 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
     _queueLocalStatePersist();
     _ensureDailyPrioritiesInTodayPlan();
     _maybeAwardDailyPriorityBonus();
-  }
-
-  Future<void> _editPriorityReward() async {
-    final controller = TextEditingController(text: _priorityRewardText);
-    final value = await showDialog<String>(
-      context: _navigatorKey.currentContext!,
-      builder: (context) => AlertDialog(
-        title: const Text('Ma récompense'),
-        content: TextField(
-          controller: controller,
-          maxLength: 60,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Récompense personnelle',
-            hintText: 'Ex. un bon restaurant, un film, un achat plaisir…',
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
-          FilledButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: const Text('Enregistrer')),
-        ],
-      ),
-    );
-    if (value == null || !mounted) return;
-    final next = value.trim().isEmpty ? 'un moment plaisir' : value.trim();
-    if (next == _priorityRewardText) return;
-    _prepareUndoSnapshot();
-    setState(() => _priorityRewardText = next);
-    _queueLocalStatePersist();
   }
 
   void _toggleActivityFrozen(Activity activity) {
@@ -623,29 +617,6 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
             sliver: SliverList(delegate: SliverChildBuilderDelegate((_, index) => _priorityActivityCard(selected[index]), childCount: selected.length)),
           ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-          sliver: SliverToBoxAdapter(
-            child: Row(children: [
-              Expanded(child: softCard(
-                color: const Color(0xFFF5F1FB),
-                borderColor: const Color(0xFFE3D9EE),
-                radius: 18,
-                padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
-                child: Row(children: [
-                  const Text('🎁', style: TextStyle(fontSize: 22)),
-                  const SizedBox(width: 8),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Ma récompense', style: TextStyle(fontSize: 11.7, fontWeight: FontWeight.w900, color: Color(0xFF655B6C))),
-                    const SizedBox(height: 2),
-                    Text(_priorityRewardText, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w700, color: Color(0xFF77707D))),
-                  ])),
-                  IconButton(visualDensity: VisualDensity.compact, tooltip: 'Modifier ma récompense', onPressed: _editPriorityReward, icon: _uiIcon('edit', Icons.edit_rounded, size: 17)),
-                ]),
-              )),
-            ]),
-          ),
-        ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
           sliver: SliverToBoxAdapter(child: _frozenInfoCard()),

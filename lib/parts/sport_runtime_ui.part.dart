@@ -12,7 +12,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
     }).toList();
   }
 
-  Widget _sportDayCard(int day) {
+  Widget _sportDayCard(int day, {bool compactHome = false}) {
     final items = _sportItemsForDay(day);
     final target = _sportBudgetForDay(day);
     final planned = items.fold<int>(0, (sum, item) => sum + item.duration);
@@ -43,150 +43,118 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
           ),
           IconButton(
             visualDensity: VisualDensity.compact,
+            tooltip: 'Journal du coach Sport',
+            onPressed: openSportCoachJournal,
+            icon: _uiIcon('history', Icons.menu_book_rounded, size: 18),
+          ),
+          IconButton(
+            visualDensity: VisualDensity.compact,
             tooltip: 'Semaine Sport',
             onPressed: openSportWeekOverview,
-            icon: _uiIcon('week', Icons.calendar_view_week_outlined, size: 18),
+            icon: _uiIcon('sportWeek', Icons.calendar_view_week_outlined, size: 18),
           ),
         ]),
         const SizedBox(height: 8),
         if (items.isEmpty)
           const Text('Aucune activité Sport proposée ce jour.', style: TextStyle(fontSize: 12.5, color: Color(0xFF6F7777)))
         else
-          ...items.map((item) => _sportItemRow(item)),
+          ...items.map((item) => _sportItemRow(item, compactHome: compactHome)),
       ]),
     );
   }
 
-  Widget _sportItemRow(PlanItem item) {
+  Widget _sportItemRow(PlanItem item, {bool compactHome = false}) {
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
     final emoji = _planItemIconValue(item, activities);
-    final sameDay = activity == null
-        ? <PlanItem>[]
-        : _sportItemsForDay(item.day).where((p) => p.activityId == item.activityId).toList();
+    final sameDay = activity == null ? <PlanItem>[] : _sportItemsForDay(item.day).where((p) => p.activityId == item.activityId).toList();
     final occurrence = sameDay.indexWhere((p) => p.id == item.id) + 1;
     final repeated = sameDay.length > 1;
-    final titleStyle = _detailMetaStyle().copyWith(
-      fontWeight: FontWeight.w900,
-      color: const Color(0xFF3F4B45),
-    );
+    final titleStyle = _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null);
 
     return Padding(
-      padding: const EdgeInsets.only(top: 7),
+      padding: const EdgeInsets.only(top: 6),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(4, 5, 2, 4),
+        constraints: const BoxConstraints(minHeight: 60),
+        padding: const EdgeInsets.fromLTRB(7, 6, 5, 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFF7FAF8),
-          borderRadius: BorderRadius.circular(10),
+          color: const Color(0xFFFFFEFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE0E5E1)),
+          boxShadow: const [BoxShadow(color: Color(0x09000000), blurRadius: 5, offset: Offset(0, 2))],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(children: [
-              _activityIconWidget(emoji, size: 25),
-              const SizedBox(width: 6),
-              Expanded(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: activity == null ? null : () => addOrEditActivity(original: activity),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(children: [
+            Checkbox(
+              value: item.done,
+              onChanged: (_) => openPlanItem(item),
+              visualDensity: VisualDensity.compact,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            ),
+            const SizedBox(width: 3),
+            _activityIconWidget(emoji, size: 28),
+            const SizedBox(width: 8),
+            Expanded(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: activity == null ? null : () => addOrEditActivity(original: activity),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    children: [
                       Expanded(
                         child: Row(
                           children: [
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      item.title,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: titleStyle.copyWith(decoration: item.done ? TextDecoration.lineThrough : null),
-                                    ),
-                                  ),
-                                  _frozenActivityMarker(activity),
-                                ],
-                              ),
-                            ),
+                            Expanded(child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle)),
+                            _frozenActivityMarker(activity),
                             if (item.day == today && _isDailyPriorityActivityId(item.activityId)) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFEBC8),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: const Color(0xFFE8C98B)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFFA27432)),
-                                    const SizedBox(width: 2),
-                                    const Text('Priorité', style: TextStyle(fontSize: 8.2, fontWeight: FontWeight.w800, letterSpacing: 0.05, color: Color(0xFFA27432))),
-                                  ],
-                                ),
-                              ),
+                              const SizedBox(width: 5),
+                              _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFFA27432)),
+                            ],
+                            if (repeated) ...[
+                              const SizedBox(width: 5),
+                              Text('$occurrence/${sameDay.length}', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF6F8E80))),
                             ],
                           ],
                         ),
                       ),
-                      if (repeated) ...[
-                        const SizedBox(width: 5),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEAF2ED),
-                            borderRadius: BorderRadius.circular(7),
-                          ),
-                          child: Text(
-                            '$occurrence/${sameDay.length}',
-                            style: _detailMetaStyle().copyWith(fontSize: 9.5, fontWeight: FontWeight.w900, color: const Color(0xFF6F8E80)),
-                          ),
-                        ),
-                      ],
-                    ]),
+                      const SizedBox(width: 8),
+                      Text(item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min', style: _detailMetaStyle()),
+                    ],
                   ),
                 ),
               ),
+            ),
+            if (!compactHome && activity != null) ...[
+              const SizedBox(width: 3),
+              _sportWeeklyIndicator(activity),
+            ],
+            if (activity != null) ...[
+              const SizedBox(width: 2),
               IconButton(
-                tooltip: 'Retirer du jour',
+                tooltip: 'Modifier le temps réalisé',
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-                onPressed: () => _removePlanOccurrence(item),
-                icon: _uiIcon('remove', Icons.remove_circle_outline, size: 17, color: const Color(0xFFC27D68)),
+                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                onPressed: () => _editSportRealisedMinutes(item, activity),
+                icon: _uiIcon('duration', Icons.timer_outlined, size: 18, color: const Color(0xFF718077)),
               ),
-            ]),
-            const SizedBox(height: 1),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min',
-                  style: _detailMetaStyle(),
-                ),
-                const SizedBox(width: 3),
-                if (!item.done && activity != null)
-                  IconButton(
-                    tooltip: 'Saisir un temps différent',
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    onPressed: () => _editSportRealisedMinutes(item, activity),
-                    icon: _uiIcon('duration', Icons.timer_outlined, size: 17, color: const Color(0xFF7A8C84)),
-                  ),
-                if (activity != null) ...[
-                  const SizedBox(width: 1),
-                  _sportWeeklyIndicator(activity),
-                  const SizedBox(width: 2),
-                ],
-                Checkbox(
-                  value: item.done,
-                  onChanged: (_) => openPlanItem(item),
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
+            ],
+            PopupMenuButton<String>(
+              tooltip: 'Autres actions',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
+              icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: const Color(0xFF748079)),
+              onSelected: (value) {
+                if (value == 'duration' && activity != null) _editSportRealisedMinutes(item, activity);
+                if (value == 'edit' && activity != null) addOrEditActivity(original: activity);
+                if (value == 'remove') _removePlanOccurrence(item);
+              },
+              itemBuilder: (context) => [
+                if (activity != null) const PopupMenuItem<String>(value: 'duration', child: Text('Modifier le temps réalisé')),
+                if (activity != null) const PopupMenuItem<String>(value: 'edit', child: Text('Voir / modifier')),
+                const PopupMenuItem<String>(value: 'remove', child: Text('Retirer du jour')),
               ],
             ),
           ],

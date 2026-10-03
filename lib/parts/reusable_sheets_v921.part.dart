@@ -7,36 +7,6 @@ class _InfoSheet extends StatelessWidget {
   final PlanItem item;
   const _InfoSheet({required this.item});
 
-
-  Widget _backupStep({
-    required IconData icon,
-    required String iconKey,
-    required String title,
-    required String text,
-    required bool done,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 30, height: 30, alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: done ? const Color(0xFFE3F0E7) : const Color(0xFFF1EEE8),
-            shape: BoxShape.circle,
-          ),
-          child: done ? const Icon(Icons.check_rounded, size: 16, color: Color(0xFF62806E)) : _uiIcon(iconKey, icon, size: 16, color: const Color(0xFF847A6D)),
-        ),
-        const SizedBox(width: 8),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: Color(0xFF4C5952))),
-          const SizedBox(height: 1),
-          Text(text, maxLines: 2, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 9.8, height: 1.22, color: Color(0xFF737A76))),
-        ])),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -59,25 +29,26 @@ class _InfoSheet extends StatelessWidget {
   }
 }
 
-class _DataPage extends StatelessWidget {
-  final VoidCallback onExport;
+class _DataPage extends StatefulWidget {
   final Future<void> Function() onICloudExport;
   final Future<bool> Function() onImport;
   final Future<void> Function() onReset;
-  final String cloudBackupStatus;
-  final String fileBackupStatus;
+  final String Function() getCloudBackupStatus;
   final int cloudReminderDays;
 
   const _DataPage({
-    required this.onExport,
     required this.onICloudExport,
     required this.onImport,
     required this.onReset,
-    required this.cloudBackupStatus,
-    required this.fileBackupStatus,
+    required this.getCloudBackupStatus,
     required this.cloudReminderDays,
   });
 
+  @override
+  State<_DataPage> createState() => _DataPageState();
+}
+
+class _DataPageState extends State<_DataPage> {
   Widget _backupStep({
     required IconData icon,
     required String iconKey,
@@ -130,7 +101,8 @@ class _DataPage extends StatelessWidget {
   }
 
   Future<void> _import(BuildContext context) async {
-    final ok = await onImport();
+    final ok = await widget.onImport();
+    if (mounted) setState(() {});
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -158,7 +130,7 @@ class _DataPage extends StatelessWidget {
       ),
     );
     if (confirm != true || !context.mounted) return;
-    await onReset();
+    await widget.onReset();
     if (context.mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     }
@@ -256,20 +228,22 @@ class _DataPage extends StatelessWidget {
   }
 
   Widget _statusPill() {
-    final noBackup = cloudBackupStatus.startsWith('Aucune') || fileBackupStatus.startsWith('Aucune');
+    final cloudDone = !widget.getCloudBackupStatus().startsWith('Aucune');
+    final label = cloudDone ? 'À jour' : 'À faire';
+    final due = !cloudDone;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: noBackup ? const Color(0xFFFFF4DE) : const Color(0xFFE7F2EB),
+        color: due ? const Color(0xFFFFF4DE) : const Color(0xFFE7F2EB),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: noBackup ? const Color(0xFFE8D7B4) : const Color(0xFFC7DDCE)),
+        border: Border.all(color: due ? const Color(0xFFE8D7B4) : const Color(0xFFC7DDCE)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _uiIcon(noBackup ? 'backupDue' : 'backupOk', noBackup ? Icons.schedule_rounded : Icons.check_circle_outline_rounded, size: 14, color: noBackup ? const Color(0xFF9A7541) : const Color(0xFF62806E)),
+          _uiIcon(due ? 'backupDue' : 'backupOk', due ? Icons.schedule_rounded : Icons.check_circle_outline_rounded, size: 14, color: due ? const Color(0xFF9A7541) : const Color(0xFF62806E)),
           const SizedBox(width: 5),
-          Flexible(child: Text(noBackup ? 'À faire' : 'À jour', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: noBackup ? const Color(0xFF87663B) : const Color(0xFF5E7566)))),
+          Flexible(child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: due ? const Color(0xFF87663B) : const Color(0xFF5E7566)))),
         ],
       ),
     );
@@ -325,7 +299,7 @@ class _DataPage extends StatelessWidget {
                     children: [
                       Text('Tes données, au calme.', style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF415048))),
                       SizedBox(height: 3),
-                      Text('La sauvegarde locale est automatique. Garde une copie à portée de main pour retrouver MyBestWeek facilement.', style: TextStyle(fontSize: 10.8, height: 1.3, color: Color(0xFF68736D))),
+                      Text('La sauvegarde sur cet appareil est automatique. La copie de sécurité se fait dans iCloud.', style: TextStyle(fontSize: 10.8, height: 1.3, color: Color(0xFF68736D))),
                     ],
                   ),
                 ),
@@ -363,37 +337,10 @@ class _DataPage extends StatelessWidget {
                   done: true,
                 ),
                 const SizedBox(height: 6),
-                _backupStep(
-                  icon: Icons.cloud_done_outlined, iconKey: 'backupCloud',
-                  title: 'Copie iCloud',
-                  text: cloudBackupStatus,
-                  done: !cloudBackupStatus.startsWith('Aucune'),
-                ),
-                const SizedBox(height: 6),
-                _backupStep(
-                  icon: Icons.archive_outlined, iconKey: 'backupFile',
-                  title: 'Fichier .json',
-                  text: fileBackupStatus,
-                  done: !fileBackupStatus.startsWith('Aucune'),
-                ),
               ],
             ),
           ),
           const SizedBox(height: 14),
-          _primaryCard(
-            context: context,
-            background: const Color(0xFFFFFCF7),
-            border: const Color(0xFFE5DDD2),
-            accent: const Color(0xFF718D7F),
-            icon: Icons.download_rounded, systemKey: 'backupDownload',
-            eyebrow: 'Copie locale',
-            title: 'Sauvegarder',
-            description: 'Crée un fichier .json complet avec tes activités, ton planning, tes validations, ton historique et tes bilans.',
-            buttonLabel: 'Créer ma sauvegarde',
-            onPressed: onExport,
-            footer: 'Le fichier est conservé par ton navigateur / appareil jusqu’à l’endroit où tu choisis de l’enregistrer.',
-          ),
-          const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
               color: const Color(0xFFF0F5FC),
@@ -404,33 +351,31 @@ class _DataPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    _iconBubble(Icons.cloud_outlined, systemKey: 'backupCloud', background: const Color(0xFFDDE8F7), foreground: const Color(0xFF58708C)),
-                    const SizedBox(width: 11),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('COPIE EXTERNE', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: .6, color: Color(0xFF7B8795))),
-                          SizedBox(height: 2),
-                          Text('iCloud Drive', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF46596C))),
-                        ],
-                      ),
+                Row(children: [
+                  _iconBubble(Icons.cloud_outlined, systemKey: 'backupCloud', background: const Color(0xFFDDE8F7), foreground: const Color(0xFF58708C)),
+                  const SizedBox(width: 11),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('SAUVEGARDE', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: .6, color: Color(0xFF7B8795))),
+                        SizedBox(height: 2),
+                        Text('iCloud', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF46596C))),
+                      ],
                     ),
-                    _statusPill(),
-                  ],
-                ),
+                  ),
+                  _statusPill(),
+                ]),
                 const SizedBox(height: 9),
-                const Text('Volontaire et simple : crée le fichier, enregistre-le dans Fichiers → iCloud Drive, puis confirme l’opération.', style: TextStyle(fontSize: 11.5, height: 1.3, color: Color(0xFF687584))),
+                const Text('Une seule sauvegarde de sécurité : enregistre le fichier dans Fichiers → iCloud Drive.', style: TextStyle(fontSize: 11.5, height: 1.3, color: Color(0xFF687584))),
                 const SizedBox(height: 7),
-                Text(cloudBackupStatus, style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF788696))),
+                Text(widget.getCloudBackupStatus(), style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF788696))),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
                   height: 46,
                   child: FilledButton.icon(
-                    onPressed: onICloudExport,
+                    onPressed: () async { await widget.onICloudExport(); if (mounted) setState(() {}); },
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF627A93),
                       foregroundColor: Colors.white,
@@ -438,11 +383,11 @@ class _DataPage extends StatelessWidget {
                       textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900),
                     ),
                     icon: _uiIcon('backupUpload', Icons.cloud_upload_rounded, size: 18),
-                    label: const Text('Créer une copie iCloud'),
+                    label: const Text('Sauvegarder dans iCloud'),
                   ),
                 ),
                 const SizedBox(height: 8),
-                Center(child: Text('Rappel conseillé tous les $cloudReminderDays jours', style: const TextStyle(fontSize: 9.8, color: Color(0xFF788696)))),
+                Center(child: Text('Rappel conseillé tous les ${widget.cloudReminderDays} jours', style: const TextStyle(fontSize: 9.8, color: Color(0xFF788696)))),
               ],
             ),
           ),
@@ -526,7 +471,6 @@ class _DataPage extends StatelessWidget {
     );
   }
 }
-
 
 class _CustomActivityEmoji {
   final String value;

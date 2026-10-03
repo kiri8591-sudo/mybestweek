@@ -165,19 +165,18 @@ extension _AppCoreHelpersPart on _MaBelleSemaineAppState {
     return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
-  void openDataManager() {
-    _navigatorKey.currentState?.push(
+  Future<void> openDataManager() async {
+    await _navigatorKey.currentState?.push(
       MaterialPageRoute(
         builder: (_) => _DataPage(
-          onExport: exportBackupFile,
           onICloudExport: exportBackupToICloud,
           onImport: importBackupFile,
           onReset: resetDatabaseCompletely,
-          cloudBackupStatus: _cloudBackupStatusText(),
-          fileBackupStatus: _fileBackupStatusText(),
+          getCloudBackupStatus: _cloudBackupStatusText,
           cloudReminderDays: _MaBelleSemaineAppState._cloudBackupReminderDays,
         ),
       ),
     );
+    if (mounted) setState(() {});
   }
 }

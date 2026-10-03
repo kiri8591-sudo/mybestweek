@@ -1006,6 +1006,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
           (i) => cutoffDay + 1 + i,
         );
         _lastPlanningRegeneratedAt = DateTime.now();
+        _planningReportReadAt = null;
         _lastPlanningCoachExplanation = planningCoachExplanation;
         final savedDetails = decisionDetails.take(30).toList();
         if (savedDetails.isEmpty) {

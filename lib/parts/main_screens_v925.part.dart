@@ -1,4 +1,4 @@
-// V9.30.2 — Écrans principaux, identité visuelle renforcée
+// V12.1.0 — Accueil iPhone : hiérarchie recentrée sur Aujourd’hui et Mission du jour
 // Extraction architecturale uniquement : comportement conservé.
 
 part of '../main.dart';
@@ -412,169 +412,224 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
     );
   }
 
-  Widget _evo1CoachMissionCard() {
+  PlanItem? _homeCoachMission() {
     final remaining = actionableItemsForDay(today).where((item) => !item.done).toList();
-    PlanItem? mission;
-    if (remaining.isNotEmpty) {
-      remaining.sort((a, b) {
-        final dailyA = _isDailyPriorityActivityId(a.activityId) ? 0 : 1;
-        final dailyB = _isDailyPriorityActivityId(b.activityId) ? 0 : 1;
-        final dailyPriorityCompare = dailyA.compareTo(dailyB);
-        if (dailyPriorityCompare != 0) return dailyPriorityCompare;
-        final pa = a.activityId == null ? 1 : (findActivity(a.activityId!)?.priority ?? 1);
-        final pb = b.activityId == null ? 1 : (findActivity(b.activityId!)?.priority ?? 1);
-        final priorityCompare = pb.compareTo(pa);
-        if (priorityCompare != 0) return priorityCompare;
-        final periodOrder = {'Matin': 0, 'Midi': 1, 'Après-midi': 2, 'Soir': 3};
-        final periodCompare = (periodOrder[a.period] ?? 9).compareTo(periodOrder[b.period] ?? 9);
-        if (periodCompare != 0) return periodCompare;
-        return a.duration.compareTo(b.duration);
-      });
-      mission = remaining.first;
+    if (remaining.isEmpty) return null;
+    remaining.sort((a, b) {
+      final dailyA = _isDailyPriorityActivityId(a.activityId) ? 0 : 1;
+      final dailyB = _isDailyPriorityActivityId(b.activityId) ? 0 : 1;
+      final dailyCompare = dailyA.compareTo(dailyB);
+      if (dailyCompare != 0) return dailyCompare;
+      final pa = a.activityId == null ? 1 : (findActivity(a.activityId!)?.priority ?? 1);
+      final pb = b.activityId == null ? 1 : (findActivity(b.activityId!)?.priority ?? 1);
+      final priorityCompare = pb.compareTo(pa);
+      if (priorityCompare != 0) return priorityCompare;
+      const periodOrder = {'Matin': 0, 'Midi': 1, 'Après-midi': 2, 'Soir': 3};
+      final periodCompare = (periodOrder[a.period] ?? 9).compareTo(periodOrder[b.period] ?? 9);
+      if (periodCompare != 0) return periodCompare;
+      return a.duration.compareTo(b.duration);
+    });
+    return remaining.first;
+  }
+
+  Widget _homePlanningBanner() {
+    final regenerationVisible = _lastPlanningRegeneratedWeekKey == _currentWeekKey() &&
+        _lastPlanningRegeneratedDays.isNotEmpty &&
+        _lastPlanningRegeneratedAt != null &&
+        DateTime.now().difference(_lastPlanningRegeneratedAt!).inHours < 24 &&
+        _planningReportReadAt == null;
+    if (regenerationVisible) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 1, 16, 6),
+          child: softCard(
+            color: const Color(0xFFE8F0EA),
+            borderColor: const Color(0xFFD2E0D6),
+            radius: 16,
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+            child: Row(
+              children: [
+                _uiIcon('refresh', Icons.autorenew_rounded, size: 16, color: const Color(0xFF6F8E80)),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    'Planning mis à jour · ${_regeneratedDaysMessage()}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 10.4, fontWeight: FontWeight.w800, color: Color(0xFF526A5E)),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() => _planningReportReadAt = DateTime.now());
+                    _queueLocalStatePersist();
+                    openPlanningCoachDecisions();
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    minimumSize: const Size(0, 30),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Pourquoi ?', style: TextStyle(fontSize: 9.8, fontWeight: FontWeight.w900)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
+    if (_showMondayRegenerationPrompt) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 1, 16, 6),
+          child: softCard(
+            color: const Color(0xFFEAF3EE),
+            borderColor: const Color(0xFFD3E3D9),
+            radius: 16,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            child: Row(
+              children: [
+                const Text('🌿', style: TextStyle(fontSize: 17)),
+                const SizedBox(width: 6),
+                const Expanded(
+                  child: Text(
+                    'C’est lundi 🌱. Repenser la semaine à partir de ton historique ?',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: Color(0xFF526A5E), height: 1.2),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                FilledButton.tonal(
+                  onPressed: openGenerationCriteria,
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                    minimumSize: const Size(0, 34),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Repenser', style: TextStyle(fontSize: 9.8, fontWeight: FontWeight.w900)),
+                ),
+                IconButton(
+                  tooltip: 'Pas maintenant',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _dismissMondayRegenerationPrompt,
+                  icon: _uiIcon('close', Icons.close_rounded, size: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return const SliverToBoxAdapter(child: SizedBox.shrink());
+  }
 
+  String _periodLabelIcon(String period) {
+    switch (period) {
+      case 'Matin':
+        return _systemIconValue('periodMorning', '🌤️');
+      case 'Après-midi':
+        return _systemIconValue('periodAfternoon', '🌿');
+      case 'Soir':
+        return _systemIconValue('periodEvening', '🌙');
+      default:
+        return '•';
+    }
+  }
+
+  Widget _homeMissionFocusHeader(PlanItem? mission, bool todayCompleted) {
     final activity = mission?.activityId == null ? null : findActivity(mission!.activityId!);
-    final isPriority = mission != null && _isDailyPriorityActivityId(mission!.activityId);
-    final title = mission == null ? 'Journée libre' : mission.title;
-    final reason = mission == null
-        ? 'Aucun moment actif ne reste à vivre aujourd’hui. Le Coach te laisse de l’espace.'
+    final isPriority = mission != null && _isDailyPriorityActivityId(mission.activityId);
+    final missionTitle = mission?.title ?? 'Journée libre';
+    final missionReason = mission == null
+        ? 'Le Coach te laisse de l’espace aujourd’hui.'
         : isPriority
-            ? 'Je te propose cette priorité du jour.'
+            ? 'Priorité du jour'
             : activity != null
-                ? 'Je te propose ce moment ${activity.category.toLowerCase()}.'
-                : 'Je te propose ce moment.';
-
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 1, 16, 8),
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFFAF2),
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: const Color(0xFFE8DDCA)),
-            boxShadow: const [
-              BoxShadow(color: Color(0x14000000), blurRadius: 18, offset: Offset(0, 6)),
-            ],
-          ),
-          padding: const EdgeInsets.fromLTRB(13, 12, 12, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+                ? 'Proposition ${activity.category.toLowerCase()}'
+                : 'Proposition du Coach';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 7, 10, 9),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(9, 8, 9, 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFAF3),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE9DEC9)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(color: const Color(0xFFFFEFD7), borderRadius: BorderRadius.circular(13)),
+              alignment: Alignment.center,
+              child: mission == null
+                  ? const Text('🌿', style: TextStyle(fontSize: 19))
+                  : _activityIconWidget(_planItemIconValue(mission, activities), size: 21),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _systemIconWidget('coach', fallback: '🧠', size: 18),
-                  const SizedBox(width: 7),
-                  const Expanded(
-                    child: Text(
-                      'Mission du jour',
-                      style: TextStyle(fontSize: 12.2, fontWeight: FontWeight.w900, color: Color(0xFF987659)),
-                    ),
-                  ),
-                  if (isPriority)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3E5C9),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: const Color(0xFFE2D0AE)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFF9A7B44)),
-                          const SizedBox(width: 3),
-                          const Text('Priorité', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF7F6940))),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFEFD7),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: mission == null
-                        ? const Text('🌿', style: TextStyle(fontSize: 21))
-                        : _activityIconWidget(_planItemIconValue(mission!, activities), size: 24),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 14.5, height: 1.15, fontWeight: FontWeight.w900, color: Color(0xFF414C46)),
+                  Row(
+                    children: [
+                      const Text('Mission', style: TextStyle(fontSize: 8.2, fontWeight: FontWeight.w900, color: Color(0xFF9A7758), letterSpacing: .2)),
+                      const SizedBox(width: 5),
+                      if (isPriority)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _uiIcon('priority', Icons.star_rounded, size: 11, color: const Color(0xFF9A7B44)),
+                            const SizedBox(width: 2),
+                            const Text('Priorité', style: TextStyle(fontSize: 8.2, fontWeight: FontWeight.w900, color: Color(0xFF7F6940))),
+                          ],
                         ),
-                        if (mission != null) ...[
-                          const SizedBox(height: 5),
-                          Wrap(
-                            spacing: 5,
-                            runSpacing: 4,
-                            children: [
-                              _coachMissionMetaChip(mission!.period, _periodEmoji(mission!.period)),
-                              _coachMissionMetaChip('${mission!.duration} min', '⏱️'),
-                              if (activity != null) _coachMissionMetaChip(activity.category, null),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
+                    ],
+                  ),
+                  const SizedBox(height: 1),
+                  Text(missionTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12.7, fontWeight: FontWeight.w900, color: Color(0xFF414C46))),
+                  const SizedBox(height: 2),
+                  Text(
+                    mission == null ? missionReason : '${_periodLabelIcon(mission.period)} ${mission.period} · ${mission.duration} min · $missionReason',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 8.9, fontWeight: FontWeight.w700, color: Color(0xFF6C6F66)),
                   ),
                 ],
               ),
-              const SizedBox(height: 9),
-              Text(
-                reason,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10.8, height: 1.28, color: Color(0xFF6C6F66), fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(width: 7),
+            todayCompleted
+                ? SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: _CompletionCelebration(key: const ValueKey('home-completion')),
+                  )
+                : Text(_focusIcon, style: const TextStyle(fontSize: 18)),
+            ],
+            ),
+            if (!todayCompleted && _todayFocus().trim().isNotEmpty) ...[
+              const SizedBox(height: 5),
+              Padding(
+                padding: const EdgeInsets.only(left: 46),
+                child: Text(
+                  _todayFocus(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 9.4, height: 1.18, fontWeight: FontWeight.w700, color: Color(0xFF6E6860)),
+                ),
               ),
             ],
-          ),
+          ],
         ),
       ),
     );
-  }
-
-  Widget _coachMissionMetaChip(String label, String? emoji) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3F0E9),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (emoji != null) ...[
-            Text(emoji, style: const TextStyle(fontSize: 10.5)),
-            const SizedBox(width: 3),
-          ],
-          Text(label, style: const TextStyle(fontSize: 9.7, fontWeight: FontWeight.w800, color: Color(0xFF667069))),
-        ],
-      ),
-    );
-  }
-
-  String _periodEmoji(String period) {
-    switch (period) {
-      case 'Matin': return '🌤️';
-      case 'Midi': return '☀️';
-      case 'Après-midi': return '🌿';
-      case 'Soir': return '🌙';
-      default: return '📅';
-    }
   }
 
   Widget _kawaiiNavIcon(String emoji, Color bg, Color fg, {bool selected = false}) {
@@ -660,130 +715,12 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       child: child,
     );
 
-  Widget _homeDailyPriorityChallengeCard() {
-    final selected = _dailyPriorityActivities();
-    final doneCount = selected.where(_priorityActivityDoneToday).length;
-    final hasChallenge = selected.isNotEmpty;
-    final allDone = hasChallenge && doneCount == selected.length;
-    final bonusWon = _priorityBonusWonToday;
-    final progress = hasChallenge ? doneCount / selected.length : 0.0;
-
-    String title;
-    String subtitle;
-    String actionLabel;
-    String badge;
-    String icon;
-
-    if (!hasChallenge) {
-      title = 'Prépare ton défi du jour';
-      subtitle = 'Choisis 4 ou 5 habitudes prioritaires et essaie de toutes les réaliser aujourd’hui.';
-      actionLabel = 'Préparer';
-      badge = '⭐ Challenge';
-      icon = _systemIconValue('challenge', '🎯');
-    } else if (allDone) {
-      title = 'Challenge réussi !';
-      subtitle = bonusWon
-          ? 'Toutes tes priorités sont faites aujourd’hui · le bonus est gagné.'
-          : 'Toutes tes priorités sont réalisées. Le bonus se prépare…';
-      actionLabel = 'Voir';
-      badge = bonusWon ? '⭐ +1 bonus' : '⭐ Bravo';
-      icon = _systemIconValue('challenge', '🏆');
-    } else {
-      title = 'Challenge du jour';
-      subtitle = '$doneCount/${selected.length} habitudes prioritaires réalisées';
-      actionLabel = 'Continuer';
-      badge = '⭐ ${selected.length - doneCount} restantes';
-      icon = _systemIconValue('challenge', '🎯');
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 1, 16, 7),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(22),
-        onTap: () => setState(() => tab = 2),
-        child: softCard(
-          color: allDone ? const Color(0xFFF8F0DD) : const Color(0xFFF6F1FB),
-          borderColor: allDone ? const Color(0xFFE9D7AB) : const Color(0xFFE2D8EC),
-          radius: 22,
-          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFFCF7),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(icon, style: const TextStyle(fontSize: 21)),
-                  ),
-                  const SizedBox(width: 9),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                title,
-                                style: const TextStyle(fontSize: 13.2, fontWeight: FontWeight.w900, color: Color(0xFF53485F)),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFFCF7),
-                                borderRadius: BorderRadius.circular(99),
-                              ),
-                              child: Text(badge, style: const TextStyle(fontSize: 9.2, fontWeight: FontWeight.w900, color: Color(0xFF786A50))),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          subtitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 10.3, height: 1.22, fontWeight: FontWeight.w700, color: Color(0xFF72697B)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 5),
-                  _uiIcon('planOpen', Icons.chevron_right_rounded, size: 21, color: const Color(0xFF8A7D94)),
-                ],
-              ),
-              if (hasChallenge) ...[
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 5,
-                    backgroundColor: const Color(0xFFE8DFEC),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF9D89B0)),
-                  ),
-                ),
-                const SizedBox(height: 6),
-              ],
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  actionLabel,
-                  style: const TextStyle(fontSize: 9.8, fontWeight: FontWeight.w900, color: Color(0xFF786A82)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  String _backupMenuStatusLabel() {
+    final local = _lastFileBackupAt != null;
+    final cloud = _lastICloudBackupAt != null;
+    if (local && cloud) return 'À jour';
+    if (local || cloud) return '1/2 copie';
+    return 'À faire';
   }
 
   Widget buildHome() {
@@ -794,9 +731,6 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       final activity = findActivity(item.activityId!);
       return activity == null || !_isSportActivity(activity);
     }).toList();
-    final trackableItems = plan.where((p) => p.activityId != null && !_isDateRangePlanItem(p)).toList();
-    final completed = trackableItems.where((x) => x.done).length;
-    final progress = trackableItems.isEmpty ? 0.0 : completed / trackableItems.length;
     final todayActionItems = todayItems.where((x) => !_isDateRangePlanItem(x)).toList();
     final todayCompleted = todayActionItems.isNotEmpty && todayActionItems.every((x) => x.done);
     final todayDone = todayActionItems.where((x) => x.done).length;
@@ -856,24 +790,16 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F0EB),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFD2E1D8)),
-                    ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      _systemIconWidget(period == 'Matin' ? 'periodMorning' : period == 'Après-midi' ? 'periodAfternoon' : 'periodEvening', fallback: period == 'Matin' ? '🌤️' : period == 'Après-midi' ? '🌿' : '🌙', size: 20),
-                      const SizedBox(width: 6),
-                      Text(period, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF41514A), letterSpacing: .05)),
-                    ]),
-                  ),
+                  _systemIconWidget(period == 'Matin' ? 'periodMorning' : period == 'Après-midi' ? 'periodAfternoon' : 'periodEvening', fallback: period == 'Matin' ? '🌤️' : period == 'Après-midi' ? '🌿' : '🌙', size: 17),
+                  const SizedBox(width: 6),
+                  Text(period, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w900, color: Color(0xFF4E5B54))),
+                  const SizedBox(width: 9),
+                  const Expanded(child: Divider(height: 1, thickness: .8, color: Color(0xFFD7DFDA))),
                   if (highlighted) ...[
                     const SizedBox(width: 7),
                     _systemIconWidget('dragDown', fallback: '↓', size: 15),
                     const SizedBox(width: 3),
-                    const Text('Déposer ici', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
+                    const Text('Déposer ici', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
                   ],
                 ]),
                 if (periodItems.isEmpty)
@@ -926,15 +852,6 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF756E67)),
                                   ),
                                 ),
-                                const SizedBox(width: 5),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFFCF7),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(_MaBelleSemaineAppState.version, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: Color(0xFF7A807D))),
-                                ),
                               ],
                             ),
                             const SizedBox(height: 5),
@@ -972,12 +889,75 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                         icon: _uiIcon('refresh', Icons.autorenew_rounded, size: 18, color: const Color(0xFF6F8E80)),
                       ),
                       PopupMenuButton<String>(
-                        tooltip: 'Réglages',
+                        tooltip: 'Menu',
                         padding: EdgeInsets.zero,
-                        icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 18, color: const Color(0xFF6F7B74)),
+                        icon: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: const Color(0xFF6F7B74)),
+                            if (_cloudBackupReminderDue)
+                              Positioned(
+                                right: -1,
+                                top: -2,
+                                child: Container(
+                                  width: 7,
+                                  height: 7,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFB46A58),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: headerColor, width: 1.2),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                         onSelected: (value) {
                           if (value == 'data') openDataManager();
                           if (value == 'identity') _editHomeIdentity();
+                          if (value == 'about') {
+                            showDialog<void>(
+                              context: context,
+                              builder: (dialogContext) => AlertDialog(
+                                title: Row(
+                                  children: [
+                                    _uiIcon('info', Icons.info_outline_rounded, size: 22, color: const Color(0xFF60786B)),
+                                    const SizedBox(width: 8),
+                                    const Expanded(child: Text('À propos')),
+                                  ],
+                                ),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('MyBestWeek', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45))),
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEAF2ED),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          _uiIcon('info', Icons.verified_outlined, size: 17, color: const Color(0xFF60786B)),
+                                          const SizedBox(width: 7),
+                                          const Text('Version', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6D7771))),
+                                          const Spacer(),
+                                          Text(_MaBelleSemaineAppState.version, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF4F6D5D))),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 9),
+                                    const Text('Coach hebdomadaire ludique pour organiser une retraite active.', style: TextStyle(fontSize: 11.5, height: 1.3, color: Color(0xFF68736F))),
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Fermer')),
+                                ],
+                              ),
+                            );
+                          }
                         },
                         itemBuilder: (context) => [
                           PopupMenuItem<String>(
@@ -986,6 +966,19 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               contentPadding: EdgeInsets.zero,
                               leading: _uiIcon('save', Icons.save_outlined, size: 18),
                               title: const Text('Sauvegarde & données'),
+                              trailing: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: _backupMenuStatusLabel() == 'À faire'
+                                      ? const Color(0xFFFFF4DE)
+                                      : const Color(0xFFE7F2EB),
+                                  borderRadius: BorderRadius.circular(9),
+                                ),
+                                child: Text(
+                                  _backupMenuStatusLabel(),
+                                  style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900),
+                                ),
+                              ),
                             ),
                           ),
                           PopupMenuItem<String>(
@@ -994,6 +987,14 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               contentPadding: EdgeInsets.zero,
                               leading: _uiIcon('settings', Icons.tune_rounded, size: 18),
                               title: const Text('Personnaliser l’accueil'),
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'about',
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: _uiIcon('info', Icons.info_outline_rounded, size: 18),
+                              title: const Text('À propos'),
                             ),
                           ),
                         ],
@@ -1079,146 +1080,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             ),
           ),
         ),
-        if (_cloudBackupReminderDue)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 1, 16, 5),
-              child: softCard(
-                color: const Color(0xFFF4EFE4),
-                borderColor: const Color(0xFFE4D6B9),
-                radius: 18,
-                padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
-                child: Row(
-                  children: [
-                    const Text('☁️', style: TextStyle(fontSize: 18)),
-                    const SizedBox(width: 7),
-                    Expanded(
-                      child: Text(
-                        'Pense à faire une sauvegarde iCloud : ta dernière copie confirmée date de plus de ${_MaBelleSemaineAppState._cloudBackupReminderDays} jours.',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 10.4, fontWeight: FontWeight.w800, color: Color(0xFF6F624E), height: 1.2),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    TextButton(
-                      onPressed: exportBackupToICloud,
-                      child: const Text('Sauvegarder'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        _sundayNextWeekPreview(),
-        if (_showMondayRegenerationPrompt)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 1, 16, 5),
-              child: softCard(
-                color: const Color(0xFFEAF3EE),
-                borderColor: const Color(0xFFD3E3D9),
-                radius: 19,
-                padding: const EdgeInsets.fromLTRB(11, 9, 8, 9),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Text('🌿', style: TextStyle(fontSize: 20)),
-                    const SizedBox(width: 7),
-                    const Expanded(
-                      child: Text(
-                        'C’est lundi 🌱. Tu peux repenser ta semaine à partir de ton historique et de tes critères.',
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 10.7, fontWeight: FontWeight.w800, color: Color(0xFF526A5E), height: 1.22),
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    FilledButton.tonalIcon(
-                      onPressed: openGenerationCriteria,
-                      icon: _uiIcon('coach', Icons.auto_awesome_outlined, size: 15),
-                      label: const Text('Repenser'),
-                      style: ButtonStyle(
-                        minimumSize: const WidgetStatePropertyAll(Size(0, 38)),
-                        padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Pas maintenant',
-                      visualDensity: VisualDensity.compact,
-                      onPressed: _dismissMondayRegenerationPrompt,
-                      icon: _uiIcon('close', Icons.close_rounded, size: 17),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        if (_lastPlanningRegeneratedWeekKey == _currentWeekKey() && _lastPlanningRegeneratedDays.isNotEmpty)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 1, 16, 5),
-              child: softCard(
-                color: const Color(0xFFE8F0EA),
-                borderColor: const Color(0xFFD2E0D6),
-                radius: 18,
-                padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    _uiIcon('refresh', Icons.autorenew_rounded, size: 18, color: const Color(0xFF6F8E80)),
-                    const SizedBox(width: 7),
-                    Expanded(child: Text(
-                      'Planning régénéré : ${_regeneratedDaysMessage()}. ${_lastPlanningWasFullWeek ? 'La semaine entière a été reconstruite après la réinitialisation.' : 'Le passé et aujourd’hui ont été conservés.'}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 10.3, fontWeight: FontWeight.w800, color: Color(0xFF526A5E), height: 1.2),
-                    )),
-                  ]),
-                  if (_lastPlanningCoachExplanation.isNotEmpty) ...[
-                    const SizedBox(height: 5),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 25),
-                      child: Text(
-                        _lastPlanningCoachExplanation,
-                        maxLines: 4,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 9.8, color: Color(0xFF6A756F), height: 1.2),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 2),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: openPlanningCoachDecisions,
-                      icon: _uiIcon('coach', Icons.psychology_outlined, size: 15, color: const Color(0xFF6F8E80)),
-                      label: const Text('Pourquoi ?'),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                        minimumSize: const Size(0, 30),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                    ),
-                  ),
-                ]),
-              ),
-            ),
-          ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 1, 16, 7),
-            child: _adaptiveHomeContextCard(
-              todayActionItems: todayActionItems,
-              todayDone: todayDone,
-              todayCompleted: todayCompleted,
-              weekProgress: progress,
-              weekCompleted: completed,
-              weekTotal: trackableItems.length,
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(child: _homeDailyPriorityChallengeCard()),
-        _evo1CoachMissionCard(),
+        _homePlanningBanner(),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 1, 16, 8),
@@ -1226,75 +1088,32 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
               color: const Color(0xFFF0F7F3),
               borderColor: const Color(0xFFD7E6DE),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        const Text('✨', style: TextStyle(fontSize: 19)),
-                        const SizedBox(width: 5),
-                        const Text('Aujourd’hui', style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF3F5047))),
-                        if (todayActionItems.isNotEmpty) ...[
-                          const SizedBox(width: 6),
-                          pill('$todayDone/${todayActionItems.length}', bg: const Color(0xFFF9FCFA)),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 7),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        todayCompleted
-                            ? SizedBox(
-                                width: 36,
-                                height: 36,
-                                child: _CompletionCelebration(
-                                  key: ValueKey('completion-${todayActionItems.length}'),
-                                ),
-                              )
-                            : Text(_focusIcon, style: const TextStyle(fontSize: 19)),
-                        const SizedBox(width: 7),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('FOCUS DU JOUR', style: TextStyle(fontSize: 7.2, fontWeight: FontWeight.w900, color: Color(0xFF9A7758), letterSpacing: .15)),
-                              const SizedBox(height: 2),
-                              Text(
-                                _todayFocus(),
-                                softWrap: true,
-                                overflow: TextOverflow.visible,
-                                style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: Color(0xFF564944), height: 1.18),
-                              ),
-                              if (todayCompleted) ...[
-                                const SizedBox(height: 3),
-                                InkWell(
-                                  borderRadius: BorderRadius.circular(12),
-                                  onTap: _openTodayDailySummary,
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-                                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                      Text(_todayDailySummary()?.moodEmoji ?? '🙂', style: const TextStyle(fontSize: 13)),
-                                      const SizedBox(width: 4),
-                                      const Text('Voir le petit bilan', style: TextStyle(fontSize: 9.4, fontWeight: FontWeight.w900, color: Color(0xFF718079))),
-                                    ]),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ],
+                    const Text('✨', style: TextStyle(fontSize: 19)),
+                    const SizedBox(width: 5),
+                    const Expanded(child: Text('Aujourd’hui', style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF3F5047)))),
+                    if (todayActionItems.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      pill('$todayDone/${todayActionItems.length}', bg: const Color(0xFFF9FCFA)),
+                    ],
+                    const SizedBox(width: 2),
+                    IconButton(
+                      tooltip: 'Challenge · Mes priorités',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: _editDailyPriorities,
+                      icon: _systemIconWidget('challenge', fallback: '🎯', size: 20),
                     ),
                   ],
                 ),
+                _homeMissionFocusHeader(_homeCoachMission(), todayCompleted),
                 const SizedBox(height: 4),
                 Text(todayItems.isEmpty ? 'Journée libre. Profite-en.' : 'Tes petits moments de la journée.', style: const TextStyle(fontSize: 10.2, color: Color(0xFF6C7771))),
                 const SizedBox(height: 9),
                 if (todayOtherItems.where(_isDateRangePlanItem).isNotEmpty)
                   _multiDaySection(todayOtherItems.where(_isDateRangePlanItem).toList(), day: today),
-                if (sportBudget > 0 || todaySportItems.isNotEmpty) _sportDayCard(today),
+                if (sportBudget > 0 || todaySportItems.isNotEmpty) _sportDayCard(today, compactHome: true),
                 if (sportBudget > 0 || todaySportItems.isNotEmpty) const SizedBox(height: 5),
                 ...const ['Matin', 'Après-midi', 'Soir']
                     .where((period) {
@@ -1322,7 +1141,8 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             ),
           ),
         ),
-        SliverToBoxAdapter(
+        if (sportCoachSuggestion.isNotEmpty)
+          SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 1, 16, 8),
             child: softCard(
@@ -1355,33 +1175,180 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             ),
           ),
         ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 1, 16, 12),
-            child: Row(children: [
-              Expanded(child: InkWell(borderRadius: BorderRadius.circular(20), onTap: openWeeklyReview, child: softCard(color: const Color(0xFFF5ECFF), borderColor: const Color(0xFFE4D7EF), radius: 22, padding: const EdgeInsets.fromLTRB(11, 11, 9, 11), child: Row(children: [
-                Container(width: 38, height: 38, decoration: BoxDecoration(color: const Color(0xFFE7D6F0), borderRadius: BorderRadius.circular(13)), child: const Center(child: Text('📊', style: TextStyle(fontSize: 20)))),
-                const SizedBox(width: 8),
-                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Bilan', style: TextStyle(fontSize: 12.3, fontWeight: FontWeight.w900, color: Color(0xFF5C5165))), SizedBox(height: 2), Text('Ma semaine', style: TextStyle(fontSize: 9.4, color: Color(0xFF756B7D)))])),
-                _uiIcon('planOpen', Icons.chevron_right_rounded, size: 19, color: const Color(0xFF8A7D94)),
-              ])))),
-              const SizedBox(width: 9),
-              Expanded(child: InkWell(borderRadius: BorderRadius.circular(20), onTap: openSportWeekOverview, child: softCard(color: const Color(0xFFEAF7EF), borderColor: const Color(0xFFD7E9DD), radius: 22, padding: const EdgeInsets.fromLTRB(11, 11, 9, 11), child: Row(children: [
-                Container(width: 38, height: 38, decoration: BoxDecoration(color: const Color(0xFFD8EEDC), borderRadius: BorderRadius.circular(13)), child: Center(child: _activityIconWidget(_sportProgram?.emoji ?? '🏃', size: 22))),
-                const SizedBox(width: 8),
-                const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Sport', style: TextStyle(fontSize: 12.3, fontWeight: FontWeight.w900, color: Color(0xFF4D6858))), SizedBox(height: 2), Text('Semaine Sport', style: TextStyle(fontSize: 9.4, color: Color(0xFF68796E)))])),
-                _uiIcon('planOpen', Icons.chevron_right_rounded, size: 19, color: const Color(0xFF789082)),
-              ])))),
-            ]),
-          ),
-        ),
       ],
     );
   }
 
+  List<Widget> _weekNonSportIndicators(List<PlanItem> items) {
+    final unique = <String, Activity>{};
+    for (final item in items) {
+      final activity = item.activityId == null ? null : findActivity(item.activityId!);
+      if (activity != null && !_isSportActivity(activity) && !activity.isDateRange && !activity.isSportProgram) {
+        unique[activity.id] = activity;
+      }
+    }
+    if (unique.isEmpty) return const <Widget>[];
+    return unique.values.map((activity) => Padding(
+      padding: const EdgeInsets.only(left: 5, right: 5, bottom: 2),
+      child: _nonSportWeeklyIndicator(activity),
+    )).toList();
+  }
+
+  void _toggleNonSportWeekDay(Activity activity, int day) {
+    final items = plan.where((item) => item.day == day && item.activityId == activity.id).toList();
+    if (items.isEmpty) {
+      setState(() {
+        _clearManualDayRemoval(activity.id, day);
+        plan.add(PlanItem(
+          id: 'activity_week_${activity.id}_${DateTime.now().microsecondsSinceEpoch}_$day',
+          day: day,
+          period: _periodForActivity(activity, day),
+          activityId: activity.id,
+          title: activity.name,
+          duration: activity.duration,
+          userAdded: true,
+          manualPlacement: true,
+        ));
+        _sortPlan();
+      });
+      _queueLocalStatePersist();
+      return;
+    }
+    if (items.any((item) => item.done)) {
+      setState(() {
+        for (final item in items) {
+          _recordManualDayRemoval(activity.id, day);
+        }
+        plan.removeWhere((item) => item.activityId == activity.id && item.day == day);
+        _sortPlan();
+      });
+      _queueLocalStatePersist();
+      return;
+    }
+    setState(() {
+      for (final item in items) {
+        item.done = true;
+      }
+      _sortPlan();
+    });
+    _queueLocalStatePersist();
+  }
+
+  Widget _weekNonSportPlanCard(PlanItem item, Activity activity) {
+    const labels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 70),
+        padding: const EdgeInsets.fromLTRB(7, 6, 4, 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFEFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE0E5E1)),
+          boxShadow: const [BoxShadow(color: Color(0x09000000), blurRadius: 5, offset: Offset(0, 2))],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Checkbox(
+              value: item.done,
+              onChanged: (_) => openPlanItem(item),
+              visualDensity: VisualDensity.compact,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            ),
+            const SizedBox(width: 2),
+            _activityIconWidget(_planItemIconValue(item, activities), size: 28),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Row(children: [
+                      Expanded(
+                        child: Text(
+                          item.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null),
+                        ),
+                      ),
+                      _frozenActivityMarker(activity),
+                      if (item.day == today && _isDailyPriorityActivityId(item.activityId)) ...[
+                        const SizedBox(width: 4),
+                        _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFFA27432)),
+                      ],
+                    ]),
+                  ),
+                  const SizedBox(width: 7),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(7, (day) {
+                      final items = plan.where((candidate) => candidate.day == day && candidate.activityId == activity.id).toList();
+                      final done = items.any((candidate) => candidate.done);
+                      final planned = items.isNotEmpty;
+                      return Padding(
+                        padding: EdgeInsets.only(right: day == 6 ? 0 : 3),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(labels[day], style: const TextStyle(fontSize: 7.5, fontWeight: FontWeight.w800, color: Color(0xFF6F7777))),
+                            const SizedBox(height: 2),
+                            InkWell(
+                              onTap: () => _toggleNonSportWeekDay(activity, day),
+                              borderRadius: BorderRadius.circular(5),
+                              child: Container(
+                                width: 18,
+                                height: 18,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: done ? const Color(0xFFE7E7E4) : planned ? const Color(0xFFE5EEE9) : const Color(0xFFF8F7F2),
+                                  borderRadius: BorderRadius.circular(5),
+                                  border: Border.all(color: done ? const Color(0xFFBDBDB8) : const Color(0xFFC9D4CE)),
+                                ),
+                                child: done
+                                    ? const Icon(Icons.check_rounded, size: 12, color: Color(0xFF8D8E89))
+                                    : planned
+                                        ? const Text('.', style: TextStyle(fontSize: 15, height: .8, fontWeight: FontWeight.w900, color: Color(0xFF738079)))
+                                        : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuButton<String>(
+              tooltip: 'Autres actions',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
+              icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: const Color(0xFF748079)),
+              onSelected: (value) {
+                if (value == 'why') _showPlanItemCoachReason(item);
+                if (value == 'edit') openItemActions(item);
+                if (value == 'remove') _removePlanOccurrence(item);
+              },
+              itemBuilder: (context) => [
+                if (item.details != null) const PopupMenuItem<String>(value: 'why', child: Text('Pourquoi ce moment ?')),
+                const PopupMenuItem<String>(value: 'edit', child: Text('Voir / modifier')),
+                const PopupMenuItem<String>(value: 'remove', child: Text('Retirer du jour')),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget buildWeek() {
-    final trackable = plan.where((p) => p.activityId != null).toList();
+    final trackable = plan.where((p) => p.activityId != null && !_isDateRangePlanItem(p)).toList();
     final totalMinutes = trackable.fold<int>(0, (sum, p) => sum + p.duration);
+    final weekCompleted = trackable.where((p) => p.done).length;
+    final weekProgress = trackable.isEmpty ? 0.0 : weekCompleted / trackable.length;
     final selectedDay = _weekSelectedDay >= 0 && _weekSelectedDay < 7 ? _weekSelectedDay : today;
     final selectedItems = itemsForDay(selectedDay);
     final selectedActionItems = selectedItems.where((item) => !_isDateRangePlanItem(item)).toList();
@@ -1421,7 +1388,17 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                         children: [
                           Text('$totalMinutes min prévues', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
                           const SizedBox(height: 2),
-                          Text('${completedCount()} moment(s) validé(s)', style: const TextStyle(fontSize: 12, color: Color(0xFF6F7777))),
+                          Text('$weekCompleted / ${trackable.length} moment(s) validé(s)', style: const TextStyle(fontSize: 12, color: Color(0xFF6F7777))),
+                          const SizedBox(height: 7),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(99),
+                            child: LinearProgressIndicator(
+                              value: weekProgress,
+                              minHeight: 4,
+                              backgroundColor: const Color(0xFFDCE7DF),
+                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF88AE98)),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1438,6 +1415,24 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                   ],
                 ),
               ),
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: _adaptiveHomeContextCard(
+              todayActionItems: plan
+                  .where((item) => item.day == today && !_isDateRangePlanItem(item))
+                  .toList(),
+              todayDone: plan
+                  .where((item) => item.day == today && !_isDateRangePlanItem(item) && item.done)
+                  .length,
+              todayCompleted: plan.any((item) => item.day == today && !_isDateRangePlanItem(item)) &&
+                  plan.where((item) => item.day == today && !_isDateRangePlanItem(item)).every((item) => item.done),
+              weekProgress: weekProgress,
+              weekCompleted: weekCompleted,
+              weekTotal: trackable.length,
             ),
           ),
         ),
@@ -1685,22 +1680,14 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               ),
                               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Row(children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFE8F0EB),
-                                      borderRadius: BorderRadius.circular(13),
-                                      boxShadow: const [BoxShadow(color: Color(0x10000000), blurRadius: 5, offset: Offset(0, 2))],
-                                    ),
-                                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                      _systemIconWidget(period == 'Matin' ? 'periodMorning' : period == 'Après-midi' ? 'periodAfternoon' : 'periodEvening', fallback: period == 'Matin' ? '🌤️' : period == 'Après-midi' ? '🌿' : '🌙', size: 19),
-                                      const SizedBox(width: 6),
-                                      Text(period, style: GoogleFonts.nunitoSans(fontSize: 16.5, fontWeight: FontWeight.w900, color: const Color(0xFF405049), letterSpacing: .05)),
-                                    ]),
-                                  ),
+                                  _systemIconWidget(period == 'Matin' ? 'periodMorning' : period == 'Après-midi' ? 'periodAfternoon' : 'periodEvening', fallback: period == 'Matin' ? '🌤️' : period == 'Après-midi' ? '🌿' : '🌙', size: 16),
+                                  const SizedBox(width: 6),
+                                  Text(period, style: GoogleFonts.nunitoSans(fontSize: 13.5, fontWeight: FontWeight.w900, color: const Color(0xFF4E5B54))),
+                                  const SizedBox(width: 9),
+                                  const Expanded(child: Divider(height: 1, thickness: .8, color: Color(0xFFD7DFDA))),
                                   if (highlighted) ...[
                                     const SizedBox(width: 7), _systemIconWidget('dragDown', fallback: '↓', size: 15),
-                                    const SizedBox(width: 3), const Text('Déposer ici', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
+                                    const SizedBox(width: 3), const Text('Déposer ici', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
                                   ],
                                 ]),
                                 if (periodItems.isEmpty)
@@ -1708,7 +1695,15 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     padding: const EdgeInsets.fromLTRB(9, 7, 9, 3),
                                     child: Text(highlighted ? 'Déposer l’activité ici' : 'Temps libre', style: TextStyle(fontSize: 12.5, color: highlighted ? const Color(0xFF6F8E80) : const Color(0xFF7A807D), fontWeight: highlighted ? FontWeight.w700 : FontWeight.normal)),
                                   )
-                                else ...periodItems.map(planRow),
+                                else ...[
+                                  ...periodItems.map((item) {
+                                    final activity = item.activityId == null ? null : findActivity(item.activityId!);
+                                    if (activity != null && !_isSportActivity(activity)) {
+                                      return _weekNonSportPlanCard(item, activity);
+                                    }
+                                    return planRow(item);
+                                  }),
+                                ],
                               ]),
                             );
                           },
@@ -1821,16 +1816,13 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                   IconButton(
                     onPressed: openSportWeekOverview,
                     tooltip: 'Semaine Sport',
-                    icon: _systemIconWidget('sport', fallback: '💪', size: 21),
+                    icon: _systemIconWidget('sportWeek', fallback: '🗓️', size: 21),
                   ),
-                FilledButton(
+                IconButton(
+                  tooltip: 'Ajouter une activité',
+                  visualDensity: VisualDensity.compact,
                   onPressed: () => addOrEditActivity(),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(48, 48),
-                    padding: const EdgeInsets.symmetric(horizontal: 13),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  ),
-                  child: _systemIconWidget('add', fallback: '➕', size: 22),
+                  icon: _systemIconWidget('add', fallback: '➕', size: 22),
                 ),
                 IconButton(
                   tooltip: 'Système · personnaliser',

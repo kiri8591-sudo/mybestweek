@@ -60,7 +60,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V12.0.0';
+  static const version = 'V12.3.2';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -138,6 +138,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   String _lastPlanningRegeneratedWeekKey = '';
   List<int> _lastPlanningRegeneratedDays = [];
   DateTime? _lastPlanningRegeneratedAt;
+  DateTime? _planningReportReadAt;
   String _lastPlanningCoachExplanation = '';
   List<String> _lastPlanningDecisionDetails = [];
   final Map<String, String> _generationActivityRules = {};

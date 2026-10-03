@@ -70,6 +70,7 @@ extension _SystemIconsPart on _MaBelleSemaineAppState {
       {'key': 'periodAfternoon', 'label': 'En-tête Après-midi', 'fallback': '🌿'},
       {'key': 'periodEvening', 'label': 'En-tête Soir', 'fallback': '🌙'},
       {'key': 'sport', 'label': 'Sport', 'fallback': '💪'},
+      {'key': 'sportWeek', 'label': 'Semaine Sport', 'fallback': '🗓️'},
       {'key': 'sportTimer', 'label': 'Sport · minuteur', 'fallback': '⏱️'},
       {'key': 'sportActive', 'label': 'Sport · activités actives', 'fallback': '🏃'},
       {'key': 'sportMinutes', 'label': 'Sport · minutes', 'fallback': '⏳'},

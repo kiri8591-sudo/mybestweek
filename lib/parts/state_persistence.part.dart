@@ -155,6 +155,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       'lastPlanningRegeneratedWeekKey': _lastPlanningRegeneratedWeekKey,
       'lastPlanningRegeneratedDays': [..._lastPlanningRegeneratedDays],
       'lastPlanningRegeneratedAt': _lastPlanningRegeneratedAt?.toIso8601String(),
+      'planningReportReadAt': _planningReportReadAt?.toIso8601String(),
       'regenerateWholeWeekAfterReset': _regenerateWholeWeekAfterReset,
       'lastPlanningWasFullWeek': _lastPlanningWasFullWeek,
       'generationActivityRules': {..._generationActivityRules},
@@ -615,6 +616,8 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         _lastPlanningRegeneratedDays = _asIntList(root['lastPlanningRegeneratedDays']);
         final regeneratedAtRaw = _asString(root['lastPlanningRegeneratedAt']);
         _lastPlanningRegeneratedAt = regeneratedAtRaw == null ? null : DateTime.tryParse(regeneratedAtRaw);
+        final planningReportReadAtRaw = _asString(root['planningReportReadAt']);
+        _planningReportReadAt = planningReportReadAtRaw == null ? null : DateTime.tryParse(planningReportReadAtRaw);
         _regenerateWholeWeekAfterReset = _asBool(root['regenerateWholeWeekAfterReset'], false);
         _lastPlanningWasFullWeek = _asBool(root['lastPlanningWasFullWeek'], false);
         _generationActivityRules.clear();
@@ -738,6 +741,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _lastPlanningRegeneratedWeekKey = '';
       _lastPlanningRegeneratedDays = [];
       _lastPlanningRegeneratedAt = null;
+      _planningReportReadAt = null;
       _regenerateWholeWeekAfterReset = true;
       _lastPlanningWasFullWeek = false;
       _lastPlanningCoachExplanation = '';
@@ -774,16 +778,15 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         type: FileType.custom,
         allowedExtensions: const ['json'],
       );
-      if (saved == null) {
+      if (saved == null && !kIsWeb) {
         _showFeedback('Sauvegarde annulée.');
         return false;
       }
 
       final now = DateTime.now();
-      if (mounted) {
-        setState(() => _lastFileBackupAt = now);
-        _persistLocalState(recordUndo: false);
-      }
+      _lastFileBackupAt = now;
+      _persistLocalState(recordUndo: false);
+      if (mounted) setState(() {});
       _showFeedback(kIsWeb ? 'Sauvegarde téléchargée.' : '✓ Sauvegarde enregistrée dans Fichiers.');
       return true;
     } catch (_) {
@@ -808,10 +811,11 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         ],
       ),
     );
-    if (confirmed == true && mounted) {
+    if (confirmed == true) {
       final confirmedAt = DateTime.now();
-      setState(() => _lastICloudBackupAt = confirmedAt);
+      _lastICloudBackupAt = confirmedAt;
       _persistLocalState(recordUndo: false);
+      if (mounted) setState(() {});
       _showFeedback('✓ Sauvegarde iCloud enregistrée comme effectuée.');
     }
   }

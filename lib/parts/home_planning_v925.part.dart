@@ -289,165 +289,111 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
 
   Widget planRow(PlanItem item) {
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
-    final category = activity?.category ?? (item.customCategory ?? 'Autre');
     final emoji = _planItemIconValue(item, activities);
     final isGeneric = _isGenericActivityItem(item);
-    final bg = item.optional ? const Color(0xFFF0EDE6) : this._pastelFor(category).withValues(alpha: isGeneric ? .30 : .42);
 
-    final card = Padding(
-      padding: EdgeInsets.only(top: isGeneric ? 4 : 7),
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
       child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.fromLTRB(isGeneric ? 8 : 10, isGeneric ? 6 : 9, isGeneric ? 7 : 8, isGeneric ? 6 : 9),
+        constraints: const BoxConstraints(minHeight: 60),
+        padding: const EdgeInsets.fromLTRB(7, 6, 5, 6),
         decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(isGeneric ? 13 : 16),
-          boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 5, offset: Offset(0, 2))],
+          color: const Color(0xFFFFFEFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE0E5E1)),
+          boxShadow: const [BoxShadow(color: Color(0x09000000), blurRadius: 5, offset: Offset(0, 2))],
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Checkbox(
               value: item.done,
-              onChanged: (value) {
-                openPlanItem(item);
-              },
+              onChanged: (_) => openPlanItem(item),
               visualDensity: VisualDensity.compact,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
             ),
-            const SizedBox(width: 2),
-            _activityIconWidget(emoji, size: 30),
+            const SizedBox(width: 3),
+            _activityIconWidget(emoji, size: 28),
             const SizedBox(width: 8),
             Expanded(
               child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () { final a = item.activityId == null ? null : findActivity(item.activityId!); if (a != null && _isSportActivity(a)) { addOrEditActivity(original: a); } else if (_isGenericActivityItem(item)) { _openGenericActivity(item); } else { openItemActions(item); } },
+                borderRadius: BorderRadius.circular(10),
+                onTap: () {
+                  final a = item.activityId == null ? null : findActivity(item.activityId!);
+                  if (a != null && _isSportActivity(a)) {
+                    addOrEditActivity(original: a);
+                  } else if (isGeneric) {
+                    _openGenericActivity(item);
+                  } else {
+                    openItemActions(item);
+                  }
+                },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          item.title,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.w800,
-                                            fontFamily: GoogleFonts.nunitoSans().fontFamily,
-                                            color: const Color(0xFF3F4B45),
-                                            height: 1.18,
-                                            decoration: item.done ? TextDecoration.lineThrough : null,
-                                          ),
-                                        ),
-                                      ),
-                                      _frozenActivityMarker(activity),
-                                    ],
-                                  ),
-                                ),
-                                if (item.day == today && _isDailyPriorityActivityId(item.activityId)) ...[
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFFEBC8),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: const Color(0xFFE8C98B)),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFFA27432)),
-                                        const SizedBox(width: 2),
-                                        const Text('Priorité', style: TextStyle(fontSize: 8.2, fontWeight: FontWeight.w800, letterSpacing: 0.05, color: Color(0xFFA27432))),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          if (_isGenericActivityItem(item))
-                            Builder(builder: (_) {
-                              final sameDay = plan.where((p) => p.day == item.day && p.activityId == item.activityId).toList();
-                              if (sameDay.length <= 1) return const SizedBox.shrink();
-                              final occurrence = sameDay.indexWhere((p) => p.id == item.id) + 1;
-                              return Padding(
-                                padding: const EdgeInsets.only(left: 6),
-                                child: Text('$occurrence/${sameDay.length}', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: Color(0xFF6F8E80))),
-                              );
-                            }),
-                        ],
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Expanded(child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null))),
+                            _frozenActivityMarker(activity),
+                            if (item.day == today && _isDailyPriorityActivityId(item.activityId)) ...[
+                              const SizedBox(width: 5),
+                              _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFFA27432)),
+                            ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 2),
-                      if (item.activityId == null || (findActivity(item.activityId!)?.category == 'Sport')) Text('${item.duration} min', style: _detailMetaStyle()),
+                      if (activity != null && _isSportActivity(activity)) ...[
+                        const SizedBox(width: 8),
+                        Text(item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min', style: _detailMetaStyle()),
+                      ],
                     ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 4),
-            if (_isGenericActivityItem(item) && item.details != null)
+            if (activity != null && _isSportActivity(activity))
               IconButton(
-                tooltip: 'Pourquoi le coach a choisi ce moment ?',
+                tooltip: 'Modifier le temps réalisé',
                 visualDensity: VisualDensity.compact,
-                onPressed: () => this._showPlanItemCoachReason(item),
-                icon: _uiIcon('coach', Icons.psychology_alt_outlined, size: 18, color: const Color(0xFF789082)),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                onPressed: () => _editSportRealisedMinutes(item, activity),
+                icon: _uiIcon('duration', Icons.timer_outlined, size: 18, color: const Color(0xFF718077)),
               ),
-            IconButton(
-              tooltip: _isGenericActivityItem(item) ? 'Déplacer' : 'Voir / modifier',
-              visualDensity: VisualDensity.compact,
-              onPressed: () { final a = item.activityId == null ? null : findActivity(item.activityId!); if (a != null && _isSportActivity(a)) { addOrEditActivity(original: a); } else if (_isGenericActivityItem(item)) { _movePlanItemDay(item); } else { openItemActions(item); } },
-              icon: _isGenericActivityItem(item) ? _uiIcon('calendar', Icons.event_outlined, size: 18, color: const Color(0xFF718087)) : _uiIcon('planOpen', Icons.chevron_right_rounded, size: 20, color: const Color(0xFF718087)),
-            ),
-            IconButton(
-              tooltip: 'Retirer du jour',
-              visualDensity: VisualDensity.standard,
-              constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+            PopupMenuButton<String>(
+              tooltip: 'Autres actions',
               padding: EdgeInsets.zero,
-              onPressed: () => _removePlanOccurrence(item),
-              icon: _uiIcon('remove', Icons.remove_circle_outline, size: 18, color: const Color(0xFFC27D68)),
+              constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
+              icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: const Color(0xFF748079)),
+              onSelected: (value) {
+                if (value == 'why') _showPlanItemCoachReason(item);
+                if (value == 'edit') {
+                  final a = item.activityId == null ? null : findActivity(item.activityId!);
+                  if (a != null && _isSportActivity(a)) {
+                    addOrEditActivity(original: a);
+                  } else if (isGeneric) {
+                    _movePlanItemDay(item);
+                  } else {
+                    openItemActions(item);
+                  }
+                }
+                if (value == 'remove') _removePlanOccurrence(item);
+              },
+              itemBuilder: (context) => [
+                if (isGeneric && item.details != null) const PopupMenuItem<String>(value: 'why', child: Text('Pourquoi ce moment ?')),
+                PopupMenuItem<String>(value: 'edit', child: Text(isGeneric ? 'Déplacer' : 'Voir / modifier')),
+                const PopupMenuItem<String>(value: 'remove', child: Text('Retirer du jour')),
+              ],
             ),
           ],
         ),
       ),
     );
-    if (!_isGenericActivityItem(item)) return card;
-    final feedback = Material(
-      color: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 360),
-        child: Opacity(opacity: .88, child: card),
-      ),
-    );
-    if (kIsWeb) {
-      return Draggable<PlanItem>(
-        data: item,
-        maxSimultaneousDrags: 1,
-        dragAnchorStrategy: pointerDragAnchorStrategy,
-        feedback: feedback,
-        childWhenDragging: Opacity(opacity: .32, child: card),
-        child: card,
-      );
-    }
-    return LongPressDraggable<PlanItem>(
-      data: item,
-      hapticFeedbackOnStart: true,
-      maxSimultaneousDrags: 1,
-      feedback: feedback,
-      childWhenDragging: Opacity(opacity: .32, child: card),
-      child: card,
-    );
   }
+
 
 
 }

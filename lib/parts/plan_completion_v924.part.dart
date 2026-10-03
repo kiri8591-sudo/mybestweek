@@ -88,13 +88,60 @@ extension _PlanCompletionPart on _MaBelleSemaineAppState {
   }
 
   Future<void> _editSportRealisedMinutes(PlanItem item, Activity activity) async {
-    if (!mounted || item.done) return;
+    if (!mounted) return;
     if (_sportValidationInProgress.contains(item.id)) return;
     _sportValidationInProgress.add(item.id);
     try {
       final realised = await _askSportRealisedMinutes(item, activity);
-      if (realised == null || !mounted || item.done) return;
-      _completePlanItem(item, activity, realised);
+      if (realised == null || !mounted) return;
+      final actual = max(1, realised);
+      if (!item.done) {
+        _completePlanItem(item, activity, actual);
+        return;
+      }
+      setState(() {
+        item.realisedMinutes = actual;
+        final matchingLogs = logs.where((log) => log.planItemId == item.id).toList();
+        if (matchingLogs.isEmpty) {
+          logs.add(ActivityLog(
+            date: DateTime.now(),
+            title: item.title,
+            emoji: activity.emoji,
+            category: activity.category,
+            period: item.period,
+            day: item.day,
+            plannedMinutes: item.duration,
+            realisedMinutes: actual,
+            feeling: item.feeling ?? 'Bien',
+            unplanned: false,
+            planItemId: item.id,
+            activityId: activity.id,
+          ));
+        } else {
+          for (final log in matchingLogs) {
+            final index = logs.indexOf(log);
+            if (index < 0) continue;
+            logs[index] = ActivityLog(
+              date: log.date,
+              title: log.title,
+              emoji: log.emoji,
+              category: log.category,
+              period: log.period,
+              day: log.day,
+              plannedMinutes: item.duration,
+              realisedMinutes: actual,
+              feeling: log.feeling,
+              unplanned: log.unplanned,
+              planItemId: log.planItemId,
+              activityId: log.activityId,
+            );
+          }
+        }
+      });
+      if (item.day == today) _upsertTodayDailySummary(persist: false);
+      _queueLocalStatePersist();
+      _refreshGoalsAfterRealization();
+      _showFeedback('✓ Temps réalisé mis à jour : $actual min.');
     } catch (_) {
       if (mounted) _showFeedback('Impossible d’enregistrer cette durée.');
     } finally {

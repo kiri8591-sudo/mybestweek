@@ -140,6 +140,7 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
           onSetBudget: _setSportDailyBudget,
           getNow: () => _clockNow,
           isDailyPriority: _isDailyPriorityActivityId,
+          onOpenCoachJournal: openSportCoachJournal,
         ),
       ),
     );
