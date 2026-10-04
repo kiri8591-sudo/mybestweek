@@ -600,11 +600,11 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                 ..._lastPlanningDecisionDetails.take(18).map((detail) => Padding(
                   padding: const EdgeInsets.only(bottom: 7),
                   child: Card(
-                    color: const Color(0xFFF7F4EC),
+                    color: _colors.surfaceSoft,
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        _uiIcon('coach', Icons.arrow_forward_rounded, size: 17, color: const Color(0xFF6F8E80)),
+                        _uiIcon('coach', Icons.arrow_forward_rounded, size: 17, color: _colors.accentIcon),
                         const SizedBox(width: 7),
                         Expanded(child: Text(detail, style: const TextStyle(fontSize: 11.8, height: 1.3))),
                       ]),
@@ -612,10 +612,10 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                   ),
                 )),
               const SizedBox(height: 6),
-              const Text('Le premier motif affiché est le facteur réellement décisif dans l’ordre des arbitrages. Une météo simplement consultée, une habitude secondaire ou un signal faible ne sont pas présentés comme cause principale. Le passé et aujourd’hui ne sont jamais réécrits par « Repenser ».',
-                  style: TextStyle(fontSize: 11.5, color: Color(0xFF697370), height: 1.3)),
+              Text('Le premier motif affiché est le facteur réellement décisif dans l’ordre des arbitrages. Une météo simplement consultée, une habitude secondaire ou un signal faible ne sont pas présentés comme cause principale. Le passé et aujourd’hui ne sont jamais réécrits par « Repenser ».',
+                  style: TextStyle(fontSize: 11.5, color: _colors.textMuted, height: 1.3)),
               const SizedBox(height: 12),
-              FilledButton.icon(onPressed: () => Navigator.pop(context), icon: _uiIcon('confirm', Icons.check, size: 18, color: const Color(0xFF60786B)), label: const Text('Fermer')),
+              FilledButton.icon(onPressed: () => Navigator.pop(context), icon: _uiIcon('confirm', Icons.check, size: 18, color: _colors.accentIcon), label: const Text('Fermer')),
             ],
           ),
         ),
@@ -661,7 +661,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text('Générer le planning', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 5),
-                const Text('Par défaut, les jours passés et aujourd’hui sont conservés. Tu peux aussi choisir de reconstruire toute la semaine.', style: TextStyle(fontSize: 12.2, color: Color(0xFF66716E), height: 1.35)),
+                Text('Par défaut, les jours passés et aujourd’hui sont conservés. Tu peux aussi choisir de reconstruire toute la semaine.', style: TextStyle(fontSize: 12.2, color: _colors.textMuted, height: 1.35)),
                 const SizedBox(height: 10),
                 SwitchListTile.adaptive(
                   value: rebuildWholeWeek,
@@ -687,7 +687,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                 const SizedBox(height: 10),
                 const Text('Consignes par activité', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 3),
-                const Text('Tu peux demander une activité prioritaire, à éviter, moins souvent ou plus souvent.', style: TextStyle(fontSize: 11.5, color: Color(0xFF737C79))),
+                Text('Tu peux demander une activité prioritaire, à éviter, moins souvent ou plus souvent.', style: TextStyle(fontSize: 11.5, color: _colors.textMuted)),
                 const SizedBox(height: 8),
                 ...ordered.map((activity) {
                   final currentRule = localRules[activity.id] ?? 'normal';
@@ -696,9 +696,9 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                     margin: const EdgeInsets.only(bottom: 6),
                     padding: const EdgeInsets.fromLTRB(9, 7, 7, 7),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFFDF9),
+                      color: _colors.card,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE4E1D9)),
+                      border: Border.all(color: _colors.border),
                     ),
                     child: Row(children: [
                       _activityIconWidget(activity.emoji, size: 25),
@@ -725,7 +725,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                   );
                 }),
                 const SizedBox(height: 6),
-                const Text('La fréquence de base reste la règle de référence : « Plus de » ajoute une occurrence future au maximum, « Moins de » en retire une, sans modifier le passé.', style: TextStyle(fontSize: 11.5, color: Color(0xFF737C79), height: 1.3)),
+                Text('La fréquence de base reste la règle de référence : « Plus de » ajoute une occurrence future au maximum, « Moins de » en retire une, sans modifier le passé.', style: TextStyle(fontSize: 11.5, color: _colors.textMuted, height: 1.3)),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
@@ -740,7 +740,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                       'activityRules': localRules,
                       'rebuildWholeWeek': rebuildWholeWeek,
                     }),
-                    icon: _uiIcon('coach', Icons.auto_awesome_outlined, size: 18, color: const Color(0xFF9C8866)),
+                    icon: _uiIcon('coach', Icons.auto_awesome_outlined, size: 18, color: _colors.goldText),
                     label: Text(rebuildWholeWeek ? 'Reconstruire la semaine' : 'Générer le planning futur'),
                   ),
                 ),

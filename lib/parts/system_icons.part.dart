@@ -141,7 +141,7 @@ extension _SystemIconsPart on _MaBelleSemaineAppState {
       context: _navigatorKey.currentContext!,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: const Color(0xFFFFFBF5),
+      backgroundColor: _colors.card,
       builder: (sheetContext) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
@@ -152,16 +152,16 @@ extension _SystemIconsPart on _MaBelleSemaineAppState {
               Row(children: [
                 _systemIconWidget('system', fallback: '⚙️', size: 24),
                 const SizedBox(width: 9),
-                const Expanded(child: Text('Système · personnalisation', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF405049)))),
+                Expanded(child: Text('Système · personnalisation', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _colors.textStrong))),
               ]),
               const SizedBox(height: 5),
-              const Text('Personnalise les icônes de navigation, de rubriques, d’actions et des principaux menus. Les icônes d’action, de rubrique, de statistique et de détail sont personnalisables. Les indicateurs d’état purs (case cochée, radio, progression) restent fixes.', style: TextStyle(fontSize: 11.5, color: Color(0xFF747B75), height: 1.25)),
+              Text('Personnalise les icônes de navigation, de rubriques, d’actions et des principaux menus. Les icônes d’action, de rubrique, de statistique et de détail sont personnalisables. Les indicateurs d’état purs (case cochée, radio, progression) restent fixes.', style: TextStyle(fontSize: 11.5, color: _colors.textMuted, height: 1.25)),
               const SizedBox(height: 10),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                decoration: BoxDecoration(color: const Color(0xFFF2F6F3), borderRadius: BorderRadius.circular(12)),
-                child: const Text('Signature commune : icônes d’action 18 px · icônes de détail 16–18 px · icônes d’en-tête 20–22 px. Les indicateurs d’état purs restent sémantiques.', style: TextStyle(fontSize: 10.5, color: Color(0xFF6E7872), height: 1.25)),
+                decoration: BoxDecoration(color: _colors.tintSoft, borderRadius: BorderRadius.circular(12)),
+                child: Text('Signature commune : icônes d’action 18 px · icônes de détail 16–18 px · icônes d’en-tête 20–22 px. Les indicateurs d’état purs restent sémantiques.', style: TextStyle(fontSize: 10.5, color: _colors.textMuted, height: 1.25)),
               ),
               const SizedBox(height: 9),
               Flexible(
@@ -175,7 +175,7 @@ extension _SystemIconsPart on _MaBelleSemaineAppState {
                     final label = entry['label']!;
                     final fallback = entry['fallback']!;
                     return Material(
-                      color: const Color(0xFFF7F4EE),
+                      color: _colors.surfaceSoft,
                       borderRadius: BorderRadius.circular(14),
                       child: ListTile(
                         dense: true,
@@ -184,15 +184,15 @@ extension _SystemIconsPart on _MaBelleSemaineAppState {
                           width: 39,
                           height: 39,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFFCF7),
+                            color: _colors.card,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           alignment: Alignment.center,
                           child: _systemIconWidget(key, fallback: fallback, size: 23),
                         ),
-                        title: Text(label, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFF47534E))),
-                        subtitle: Text(_systemIconOverrides.containsKey(key) ? 'Personnalisée' : 'Par défaut', style: const TextStyle(fontSize: 10.5, color: Color(0xFF858B86))),
-                        trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF899398)),
+                        title: Text(label, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: _colors.textStrong)),
+                        subtitle: Text(_systemIconOverrides.containsKey(key) ? 'Personnalisée' : 'Par défaut', style: TextStyle(fontSize: 10.5, color: _colors.textMuted)),
+                        trailing: Icon(Icons.chevron_right_rounded, color: _colors.textMuted),
                         onTap: () async {
                           Navigator.pop(sheetContext);
                           await _editSystemIcon(key, label, fallback);

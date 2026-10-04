@@ -55,14 +55,14 @@ Widget _uiIcon(
   IconData fallback, {
   String? fallbackEmoji,
   double size = 18,
-  Color color = const Color(0xFF66736D),
+  Color? color,
 }) {
   final effectiveSize = _standardUiIconSize(key, size);
   final override = _systemUiIconOverrides[key];
   if (override != null && override.isNotEmpty) {
     return _activityIconWidget(override, size: effectiveSize);
   }
-  return Icon(fallback, size: effectiveSize, color: color);
+  return Icon(fallback, size: effectiveSize, color: color ?? _colors.textMuted);
 }
 
 Uint8List? _decodeCustomIconData(String data) {

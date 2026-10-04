@@ -267,11 +267,11 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: Text(mood, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF7A7770)))),
+        Expanded(child: Text(mood, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _colors.textWarm))),
         if (day == today)
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(left: 8),
-            child: Text('FOCUS DU JOUR', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFFC67E67))),
+            child: Text('FOCUS DU JOUR', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: _colors.danger)),
           ),
       ],
     );
@@ -281,8 +281,8 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 92, child: Text(time, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF526B78)))),
-        Expanded(child: Text(title, style: const TextStyle(fontSize: 13.5, color: Color(0xFF4F5758)))),
+        SizedBox(width: 92, child: Text(time, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _colors.accentText))),
+        Expanded(child: Text(title, style: TextStyle(fontSize: 13.5, color: _colors.textStrong))),
       ]),
     );
   }
@@ -322,7 +322,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
             children: [
               Text(item.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
               const SizedBox(height: 4),
-              const Text('Ce créneau est passé. Que veux-tu en faire ?', style: TextStyle(color: Color(0xFF68736D))),
+              Text('Ce créneau est passé. Que veux-tu en faire ?', style: TextStyle(color: _colors.textMuted)),
               const SizedBox(height: 12),
               ListTile(
                 leading: _uiIcon('confirm', Icons.check_circle_outline_rounded, size: 22),
@@ -436,13 +436,13 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
           constraints: const BoxConstraints(minHeight: 60),
           padding: const EdgeInsets.fromLTRB(7, 6, 5, 6),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFEFC),
+            color: _colors.card,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: highlightMission ? const Color(0xFFE6D8D1) : const Color(0xFFE0E5E1),
+              color: highlightMission ? _colors.warnBorder : _colors.border,
               width: highlightMission ? 1.25 : 1,
             ),
-            boxShadow: const [BoxShadow(color: Color(0x09000000), blurRadius: 5, offset: Offset(0, 2))],
+            boxShadow: [BoxShadow(color: _colors.shadowSoft, blurRadius: 5, offset: Offset(0, 2))],
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -486,13 +486,13 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFBEAE6),
+                                  color: _colors.warnBg,
                                   borderRadius: BorderRadius.circular(7),
-                                  border: Border.all(color: const Color(0xFFE4B9AE)),
+                                  border: Border.all(color: _colors.warnBorder),
                                 ),
-                                child: const Text(
+                                child: Text(
                                   'MISSION',
-                                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: .45, color: Color(0xFFC74F43)),
+                                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: .45, color: _colors.danger),
                                 ),
                               ),
                               const SizedBox(width: 6),
@@ -517,7 +517,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                             maxLines: 2,
                             softWrap: true,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 9.2, fontWeight: FontWeight.w700, color: Color(0xFF7A7770), height: 1.15),
+                            style: TextStyle(fontSize: 9.2, fontWeight: FontWeight.w700, color: _colors.textWarm, height: 1.15),
                           ),
                         ],
                         if (isSport || highlightMission || isDailyPriority || activity != null) ...[
@@ -535,7 +535,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                               if (highlightMission && !isSport)
                                 Text('${item.duration} min · ${item.period}', style: _detailMetaStyle()),
                               if (isDailyPriority)
-                                _uiIcon('priority', Icons.star_rounded, size: 13, color: const Color(0xFFA27432)),
+                                _uiIcon('priority', Icons.star_rounded, size: 13, color: _colors.goldText),
                               if (activity != null) _frozenActivityMarker(activity),
                             ],
                           ),
@@ -552,13 +552,13 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
                   onPressed: () => _editSportRealisedMinutes(item, activity!),
-                  icon: _uiIcon('duration', Icons.timer_outlined, size: 18, color: const Color(0xFF718077)),
+                  icon: _uiIcon('duration', Icons.timer_outlined, size: 18, color: _colors.textMuted),
                 ),
               PopupMenuButton<String>(
                 tooltip: 'Autres actions',
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
-                icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: const Color(0xFF748079)),
+                icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: _colors.textMuted),
                 onSelected: (value) {
                   if (value == 'why') _showPlanItemCoachReason(item);
                   if (value == 'edit') {

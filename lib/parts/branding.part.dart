@@ -40,7 +40,7 @@ TextStyle _detailTitleStyle({TextDecoration? decoration}) => GoogleFonts.nunitoS
 TextStyle _detailMetaStyle() => GoogleFonts.nunitoSans(
       fontSize: 11,
       fontWeight: FontWeight.w700,
-      color: const Color(0xFF526B78),
+      color: _colors.accentText,
       height: 1.18,
     );
 

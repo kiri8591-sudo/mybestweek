@@ -145,7 +145,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAF0FA),
+                    color: _colors.tintStrong,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   alignment: Alignment.center,
@@ -161,16 +161,16 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
               ],
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Activité',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF5A655F)),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: _colors.textMuted),
             ),
             const SizedBox(height: 6),
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFCF7),
+                color: _colors.card,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE3DBD0)),
+                border: Border.all(color: _colors.borderStrong),
               ),
               constraints: const BoxConstraints(maxHeight: 255),
               child: ListView.separated(
@@ -190,7 +190,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                     dense: true,
                     enabled: selectable,
                     selected: selected,
-                    selectedTileColor: const Color(0xFFEAF0FA),
+                    selectedTileColor: _colors.tintStrong,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
                     leading: Stack(
                       clipBehavior: Clip.none,
@@ -211,7 +211,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                       style: TextStyle(
                         fontSize: 12.6,
                         fontWeight: FontWeight.w800,
-                        color: frozen ? const Color(0xFF989F9B) : const Color(0xFF48534E),
+                        color: frozen ? _colors.textFaint : _colors.textStrong,
                       ),
                     ),
                     subtitle: frozen
@@ -219,14 +219,14 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                             frozenLinkedToExisting
                                 ? 'Activité gelée · liée à cet objectif · sélection conservée'
                                 : 'Activité gelée · non sélectionnable pour un nouvel objectif',
-                            style: const TextStyle(fontSize: 10.2, color: Color(0xFF9A9F9B), fontWeight: FontWeight.w700),
+                            style: TextStyle(fontSize: 10.2, color: _colors.textFaint, fontWeight: FontWeight.w700),
                           )
                         : null,
                     trailing: selected
-                        ? const Icon(Icons.check_circle_rounded, color: Color(0xFF6D8EA8), size: 20)
+                        ? Icon(Icons.check_circle_rounded, color: _colors.textMuted, size: 20)
                         : frozen
-                            ? const Text('GELÉE', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF8C9490)))
-                            : const Icon(Icons.radio_button_unchecked_rounded, color: Color(0xFFB0B7B3), size: 19),
+                            ? Text('GELÉE', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: _colors.textMuted))
+                            : Icon(Icons.radio_button_unchecked_rounded, color: _colors.textFaint, size: 19),
                     onTap: selectable ? () => setState(() => activityId = activity.id) : null,
                   );
                 },
@@ -280,12 +280,12 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
             const SizedBox(height: 2),
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFF4F7FB),
+                color: _colors.surfaceSoft,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFDCE5F0)),
+                border: Border.all(color: _colors.borderTint),
               ),
               padding: const EdgeInsets.all(11),
-              child: const Row(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('💡', style: TextStyle(fontSize: 17)),
@@ -293,7 +293,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                   Expanded(
                     child: Text(
                       'La récompense est gagnée une fois par période lorsque la cible est atteinte. Elle reste cumulée.',
-                      style: TextStyle(fontSize: 10.9, height: 1.32, color: Color(0xFF64707B), fontWeight: FontWeight.w700),
+                      style: TextStyle(fontSize: 10.9, height: 1.32, color: _colors.accentText, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],
@@ -656,10 +656,10 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 11, 11, 10),
           decoration: BoxDecoration(
-            color: complete ? const Color(0xFFF1F7F0) : const Color(0xFFFFFCF7),
+            color: complete ? _colors.tintStrong : _colors.card,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: complete ? const Color(0xFFD7E7D5) : const Color(0xFFE5DED4),
+              color: complete ? _colors.borderTint : _colors.border,
             ),
           ),
           child: Column(
@@ -671,7 +671,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: complete ? const Color(0xFFDDEFE2) : const Color(0xFFF1F0F7),
+                      color: complete ? _colors.tintStrong : _colors.surfaceSoft,
                       borderRadius: BorderRadius.circular(15),
                     ),
                     alignment: Alignment.center,
@@ -692,7 +692,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                                 style: TextStyle(
                                   fontSize: 13.2,
                                   fontWeight: FontWeight.w900,
-                                  color: complete ? const Color(0xFF53725E) : const Color(0xFF4D5A54),
+                                  color: complete ? _colors.accentIcon : _colors.textStrong,
                                 ),
                               ),
                             ),
@@ -705,10 +705,10 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                         const SizedBox(height: 2),
                         Text(
                           '${goal.target} ${_goalCadenceLabel(goal.cadence)}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10.3,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF7A827E),
+                            color: _colors.textMuted,
                           ),
                         ),
                       ],
@@ -716,7 +716,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                   ),
                   complete
                       ? _activityIconWidget(_uiIconValue('objectiveState', ''), size: 21)
-                      : _uiIcon('planOpen', Icons.chevron_right_rounded, size: 21, color: const Color(0xFFA3AAA6)),
+                      : _uiIcon('planOpen', Icons.chevron_right_rounded, size: 21, color: _colors.textFaint),
                 ],
               ),
               const SizedBox(height: 8),
@@ -728,7 +728,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                       child: LinearProgressIndicator(
                         value: ratio,
                         minHeight: 7,
-                        backgroundColor: const Color(0xFFE7E1D8),
+                        backgroundColor: _colors.border,
                         valueColor: AlwaysStoppedAnimation<Color>(
                           complete ? const Color(0xFF76A581) : const Color(0xFF8097AE),
                         ),
@@ -738,10 +738,10 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                   const SizedBox(width: 8),
                   Text(
                     '$progress/${goal.target}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11.1,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF59645F),
+                      color: _colors.textMuted,
                     ),
                   ),
                 ],
@@ -757,17 +757,17 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                       style: TextStyle(
                         fontSize: 10.3,
                         fontWeight: FontWeight.w800,
-                        color: complete ? const Color(0xFF5B7A63) : const Color(0xFF7B746B),
+                        color: complete ? _colors.accentIcon : _colors.textMuted,
                       ),
                     ),
                   ),
                   const SizedBox(width: 6),
                   Text(
                     '🎁 $rewardCount',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10.1,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF8A7968),
+                      color: _colors.textWarm,
                     ),
                   ),
                 ],
@@ -792,10 +792,10 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 10, 11, 10),
         decoration: BoxDecoration(
-          color: streak > 0 ? const Color(0xFFF1F7F0) : const Color(0xFFFFFCF7),
+          color: streak > 0 ? _colors.tintStrong : _colors.card,
           borderRadius: BorderRadius.circular(19),
           border: Border.all(
-            color: streak > 0 ? const Color(0xFFD7E7D5) : const Color(0xFFE5DED4),
+            color: streak > 0 ? _colors.borderTint : _colors.border,
           ),
         ),
         child: Row(
@@ -804,7 +804,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: const Color(0xFFEAF2E9),
+                color: _colors.tintStrong,
                 borderRadius: BorderRadius.circular(14),
               ),
               alignment: Alignment.center,
@@ -819,10 +819,10 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     activity.name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12.3,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF4D5A54),
+                      color: _colors.textStrong,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -830,10 +830,10 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     streak == 0
                         ? 'Pas de série en cours${doneToday ? '' : ' · à toi de jouer aujourd’hui'}'
                         : '$streak jour${streak > 1 ? 's' : ''} consécutif${streak > 1 ? 's' : ''}${doneToday ? ' · aujourd’hui fait' : ' · jusqu’à hier'}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10.1,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF78817C),
+                      color: _colors.textMuted,
                     ),
                   ),
                 ],
@@ -845,18 +845,18 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
               children: [
                 Text(
                   '$streak',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 21,
                     fontWeight: FontWeight.w900,
-                    color: Color(0xFF6A8D6D),
+                    color: _colors.accentIcon,
                   ),
                 ),
                 Text(
                   'record $best',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 9.1,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF8A918D),
+                    color: _colors.textMuted,
                   ),
                 ),
               ],
@@ -898,7 +898,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
       slivers: [
         SliverAppBar(
           pinned: true,
-          backgroundColor: const Color(0xFFFFF8EF),
+          backgroundColor: _colors.surfaceSoft,
           surfaceTintColor: Colors.transparent,
           title: Row(children: [
             _activityIconWidget(_uiIconValue('objective', ''), size: 22),
@@ -917,8 +917,8 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
             child: softCard(
-              color: const Color(0xFFEAF0FA),
-              borderColor: const Color(0xFFD9E3F1),
+              color: _colors.tintStrong,
+              borderColor: _colors.borderTint,
               radius: 23,
               padding: const EdgeInsets.fromLTRB(13, 13, 13, 12),
               child: Row(
@@ -927,7 +927,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8FBFF),
+                      color: _colors.card,
                       borderRadius: BorderRadius.circular(17),
                     ),
                     alignment: Alignment.center,
@@ -938,12 +938,12 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Mes objectifs de réalisation',
                           style: TextStyle(
                             fontSize: 15.5,
                             fontWeight: FontWeight.w900,
-                            color: Color(0xFF48576A),
+                            color: _colors.accentText,
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -951,10 +951,10 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                           goals.isEmpty
                               ? 'Choisis une habitude concrète et une cible simple.'
                               : '$completedGoals/${goals.length} atteint${goals.length > 1 ? 's' : ''} sur la période actuelle · $totalRewards récompense${totalRewards > 1 ? 's' : ''} cumulée${totalRewards > 1 ? 's' : ''}.',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10.9,
                             height: 1.3,
-                            color: Color(0xFF677382),
+                            color: _colors.accentText,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -971,23 +971,23 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
             padding: const EdgeInsets.fromLTRB(16, 13, 16, 7),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Objectifs',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF46544D),
+                      color: _colors.textStrong,
                     ),
                   ),
                 ),
                 if (goals.isNotEmpty)
                   Text(
                     '${goals.length} actif${goals.length > 1 ? 's' : ''}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10.4,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF7A827D),
+                      color: _colors.textMuted,
                     ),
                   ),
               ],
@@ -999,11 +999,11 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: softCard(
-                color: const Color(0xFFFFFCF7),
-                borderColor: const Color(0xFFE5DED4),
+                color: _colors.card,
+                borderColor: _colors.border,
                 radius: 19,
                 padding: const EdgeInsets.fromLTRB(13, 13, 13, 12),
-                child: const Row(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('🌱', style: TextStyle(fontSize: 21)),
@@ -1014,7 +1014,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                         style: TextStyle(
                           fontSize: 11.3,
                           height: 1.34,
-                          color: Color(0xFF68736F),
+                          color: _colors.textMuted,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -1041,13 +1041,13 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
               children: [
                 _activityIconWidget(_uiIconValue('streak', ''), size: 21),
                 const SizedBox(width: 7),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Streak Sport par activité',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF46544D),
+                      color: _colors.textStrong,
                     ),
                   ),
                 ),
@@ -1056,7 +1056,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                   style: TextStyle(
                     fontSize: 9.4,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF8A918D),
+                    color: _colors.textMuted,
                   ),
                 ),
               ],
@@ -1068,15 +1068,15 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: softCard(
-                color: const Color(0xFFFFFCF7),
-                borderColor: const Color(0xFFE5DED4),
+                color: _colors.card,
+                borderColor: _colors.border,
                 radius: 19,
                 padding: const EdgeInsets.all(13),
-                child: const Text(
+                child: Text(
                   'Ajoute ou réactive une activité Sport pour suivre une série.',
                   style: TextStyle(
                     fontSize: 11.2,
-                    color: Color(0xFF68736F),
+                    color: _colors.textMuted,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

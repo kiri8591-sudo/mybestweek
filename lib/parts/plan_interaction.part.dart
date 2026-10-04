@@ -288,12 +288,12 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
               Text('${item.period}${item.userAdded ? (item.activityId != null ? ' · ajouté au planning' : ' · ajout personnel') : ''}'),
               if (item.done) ...[
                 const SizedBox(height: 8),
-                const Text('✓ Ce moment est déjà validé.', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF6F8E80))),
+                Text('✓ Ce moment est déjà validé.', style: TextStyle(fontWeight: FontWeight.w700, color: _colors.accentIcon)),
                 if (activity != null && _canRecordAdditionalRealisation(activity) && item.day == today) ...[
                   const SizedBox(height: 8),
                   Text(
                     'Aujourd’hui : ${_activityRealisationCountOnDate(activity, DateTime.now())}/${activity.maxDailyOccurrences.clamp(2, 3).toInt()} réalisations enregistrées.',
-                    style: _detailMetaStyle().copyWith(color: const Color(0xFF6F7777)),
+                    style: _detailMetaStyle().copyWith(color: _colors.textMuted),
                   ),
                 ],
               ],
@@ -347,7 +347,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                       SnackBar(content: Text('« ${item.title} » retiré de la semaine.')),
                     );
                   },
-                  icon: _uiIcon('delete', Icons.delete_outline, size: 18, color: const Color(0xFFC27D68)),
+                  icon: _uiIcon('delete', Icons.delete_outline, size: 18, color: _colors.danger),
                   label: const Text('Retirer de la semaine'),
                 ),
               ),
@@ -408,7 +408,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                   onChanged: (v) => setDialogState(() => period = v ?? period),
                 ),
                 const SizedBox(height: 6),
-                const Align(alignment: Alignment.centerLeft, child: Text('Tu peux déplacer cette activité vers un autre jour et choisir Matin, Après-midi ou Soir.', style: TextStyle(fontSize: 12, color: Color(0xFF6F7777)))),
+                Align(alignment: Alignment.centerLeft, child: Text('Tu peux déplacer cette activité vers un autre jour et choisir Matin, Après-midi ou Soir.', style: TextStyle(fontSize: 12, color: _colors.textMuted))),
                 const SizedBox(height: 10),
                 if (item.activityId == null || (findActivity(item.activityId!)?.category == 'Sport')) ...[
                   TextField(

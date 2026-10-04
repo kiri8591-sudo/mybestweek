@@ -545,9 +545,9 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                             child: Container(
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                color: selected ? const Color(0xFFEAF2ED) : const Color(0xFFF8F5EF),
+                                color: selected ? _colors.tintSoft : _colors.surfaceSoft,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: selected ? const Color(0xFFB9CCBF) : const Color(0xFFE7E1D8), width: selected ? 1.2 : .6),
+                                border: Border.all(color: selected ? _colors.accentSoftBorder : _colors.border, width: selected ? 1.2 : .6),
                               ),
                               child: _activityIconWidget(value, size: 28),
                             ),
@@ -680,7 +680,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                                           });
                                           _queueLocalStatePersist();
                                         },
-                                  icon: _uiIcon('delete', Icons.delete_outline, size: 18, color: const Color(0xFFC27D68)),
+                                  icon: _uiIcon('delete', Icons.delete_outline, size: 18, color: _colors.danger),
                                 ),
                               ),
                             );
@@ -704,7 +704,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                                     setDialogState(() => _customActivityEmojis.removeWhere((e) => e.value == entry.value));
                                     _queueLocalStatePersist();
                                   },
-                                  icon: _uiIcon('delete', Icons.delete_outline, size: 18, color: const Color(0xFFC27D68)),
+                                  icon: _uiIcon('delete', Icons.delete_outline, size: 18, color: _colors.danger),
                                 ),
                               ),
                             );
@@ -845,14 +845,14 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       width: double.infinity,
                       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF7EC),
+                        color: _colors.peachBg,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFF0E0C7)),
+                        border: Border.all(color: _colors.goldBorder),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Icônes suggérées', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF7C6B59))),
+                          Text('Icônes suggérées', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: _colors.textWarm)),
                           const SizedBox(height: 6),
                           Wrap(
                             spacing: 6,
@@ -958,9 +958,9 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                                           child: Container(
                                             alignment: Alignment.center,
                                             decoration: BoxDecoration(
-                                              color: value == emoji ? const Color(0xFFEAF2ED) : const Color(0xFFF8F5EF),
+                                              color: value == emoji ? _colors.tintSoft : _colors.surfaceSoft,
                                               borderRadius: BorderRadius.circular(13),
-                                              border: Border.all(color: value == emoji ? const Color(0xFFB9CCBF) : const Color(0xFFE4DED5)),
+                                              border: Border.all(color: value == emoji ? _colors.accentSoftBorder : _colors.border),
                                             ),
                                             child: _activityIconWidget(value, size: 30),
                                           ),
@@ -1011,10 +1011,10 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   Container(
                     padding: const EdgeInsets.fromLTRB(11, 9, 11, 10),
                     decoration: BoxDecoration(
-                      color: dateRangeEnabled ? const Color(0xFFEFF5F1) : const Color(0xFFF6F4EF),
+                      color: dateRangeEnabled ? _colors.tintStrong : _colors.surfaceSoft,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: dateRangeEnabled ? const Color(0xFFCFE0D5) : const Color(0xFFE2DED6),
+                        color: dateRangeEnabled ? _colors.borderTint : _colors.border,
                       ),
                     ),
                     child: Column(
@@ -1039,7 +1039,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                         ]),
                         if (dateRangeEnabled) ...[
                           const SizedBox(height: 3),
-                          const Text('Exemple : road trip, stage ou atelier réalisé chaque jour du début à la fin.', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF606A66), height: 1.30)),
+                          Text('Exemple : road trip, stage ou atelier réalisé chaque jour du début à la fin.', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: _colors.textMuted, height: 1.30)),
                           const SizedBox(height: 8),
                           Row(children: [
                             Expanded(
@@ -1090,14 +1090,14 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                             ),
                           ]),
                           if (rangeStart != null && rangeEnd != null && rangeEnd!.isBefore(rangeStart!))
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.only(top: 5),
-                              child: Text('La date de fin doit être postérieure ou égale à la date de début.', style: TextStyle(fontSize: 10.5, color: Color(0xFFB56A5A), fontWeight: FontWeight.w700)),
+                              child: Text('La date de fin doit être postérieure ou égale à la date de début.', style: TextStyle(fontSize: 10.5, color: _colors.textWarm, fontWeight: FontWeight.w700)),
                             )
                           else if (rangeStart != null && rangeEnd != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 5),
-                              child: Text(_dateRangeLabel(Activity(id: '_tmp', name: '', emoji: '', category: category, duration: 1, frequency: 1, priority: 1, isDateRange: true, rangeStart: rangeStart, rangeEnd: rangeEnd)), style: const TextStyle(fontSize: 10.5, color: Color(0xFF6F7777), fontWeight: FontWeight.w700)),
+                              child: Text(_dateRangeLabel(Activity(id: '_tmp', name: '', emoji: '', category: category, duration: 1, frequency: 1, priority: 1, isDateRange: true, rangeStart: rangeStart, rangeEnd: rangeEnd)), style: TextStyle(fontSize: 10.5, color: _colors.textMuted, fontWeight: FontWeight.w700)),
                             ),
                         ],
                       ],
@@ -1108,7 +1108,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   const SizedBox(height: 12),
                   const Align(alignment: Alignment.centerLeft, child: Text('Durée Sport par jour', style: TextStyle(fontWeight: FontWeight.w900))),
                   const SizedBox(height: 4),
-                  const Align(alignment: Alignment.centerLeft, child: Text('Le curseur fixe le plafond quotidien. Les activités Sport restent à l’intérieur de ce budget.', style: TextStyle(fontSize: 12, color: Color(0xFF6F7777)))),
+                  Align(alignment: Alignment.centerLeft, child: Text('Le curseur fixe le plafond quotidien. Les activités Sport restent à l’intérieur de ce budget.', style: TextStyle(fontSize: 12, color: _colors.textMuted))),
                   const SizedBox(height: 6),
                   ...List.generate(7, (day) => _SportDailySlider(
                     label: dayNames[day],
@@ -1127,11 +1127,11 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   ),
                 ],
                 if (category == 'Sport')
-                  const Align(
+                  Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Les jours/semaine et les occurrences dans une même journée sont deux réglages indépendants.',
-                      style: TextStyle(fontSize: 11, color: Color(0xFF6F7777)),
+                      style: TextStyle(fontSize: 11, color: _colors.textMuted),
                     ),
                   ),
                 if (category == 'Sport') ...[
@@ -1146,7 +1146,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   Container(
                     margin: const EdgeInsets.only(top: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(color: const Color(0xFFF1F4F1), borderRadius: BorderRadius.circular(14)),
+                    decoration: BoxDecoration(color: _colors.surfaceSoft, borderRadius: BorderRadius.circular(14)),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Row(children: [
                         const Expanded(child: Text('Plusieurs fois dans la même journée', style: TextStyle(fontWeight: FontWeight.w800))),
@@ -1155,7 +1155,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       ]),
                       if (allowMultiplePerDay) ...[
                         _StepperLine(label: "Nombre d'occurrences par jour", value: maxDailyOccurrences, min: 2, max: 3, onChanged: (v) => setDialogState(() => maxDailyOccurrences = v)),
-                        const Text('Exemple : 2 occurrences = 20 min le matin + 20 min en fin de journée.', style: TextStyle(fontSize: 11, color: Color(0xFF6F7777))),
+                        Text('Exemple : 2 occurrences = 20 min le matin + 20 min en fin de journée.', style: TextStyle(fontSize: 11, color: _colors.textMuted)),
                       ],
                     ]),
                   ),
@@ -1166,13 +1166,13 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF5F0E7),
+                        color: _colors.surfaceSunken,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE5D8C7)),
+                        border: Border.all(color: _colors.borderStrong),
                       ),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Row(children: [
-                          _uiIcon('repeat', Icons.repeat_rounded, size: 18, color: const Color(0xFF7A6A59)),
+                          _uiIcon('repeat', Icons.repeat_rounded, size: 18, color: _colors.textWarm),
                           const SizedBox(width: 8),
                           const Expanded(child: Text('Plusieurs réalisations dans la même journée', style: TextStyle(fontWeight: FontWeight.w800))),
                           IconButton(
@@ -1187,7 +1187,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                         ]),
                         if (allowMultiplePerDay) ...[
                           _StepperLine(label: "Nombre maximal de réalisations par jour", value: maxDailyOccurrences, min: 2, max: 3, onChanged: (v) => setDialogState(() => maxDailyOccurrences = v)),
-                          const Text('Exemple : 2 réalisations = 20 min le matin + 20 min le soir.', style: TextStyle(fontSize: 11, color: Color(0xFF6F7777))),
+                          Text('Exemple : 2 réalisations = 20 min le matin + 20 min le soir.', style: TextStyle(fontSize: 11, color: _colors.textMuted)),
                         ],
                       ]),
                     ),
@@ -1198,10 +1198,10 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: activeInSportRotation ? const Color(0xFFEAF1ED) : const Color(0xFFF1EEE8),
+                      color: activeInSportRotation ? _colors.tintSoft : _colors.surfaceSunken,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: activeInSportRotation ? const Color(0xFFC9D9CF) : const Color(0xFFDCD8CF),
+                        color: activeInSportRotation ? _colors.borderTint : _colors.border,
                       ),
                     ),
                     child: Row(
@@ -1221,7 +1221,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                                 activeInSportRotation
                                     ? 'L’activité pourra être proposée cette semaine.'
                                     : 'L’activité reste enregistrée et pourra être réactivée depuis Semaine Sport.',
-                                style: const TextStyle(fontSize: 10.5, color: Color(0xFF6F7777)),
+                                style: TextStyle(fontSize: 10.5, color: _colors.textMuted),
                               ),
                             ],
                           ),
@@ -1250,9 +1250,9 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                 Container(
                   padding: const EdgeInsets.fromLTRB(11, 9, 11, 9),
                   decoration: BoxDecoration(
-                    color: isFrozen ? const Color(0xFFF1EEE8) : const Color(0xFFEFF5F1),
+                    color: isFrozen ? _colors.surfaceSunken : _colors.tintStrong,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: isFrozen ? const Color(0xFFDCD6CC) : const Color(0xFFD2E2D8)),
+                    border: Border.all(color: isFrozen ? _colors.borderStrong : _colors.borderTint),
                   ),
                   child: Row(children: [
                     Text(isFrozen ? '🧊' : '🌱', style: const TextStyle(fontSize: 19)),
@@ -1260,7 +1260,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(isFrozen ? 'Activité gelée' : 'Activité active', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5)),
                       const SizedBox(height: 2),
-                      Text(isFrozen ? 'Elle reste dans tes activités mais ne sera plus proposée par le coach.' : 'Le coach peut de nouveau la proposer lors d’une prochaine régénération.', style: const TextStyle(fontSize: 10.5, color: Color(0xFF6F7777))),
+                      Text(isFrozen ? 'Elle reste dans tes activités mais ne sera plus proposée par le coach.' : 'Le coach peut de nouveau la proposer lors d’une prochaine régénération.', style: TextStyle(fontSize: 10.5, color: _colors.textMuted)),
                     ])),
                     Switch.adaptive(value: isFrozen, onChanged: (v) => setDialogState(() => isFrozen = v)),
                   ]),

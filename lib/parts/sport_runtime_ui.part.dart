@@ -25,9 +25,9 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(12, 7, 12, 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFE2ECE7),
+        color: _colors.tintStrong,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: over ? const Color(0xFFC67E67) : const Color(0xFFD4E0DA)),
+        border: Border.all(color: over ? _colors.danger : _colors.borderTint),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,10 +45,10 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                       'Habitudes Sport · $validated/$target min ✓',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: Color(0xFF526B78)),
+                      style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: _colors.accentText),
                     ),
                   ),
-                  _uiIcon('sportWeek', Icons.calendar_view_week_outlined, size: 17, color: const Color(0xFF718077)),
+                  _uiIcon('sportWeek', Icons.calendar_view_week_outlined, size: 17, color: _colors.textMuted),
                 ],
               ),
             )
@@ -63,18 +63,18 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
+                      Text(
                         'Habitudes quotidiennes · Sport',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 12.2, fontWeight: FontWeight.w900, color: Color(0xFF526B78)),
+                        style: TextStyle(fontSize: 12.2, fontWeight: FontWeight.w900, color: _colors.accentText),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '$validated / $target min',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w700, color: Color(0xFF718077)),
+                        style: TextStyle(fontSize: 10.2, fontWeight: FontWeight.w700, color: _colors.textMuted),
                       ),
                     ],
                   ),
@@ -113,7 +113,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                     constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
                     tooltip: 'Replier Habitudes Sport',
                     onPressed: () => setState(() => _homeSportExpanded = false),
-                    icon: _uiIcon('chevronUp', Icons.keyboard_arrow_up_rounded, size: 18, color: const Color(0xFF718077)),
+                    icon: _uiIcon('chevronUp', Icons.keyboard_arrow_up_rounded, size: 18, color: _colors.textMuted),
                   ),
               ],
             ),
@@ -121,7 +121,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
           if (!collapsedHome) ...[
             const SizedBox(height: 2),
             if (items.isEmpty)
-              const Text('Aucune activité Sport proposée ce jour.', style: TextStyle(fontSize: 12.5, color: Color(0xFF6F7777)))
+              Text('Aucune activité Sport proposée ce jour.', style: TextStyle(fontSize: 12.5, color: _colors.textMuted))
             else
               ...items.map((item) => _sportItemRow(item, compactHome: compactHome)),
           ],
@@ -160,11 +160,11 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                     item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 9.5,
                       height: 1.15,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF7A8580),
+                      color: _colors.textMuted,
                     ),
                   ),
                 ],
@@ -183,13 +183,13 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
                 onPressed: () => _editSportRealisedMinutes(item, activity),
-                icon: _uiIcon('duration', Icons.timer_outlined, size: 18, color: const Color(0xFF718077)),
+                icon: _uiIcon('duration', Icons.timer_outlined, size: 18, color: _colors.textMuted),
               ),
             PopupMenuButton<String>(
               tooltip: 'Autres actions',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
-              icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: const Color(0xFF748079)),
+              icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: _colors.textMuted),
               onSelected: (value) {
                 if (value == 'duration' && activity != null) _editSportRealisedMinutes(item, activity);
                 if (value == 'edit' && activity != null) addOrEditActivity(original: activity);
@@ -210,10 +210,10 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
         constraints: const BoxConstraints(minHeight: 60),
         padding: const EdgeInsets.fromLTRB(7, 6, 5, 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFEFC),
+          color: _colors.card,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE0E5E1)),
-          boxShadow: const [BoxShadow(color: Color(0x09000000), blurRadius: 5, offset: Offset(0, 2))],
+          border: Border.all(color: _colors.border),
+          boxShadow: [BoxShadow(color: _colors.shadowSoft, blurRadius: 5, offset: Offset(0, 2))],
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -271,7 +271,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                     runSpacing: 3,
                     children: [
                       if (repeated)
-                        Text('$occurrence/${sameDay.length}', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF6F8E80))),
+                        Text('$occurrence/${sameDay.length}', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: _colors.accentIcon)),
                       if (activity != null) _frozenActivityMarker(activity),
                       if (!compactHome && activity != null) _sportWeeklyIndicator(activity),
                       if (compactHome) actions(),
@@ -322,7 +322,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Ajouter au planning Sport · ${dayNames[day]}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
             const SizedBox(height: 4),
-            Text('Budget : $used / $budget min utilisés', style: const TextStyle(fontSize: 11.5, color: Color(0xFF6F7777))),
+            Text('Budget : $used / $budget min utilisés', style: TextStyle(fontSize: 11.5, color: _colors.textMuted)),
             const SizedBox(height: 8),
             Flexible(
               child: ListView.builder(
@@ -493,7 +493,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
         return Padding(
           padding: const EdgeInsets.only(right: 3),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(labels[day], style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: Color(0xFF6F7777))),
+            Text(labels[day], style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: _colors.textMuted)),
             const SizedBox(height: 1),
             // Les 7 cases sont uniquement des cases de suivi.
             // Aucune ne doit ouvrir l'écran de modification.
@@ -506,21 +506,21 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: active
-                      ? const Color(0xFF7D988D)
+                      ? _colors.accentFill
                       : planned
-                          ? const Color(0xFFE5EEE9)
-                          : const Color(0xFFF7FAF8),
+                          ? _colors.tintStrong
+                          : _colors.surfaceSoft,
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(
                     color: active
-                        ? const Color(0xFF6C887A)
-                        : const Color(0xFFBFCFC7),
+                        ? _colors.accentFillBorder
+                        : _colors.accentSoftBorder,
                   ),
                 ),
                 child: active
                     ? const Icon(Icons.check, size: 11, color: Colors.white)
                     : planned
-                        ? const Text('•', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF526B78)))
+                        ? Text('•', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: _colors.accentText))
                         : null,
               ),
             ),
