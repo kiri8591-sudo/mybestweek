@@ -25,6 +25,19 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         }
         _undoActionPrepared = false;
       }
+      // Sur iPhone/Safari/PWA, conserver aussi une copie directement dans
+      // localStorage. Cette écriture est synchrone et ne dépend pas d'une
+      // opération de plateforme en attente au moment où Safari masque ou
+      // recharge la page.
+      if (kIsWeb) {
+        try {
+          html.window.localStorage[_MaBelleSemaineAppState._localStateKey] = nextRaw;
+          html.window.localStorage[_MaBelleSemaineAppState._localStateMirrorKey] = nextRaw;
+        } catch (_) {
+          // localStorage peut être indisponible (mode privé/politique Safari).
+        }
+      }
+
       final prefs = _preferences;
       if (prefs != null) {
         // Les écritures sont mises en file et exécutées dans l'ordre.
@@ -90,30 +103,72 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         cacheOptions: const SharedPreferencesWithCacheOptions(),
       );
 
-      // Lecture directe depuis le stockage natif : on évite de dépendre d'un
-      // cache éventuellement périmé après une relance de l'app iPhone.
+      // Lecture multi-source : sur iPhone/Safari, on compare la copie
+      // SharedPreferences à la copie localStorage et on retient la plus
+      // récente. Cela évite de restaurer un cache ancien après une relance.
       final asyncPrefs = SharedPreferencesAsync();
-      var raw = await asyncPrefs.getString(_MaBelleSemaineAppState._localStateKey);
-
-      // Secours : dernier état valide miroir.
-      if (raw == null || raw.trim().isEmpty) {
-        raw = await asyncPrefs.getString(_MaBelleSemaineAppState._localStateMirrorKey);
+      final candidates = <String>[];
+      Future<void> addCandidate(Future<String?> future) async {
+        try {
+          final value = await future;
+          if (value != null && value.trim().isNotEmpty) candidates.add(value);
+        } catch (_) {
+          // Une source indisponible ne doit pas bloquer les autres.
+        }
       }
 
-      // Migration douce de l'ancien stockage Web V9/V10/V11.
+      await addCandidate(asyncPrefs.getString(_MaBelleSemaineAppState._localStateKey));
+      await addCandidate(asyncPrefs.getString(_MaBelleSemaineAppState._localStateMirrorKey));
+
+      if (kIsWeb) {
+        try {
+          final localPrimary = html.window.localStorage[_MaBelleSemaineAppState._localStateKey];
+          final localMirror = html.window.localStorage[_MaBelleSemaineAppState._localStateMirrorKey];
+          if (localPrimary != null && localPrimary.trim().isNotEmpty) candidates.add(localPrimary);
+          if (localMirror != null && localMirror.trim().isNotEmpty) candidates.add(localMirror);
+        } catch (_) {
+          // localStorage peut être indisponible.
+        }
+      }
+
+      String? raw;
+      DateTime? newestSavedAt;
+      for (final candidate in candidates) {
+        try {
+          final decoded = jsonDecode(candidate);
+          if (decoded is! Map || decoded['format'] != 'ma_belle_semaine_backup') continue;
+          final stamp = DateTime.tryParse('${decoded['savedAt'] ?? ''}');
+          if (raw == null || (stamp != null && (newestSavedAt == null || stamp.isAfter(newestSavedAt!)))) {
+            raw = candidate;
+            newestSavedAt = stamp;
+          }
+        } catch (_) {
+          // Une copie corrompue est simplement ignorée.
+        }
+      }
+
+      // Ancien stockage Web V9/V10/V11 : la clé historique est justement
+      // celle lue directement dans localStorage ci-dessus.
       if ((raw == null || raw.trim().isEmpty) && kIsWeb) {
         try {
           final legacy = html.window.localStorage[_MaBelleSemaineAppState._localStateKey];
-          if (legacy != null && legacy.trim().isNotEmpty) {
-            raw = legacy;
-            final prefs = _preferences;
-            if (prefs != null) {
-              await prefs.setString(_MaBelleSemaineAppState._localStateKey, legacy);
-              await prefs.setString(_MaBelleSemaineAppState._localStateMirrorKey, legacy);
-            }
-          }
+          if (legacy != null && legacy.trim().isNotEmpty) raw = legacy;
         } catch (_) {
           // Migration Web facultative.
+        }
+      }
+
+      // Réparer les deux stockages à partir de la copie choisie.
+      if (raw != null && raw.trim().isNotEmpty) {
+        try {
+          if (kIsWeb) {
+            html.window.localStorage[_MaBelleSemaineAppState._localStateKey] = raw;
+            html.window.localStorage[_MaBelleSemaineAppState._localStateMirrorKey] = raw;
+          }
+          await asyncPrefs.setString(_MaBelleSemaineAppState._localStateKey, raw);
+          await asyncPrefs.setString(_MaBelleSemaineAppState._localStateMirrorKey, raw);
+        } catch (_) {
+          // Réparation facultative : la copie sélectionnée reste exploitable.
         }
       }
 

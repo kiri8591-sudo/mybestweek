@@ -884,9 +884,18 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                         children: [
                                           _uiIcon('info', Icons.verified_outlined, size: 17, color: const Color(0xFF60786B)),
                                           const SizedBox(width: 7),
-                                          const Text('Version', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6D7771))),
-                                          const Spacer(),
-                                          Text(_MaBelleSemaineAppState.version, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF4F6D5D))),
+                                          const Expanded(
+                                            child: Text(
+                                              'Version',
+                                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6D7771)),
+                                            ),
+                                          ),
+                                          Text(
+                                            '${_MaBelleSemaineAppState.version} · ${_MaBelleSemaineAppState.buildVersion}',
+                                            maxLines: 1,
+                                            softWrap: false,
+                                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Color(0xFF4F6D5D)),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -970,9 +979,9 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                       Expanded(
                         child: Text(
                           _morningThought,
-                          maxLines: 1,
-                          softWrap: false,
-                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                          softWrap: true,
+                          overflow: TextOverflow.visible,
                           style: const TextStyle(fontSize: 10.1, height: 1.16, fontStyle: FontStyle.italic, color: Color(0xFF5D554B)),
                         ),
                       ),
@@ -1035,7 +1044,18 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                   children: [
                     const Text('✨', style: TextStyle(fontSize: 19)),
                     const SizedBox(width: 5),
-                    const Expanded(child: Text('Aujourd’hui', style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF3F5047)))),
+                    const Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Aujourd’hui',
+                          maxLines: 1,
+                          softWrap: false,
+                          style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF3F5047)),
+                        ),
+                      ),
+                    ),
                     if (todayActionItems.isNotEmpty) ...[
                       const SizedBox(width: 6),
                       pill('$todayDone/${todayActionItems.length}', bg: const Color(0xFFF9FCFA)),
@@ -1044,6 +1064,8 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     IconButton(
                       tooltip: 'Challenge · Mes priorités',
                       visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
                       onPressed: _editDailyPriorities,
                       icon: _systemIconWidget('challenge', fallback: '🎯', size: 20),
                     ),
