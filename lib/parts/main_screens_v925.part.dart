@@ -1197,6 +1197,45 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
 
   Widget _weekNonSportPlanCard(PlanItem item, Activity activity) {
     const labels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+    Widget weeklyChecks() => Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: List.generate(7, (day) {
+            final dayItems = plan.where((candidate) => candidate.day == day && candidate.activityId == activity.id).toList();
+            final done = dayItems.any((candidate) => candidate.done);
+            final planned = dayItems.isNotEmpty;
+            return Padding(
+              padding: EdgeInsets.only(right: day == 6 ? 0 : 3),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(labels[day], style: const TextStyle(fontSize: 7.5, fontWeight: FontWeight.w800, color: Color(0xFF6F7777))),
+                  const SizedBox(height: 2),
+                  InkWell(
+                    onTap: () => _toggleNonSportWeekDay(activity, day),
+                    borderRadius: BorderRadius.circular(5),
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: done ? const Color(0xFFE7E7E4) : planned ? const Color(0xFFE5EEE9) : const Color(0xFFF8F7F2),
+                        borderRadius: BorderRadius.circular(5),
+                        border: Border.all(color: done ? const Color(0xFFBDBDB8) : const Color(0xFFC9D4CE)),
+                      ),
+                      child: done
+                          ? const Icon(Icons.check_rounded, size: 12, color: Color(0xFF8D8E89))
+                          : planned
+                              ? const Text('.', style: TextStyle(fontSize: 15, height: .8, fontWeight: FontWeight.w900, color: Color(0xFF738079)))
+                              : null,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        );
+
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Container(
@@ -1208,98 +1247,86 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
           border: Border.all(color: const Color(0xFFE0E5E1)),
           boxShadow: const [BoxShadow(color: Color(0x09000000), blurRadius: 5, offset: Offset(0, 2))],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Checkbox(
-              value: item.done,
-              onChanged: (_) => openPlanItem(item),
-              visualDensity: VisualDensity.compact,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-            ),
-            const SizedBox(width: 2),
-            _activityIconWidget(_planItemIconValue(item, activities), size: 28),
-            const SizedBox(width: 7),
-            Expanded(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final narrow = constraints.maxWidth < 500;
+            final title = Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
-                    child: Row(children: [
-                      Expanded(
-                        child: Text(
-                          item.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null),
-                        ),
-                      ),
-                      _frozenActivityMarker(activity),
-                      if (item.day == today && _isDailyPriorityActivityId(item.activityId)) ...[
-                        const SizedBox(width: 4),
-                        _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFFA27432)),
-                      ],
-                    ]),
+                    child: Text(
+                      item.title,
+                      maxLines: 2,
+                      softWrap: true,
+                      overflow: TextOverflow.ellipsis,
+                      style: _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null),
+                    ),
                   ),
-                  const SizedBox(width: 7),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(7, (day) {
-                      final items = plan.where((candidate) => candidate.day == day && candidate.activityId == activity.id).toList();
-                      final done = items.any((candidate) => candidate.done);
-                      final planned = items.isNotEmpty;
-                      return Padding(
-                        padding: EdgeInsets.only(right: day == 6 ? 0 : 3),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(labels[day], style: const TextStyle(fontSize: 7.5, fontWeight: FontWeight.w800, color: Color(0xFF6F7777))),
-                            const SizedBox(height: 2),
-                            InkWell(
-                              onTap: () => _toggleNonSportWeekDay(activity, day),
-                              borderRadius: BorderRadius.circular(5),
-                              child: Container(
-                                width: 18,
-                                height: 18,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: done ? const Color(0xFFE7E7E4) : planned ? const Color(0xFFE5EEE9) : const Color(0xFFF8F7F2),
-                                  borderRadius: BorderRadius.circular(5),
-                                  border: Border.all(color: done ? const Color(0xFFBDBDB8) : const Color(0xFFC9D4CE)),
-                                ),
-                                child: done
-                                    ? const Icon(Icons.check_rounded, size: 12, color: Color(0xFF8D8E89))
-                                    : planned
-                                        ? const Text('.', style: TextStyle(fontSize: 15, height: .8, fontWeight: FontWeight.w900, color: Color(0xFF738079)))
-                                        : null,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ),
+                  _frozenActivityMarker(activity),
+                  if (item.day == today && _isDailyPriorityActivityId(item.activityId)) ...[
+                    const SizedBox(width: 4),
+                    _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFFA27432)),
+                  ],
                 ],
               ),
-            ),
-            PopupMenuButton<String>(
-              tooltip: 'Autres actions',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
-              icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: const Color(0xFF748079)),
-              onSelected: (value) {
-                if (value == 'why') _showPlanItemCoachReason(item);
-                if (value == 'edit') openItemActions(item);
-                if (value == 'remove') _removePlanOccurrence(item);
-              },
-              itemBuilder: (context) => [
-                if (item.details != null) const PopupMenuItem<String>(value: 'why', child: Text('Pourquoi ce moment ?')),
-                const PopupMenuItem<String>(value: 'edit', child: Text('Voir / modifier')),
-                const PopupMenuItem<String>(value: 'remove', child: Text('Retirer du jour')),
+            );
+
+            final header = Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Checkbox(
+                  value: item.done,
+                  onChanged: (_) => openPlanItem(item),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                ),
+                const SizedBox(width: 2),
+                _activityIconWidget(_planItemIconValue(item, activities), size: 28),
+                const SizedBox(width: 7),
+                title,
+                PopupMenuButton<String>(
+                  tooltip: 'Autres actions',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
+                  icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: const Color(0xFF748079)),
+                  onSelected: (value) {
+                    if (value == 'why') _showPlanItemCoachReason(item);
+                    if (value == 'edit') openItemActions(item);
+                    if (value == 'remove') _removePlanOccurrence(item);
+                  },
+                  itemBuilder: (context) => [
+                    if (item.details != null) const PopupMenuItem<String>(value: 'why', child: Text('Pourquoi ce moment ?')),
+                    const PopupMenuItem<String>(value: 'edit', child: Text('Voir / modifier')),
+                    const PopupMenuItem<String>(value: 'remove', child: Text('Retirer du jour')),
+                  ],
+                ),
               ],
-            ),
-          ],
+            );
+
+            if (!narrow) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(child: header),
+                  const SizedBox(width: 7),
+                  weeklyChecks(),
+                ],
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                header,
+                Padding(
+                  padding: const EdgeInsets.only(left: 39, top: 3),
+                  child: weeklyChecks(),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

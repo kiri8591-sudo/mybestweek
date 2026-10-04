@@ -20,83 +20,113 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
     final over = planned > target;
     final completedHome = compactHome && items.isNotEmpty && items.every((item) => item.done);
     final collapsedHome = completedHome && !_homeSportExpanded;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
+      padding: const EdgeInsets.fromLTRB(12, 7, 12, 8),
       decoration: BoxDecoration(
         color: const Color(0xFFE2ECE7),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: over ? const Color(0xFFC67E67) : const Color(0xFFD4E0DA)),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (collapsedHome)
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => setState(() => _homeSportExpanded = true),
-            child: Row(children: [
-              _activityIconWidget(_sportProgram?.emoji ?? '🏃', size: 20),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  'Habitudes · $validated/$target min ✓',
-                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: Color(0xFF526B78)),
-                ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (collapsedHome)
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => setState(() => _homeSportExpanded = true),
+              child: Row(
+                children: [
+                  _activityIconWidget(_sportProgram?.emoji ?? '🏃', size: 20),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      'Habitudes Sport · $validated/$target min ✓',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: Color(0xFF526B78)),
+                    ),
+                  ),
+                  _uiIcon('sportWeek', Icons.calendar_view_week_outlined, size: 17, color: const Color(0xFF718077)),
+                ],
               ),
-              _uiIcon('sportWeek', Icons.calendar_view_week_outlined, size: 17, color: const Color(0xFF718077)),
-            ]),
-          )
-        else
-          Row(children: [
-          _activityIconWidget(_sportProgram?.emoji ?? '🏃', size: 22),
-          const SizedBox(width: 7),
-          Expanded(
-            child: Column(
+            )
+          else ...[
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Habitudes quotidiennes · Sport', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Color(0xFF526B78))),
-                const SizedBox(height: 2),
-                Text('$planned / $target min prévus · $validated min validés', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF718079))),
+                _activityIconWidget(_sportProgram?.emoji ?? '🏃', size: 20),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Habitudes quotidiennes · Sport',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12.2, fontWeight: FontWeight.w900, color: Color(0xFF526B78)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '$validated / $target min',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 10.2, fontWeight: FontWeight.w700, color: Color(0xFF718077)),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
+                TextButton.icon(
+                  onPressed: () => _addSportActivityToDay(day),
+                  icon: _uiIcon('add', Icons.add_circle_outline, size: 16),
+                  label: const Text('Ajouter', style: TextStyle(fontSize: 10.6, fontWeight: FontWeight.w900)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                    minimumSize: const Size(0, 26),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
+                  tooltip: 'Journal du coach Sport',
+                  onPressed: openSportCoachJournal,
+                  icon: _uiIcon('history', Icons.menu_book_rounded, size: 17),
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
+                  tooltip: 'Semaine Sport',
+                  onPressed: openSportWeekOverview,
+                  icon: _uiIcon('sportWeek', Icons.calendar_view_week_outlined, size: 17),
+                ),
+                if (completedHome)
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
+                    tooltip: 'Replier Habitudes Sport',
+                    onPressed: () => setState(() => _homeSportExpanded = false),
+                    icon: _uiIcon('chevronUp', Icons.keyboard_arrow_up_rounded, size: 18, color: const Color(0xFF718077)),
+                  ),
               ],
             ),
-          ),
-          if (completedHome)
-            IconButton(
-              visualDensity: VisualDensity.compact,
-              tooltip: 'Replier Habitudes Sport',
-              onPressed: () => setState(() => _homeSportExpanded = false),
-              icon: _uiIcon('chevronUp', Icons.keyboard_arrow_up_rounded, size: 18, color: const Color(0xFF718077)),
-            ),
-          TextButton.icon(
-            onPressed: () => _addSportActivityToDay(day),
-            icon: _uiIcon('add', Icons.add_circle_outline, size: 18),
-            label: const Text('Ajouter', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900)),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-              minimumSize: const Size(0, 34),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Journal du coach Sport',
-            onPressed: openSportCoachJournal,
-            icon: _uiIcon('history', Icons.menu_book_rounded, size: 18),
-          ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            tooltip: 'Semaine Sport',
-            onPressed: openSportWeekOverview,
-            icon: _uiIcon('sportWeek', Icons.calendar_view_week_outlined, size: 18),
-          ),
-        ]),
-        if (!collapsedHome) ...[
-        const SizedBox(height: 8),
-        if (items.isEmpty)
-          const Text('Aucune activité Sport proposée ce jour.', style: TextStyle(fontSize: 12.5, color: Color(0xFF6F7777)))
-        else
-          ...items.map((item) => _sportItemRow(item, compactHome: compactHome)),
+          ],
+          if (!collapsedHome) ...[
+            const SizedBox(height: 2),
+            if (items.isEmpty)
+              const Text('Aucune activité Sport proposée ce jour.', style: TextStyle(fontSize: 12.5, color: Color(0xFF6F7777)))
+            else
+              ...items.map((item) => _sportItemRow(item, compactHome: compactHome)),
+          ],
         ],
-      ]),
+      ),
     );
   }
 
@@ -107,6 +137,72 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
     final occurrence = sameDay.indexWhere((p) => p.id == item.id) + 1;
     final repeated = sameDay.length > 1;
     final titleStyle = _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null);
+
+    Widget titlePart() => Expanded(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: activity == null ? null : () => addOrEditActivity(original: activity),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.title,
+                    maxLines: 2,
+                    softWrap: true,
+                    overflow: TextOverflow.ellipsis,
+                    style: titleStyle,
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 9.5,
+                      height: 1.15,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF7A8580),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+    Widget actions() => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (activity != null)
+              IconButton(
+                tooltip: 'Modifier le temps réalisé',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                onPressed: () => _editSportRealisedMinutes(item, activity),
+                icon: _uiIcon('duration', Icons.timer_outlined, size: 18, color: const Color(0xFF718077)),
+              ),
+            PopupMenuButton<String>(
+              tooltip: 'Autres actions',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
+              icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: const Color(0xFF748079)),
+              onSelected: (value) {
+                if (value == 'duration' && activity != null) _editSportRealisedMinutes(item, activity);
+                if (value == 'edit' && activity != null) addOrEditActivity(original: activity);
+                if (value == 'remove') _removePlanOccurrence(item);
+              },
+              itemBuilder: (context) => [
+                if (activity != null) const PopupMenuItem<String>(value: 'duration', child: Text('Temps réalisé')),
+                if (activity != null) const PopupMenuItem<String>(value: 'edit', child: Text('Voir / modifier')),
+                const PopupMenuItem<String>(value: 'remove', child: Text('Retirer du jour')),
+              ],
+            ),
+          ],
+        );
 
     return Padding(
       padding: const EdgeInsets.only(top: 6),
@@ -119,82 +215,72 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
           border: Border.all(color: const Color(0xFFE0E5E1)),
           boxShadow: const [BoxShadow(color: Color(0x09000000), blurRadius: 5, offset: Offset(0, 2))],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Checkbox(
-              value: item.done,
-              onChanged: (_) => openPlanItem(item),
-              visualDensity: VisualDensity.compact,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-            ),
-            const SizedBox(width: 3),
-            _activityIconWidget(emoji, size: 28),
-            const SizedBox(width: 8),
-            Expanded(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: activity == null ? null : () => addOrEditActivity(original: activity),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final narrow = constraints.maxWidth < 500;
+            final titleLeading = Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Checkbox(
+                  value: item.done,
+                  onChanged: (_) => openPlanItem(item),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                ),
+                const SizedBox(width: 3),
+                _activityIconWidget(emoji, size: 28),
+                const SizedBox(width: 8),
+                titlePart(),
+                if (!narrow && !compactHome && activity != null) ...[
+                  const SizedBox(width: 7),
+                  _sportWeeklyIndicator(activity),
+                ],
+                if (!narrow) actions(),
+              ],
+            );
+
+            if (!narrow) return titleLeading;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Checkbox(
+                      value: item.done,
+                      onChanged: (_) => openPlanItem(item),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    ),
+                    const SizedBox(width: 3),
+                    _activityIconWidget(emoji, size: 28),
+                    const SizedBox(width: 8),
+                    titlePart(),
+                    // En mode Home étroit, les actions restent accessibles
+                    // sur la seconde ligne sans comprimer le libellé.
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 38, top: 2),
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 3,
                     children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Expanded(child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle)),
-                            _frozenActivityMarker(activity),
-                            if (item.day == today && _isDailyPriorityActivityId(item.activityId)) ...[
-                              const SizedBox(width: 5),
-                              _uiIcon('priority', Icons.star_rounded, size: 12, color: const Color(0xFFA27432)),
-                            ],
-                            if (repeated) ...[
-                              const SizedBox(width: 5),
-                              Text('$occurrence/${sameDay.length}', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF6F8E80))),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min', style: _detailMetaStyle()),
+                      if (repeated)
+                        Text('$occurrence/${sameDay.length}', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF6F8E80))),
+                      if (activity != null) _frozenActivityMarker(activity),
+                      if (!compactHome && activity != null) _sportWeeklyIndicator(activity),
+                      if (compactHome) actions(),
                     ],
                   ),
                 ),
-              ),
-            ),
-            if (!compactHome && activity != null) ...[
-              const SizedBox(width: 3),
-              _sportWeeklyIndicator(activity),
-            ],
-            if (activity != null) ...[
-              const SizedBox(width: 2),
-              IconButton(
-                tooltip: 'Modifier le temps réalisé',
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-                onPressed: () => _editSportRealisedMinutes(item, activity),
-                icon: _uiIcon('duration', Icons.timer_outlined, size: 18, color: const Color(0xFF718077)),
-              ),
-            ],
-            PopupMenuButton<String>(
-              tooltip: 'Autres actions',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
-              icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: const Color(0xFF748079)),
-              onSelected: (value) {
-                if (value == 'duration' && activity != null) _editSportRealisedMinutes(item, activity);
-                if (value == 'edit' && activity != null) addOrEditActivity(original: activity);
-                if (value == 'remove') _removePlanOccurrence(item);
-              },
-              itemBuilder: (context) => [
-                if (activity != null) const PopupMenuItem<String>(value: 'duration', child: Text('Modifier le temps réalisé')),
-                if (activity != null) const PopupMenuItem<String>(value: 'edit', child: Text('Voir / modifier')),
-                const PopupMenuItem<String>(value: 'remove', child: Text('Retirer du jour')),
               ],
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -388,6 +474,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
     _queueLocalStatePersist();
     _showFeedback('✓ « ${activity.name} » réalisé ${dayNames[day]} · $realised min.');
   }
+
 
   Widget _sportWeeklyIndicator(Activity activity) {
     const labels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];

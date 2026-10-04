@@ -27,16 +27,36 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       }
       final prefs = _preferences;
       if (prefs != null) {
-        // On conserve une copie miroir du dernier état valide.
-        // Cela permet de récupérer l'état sur iPhone si une lecture du cache
-        // principal échoue lors d'un redémarrage.
-        unawaited(prefs.setString(_MaBelleSemaineAppState._localStateKey, nextRaw));
-        unawaited(prefs.setString(_MaBelleSemaineAppState._localStateMirrorKey, nextRaw));
+        // Les écritures sont mises en file et exécutées dans l'ordre.
+        // C'est essentiel sur iPhone : un ancien write lancé avant une
+        // réinitialisation ne doit jamais pouvoir revenir après le nouveau write.
+        final asyncPrefs = SharedPreferencesAsync();
+        _persistenceWriteChain = _persistenceWriteChain.then<void>((_) async {
+          try {
+            await asyncPrefs.setString(_MaBelleSemaineAppState._localStateKey, nextRaw);
+            await asyncPrefs.setString(_MaBelleSemaineAppState._localStateMirrorKey, nextRaw);
+            // On garde aussi le cache SharedPreferencesWithCache cohérent pour
+            // le mécanisme Undo et les lectures locales ultérieures.
+            await prefs.setString(_MaBelleSemaineAppState._localStateKey, nextRaw);
+            await prefs.setString(_MaBelleSemaineAppState._localStateMirrorKey, nextRaw);
+          } catch (_) {
+            // Une politique de stockage restrictive reste non bloquante.
+          }
+        });
+        unawaited(_persistenceWriteChain);
       }
       if (undoChanged && mounted) setState(() {});
     } catch (_) {
       // La persistance locale est facultative : une politique de stockage
       // navigateur restrictive ne doit jamais empêcher l'application de vivre.
+    }
+  }
+
+  Future<void> _flushPersistenceWrites() async {
+    try {
+      await _persistenceWriteChain;
+    } catch (_) {
+      // La persistance reste best-effort, sans bloquer l'interface.
     }
   }
 
@@ -727,6 +747,11 @@ extension _StatePersistence on _MaBelleSemaineAppState {
   Future<void> resetDatabaseCompletely() async {
     if (!mounted) return;
 
+    // Invalide toute écriture différée issue de l'ancien état avant de
+    // construire le nouvel état. Un callback post-frame déjà programmé
+    // verra une génération obsolète et ne pourra plus réécrire l'ancien état.
+    ++_persistenceGeneration;
+
     // RÉINITIALISATION = base vierge de tout SAUF des activités.
     // Les activités restent exactement telles qu’elles sont aujourd’hui,
     // y compris les activités ajoutées ou modifiées par l’utilisateur.
@@ -800,7 +825,10 @@ extension _StatePersistence on _MaBelleSemaineAppState {
     await WidgetsBinding.instance.endOfFrame;
 
     if (mounted) {
-      _queueLocalStatePersist();
+      // Reset = état critique : on attend la fin de l'écriture avant de
+      // laisser l'écran Data revenir en arrière.
+      _persistLocalState(recordUndo: false);
+      await _flushPersistenceWrites();
       _scaffoldMessengerKey.currentState?.hideCurrentSnackBar();
       _scaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(

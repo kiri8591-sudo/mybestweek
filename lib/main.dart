@@ -123,6 +123,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   static const String _localStateMirrorKey = 'ma_belle_semaine_local_state_v2_last_good';
   static const int _cloudBackupReminderDays = 7;
   bool _persistenceQueued = false;
+  // Toutes les écritures locales sont sérialisées. Un ancien setString ne peut
+  // ainsi plus terminer après une réinitialisation et remettre l'ancien état.
+  Future<void> _persistenceWriteChain = Future<void>.value();
   // Numéro de génération des écritures différées : un Undo invalide
   // toute écriture programmée avant sa restauration.
   int _persistenceGeneration = 0;
