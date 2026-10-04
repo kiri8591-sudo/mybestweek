@@ -647,20 +647,30 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       return activity != null && _isOutdoorPlanningActivity(activity);
     });
     final headerWeatherSensitive = hasOutdoorRemaining && todayWeather?.outdoorBad == true;
-    final headerColor = headerWeatherSensitive
-        ? const Color(0xFFEEF4F7)
-        : _clockNow.hour < 12
-            ? const Color(0xFFFFF1DE)
-            : _clockNow.hour < 18
-                ? const Color(0xFFEAF6F0)
-                : const Color(0xFFF1EEF6);
-    final headerBorderColor = headerWeatherSensitive
-        ? const Color(0xFFD9E5EB)
-        : _clockNow.hour < 12
-            ? const Color(0xFFF0D7B6)
-            : _clockNow.hour < 18
-                ? const Color(0xFFD3E5DB)
-                : const Color(0xFFDED8EA);
+    final headerColor = _darkMode
+        ? (headerWeatherSensitive
+            ? const Color(0xFF253137)
+            : _clockNow.hour < 12
+                ? const Color(0xFF302A22)
+                : _clockNow.hour < 18
+                    ? const Color(0xFF223028)
+                    : const Color(0xFF292533))
+        : headerWeatherSensitive
+            ? const Color(0xFFEEF4F7)
+            : _clockNow.hour < 12
+                ? const Color(0xFFFFF1DE)
+                : _clockNow.hour < 18
+                    ? const Color(0xFFEAF6F0)
+                    : const Color(0xFFF1EEF6);
+    final headerBorderColor = _darkMode
+        ? const Color(0xFF46504B)
+        : headerWeatherSensitive
+            ? const Color(0xFFD9E5EB)
+            : _clockNow.hour < 12
+                ? const Color(0xFFF0D7B6)
+                : _clockNow.hour < 18
+                    ? const Color(0xFFD3E5DB)
+                    : const Color(0xFFDED8EA);
 
     Widget pill(String text, {Color bg = const Color(0xFFFFFCF7), Color fg = const Color(0xFF60786B)}) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -791,7 +801,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     '${dateText()} · ${_clockText()}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF756E67)),
+                                    style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: _darkMode ? const Color(0xFFB9C3BD) : const Color(0xFF756E67)),
                                   ),
                                 ),
                               ],
@@ -805,7 +815,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                   '${_greetingLabel()} 👋',
                                   maxLines: 1,
                                   softWrap: false,
-                                  style: const TextStyle(fontSize: 18.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.25),
+                                  style: TextStyle(fontSize: 18.5, fontWeight: FontWeight.w900, color: _darkMode ? const Color(0xFFE2E9E4) : const Color(0xFF3F4B45), letterSpacing: -0.25),
                                 ),
                                 if (_userName.trim().isNotEmpty) ...[
                                   const SizedBox(height: 1),
@@ -813,7 +823,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     _userName.trim(),
                                     softWrap: true,
                                     overflow: TextOverflow.visible,
-                                    style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.2, height: 1.05),
+                                    style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: _darkMode ? const Color(0xFFE2E9E4) : const Color(0xFF3F4B45), letterSpacing: -0.2, height: 1.05),
                                   ),
                                 ],
                                 const SizedBox(height: 3),
@@ -821,7 +831,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                   _MaBelleSemaineAppState.version,
                                   maxLines: 1,
                                   softWrap: false,
-                                  style: const TextStyle(fontSize: 8.7, fontWeight: FontWeight.w800, color: Color(0xFF79877F), letterSpacing: .1),
+                                  style: TextStyle(fontSize: 8.7, fontWeight: FontWeight.w800, color: _darkMode ? const Color(0xFFA5B2AB) : const Color(0xFF79877F), letterSpacing: .1),
                                 ),
                               ],
                             ),
@@ -863,6 +873,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                         onSelected: (value) {
                           if (value == 'data') openDataManager();
                           if (value == 'identity') _editHomeIdentity();
+                          if (value == 'darkMode') _toggleDarkMode();
 
                         },
                         itemBuilder: (context) => [
@@ -893,6 +904,15 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               contentPadding: EdgeInsets.zero,
                               leading: _uiIcon('settings', Icons.tune_rounded, size: 18),
                               title: const Text('Personnaliser l’accueil'),
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'darkMode',
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(_darkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded, size: 18),
+                              title: const Text('Mode sombre'),
+                              trailing: Text(_darkMode ? 'Activé' : 'Désactivé', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800)),
                             ),
                           ),
                         ],
@@ -929,7 +949,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                           maxLines: 2,
                           softWrap: true,
                           overflow: TextOverflow.visible,
-                          style: const TextStyle(fontSize: 10.1, height: 1.16, fontStyle: FontStyle.italic, color: Color(0xFF5D554B)),
+                          style: TextStyle(fontSize: 10.1, height: 1.16, fontStyle: FontStyle.italic, color: _darkMode ? const Color(0xFFD0D8D3) : const Color(0xFF5D554B)),
                         ),
                       ),
                       const SizedBox(width: 3),
@@ -963,7 +983,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     _todayMoodComment(summary),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 9.7, height: 1.16, fontWeight: FontWeight.w800, color: Color(0xFF6B756F)),
+                                    style: TextStyle(fontSize: 9.7, height: 1.16, fontWeight: FontWeight.w800, color: _darkMode ? const Color(0xFFB8C3BD) : const Color(0xFF6B756F)),
                                   ),
                                 ),
                               ],
@@ -983,8 +1003,8 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 1, 16, 8),
             child: softCard(
-              color: const Color(0xFFF0F7F3),
-              borderColor: const Color(0xFFD7E6DE),
+              color: _darkMode ? const Color(0xFF202B25) : const Color(0xFFF0F7F3),
+              borderColor: _darkMode ? const Color(0xFF3B4D43) : const Color(0xFFD7E6DE),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -1032,7 +1052,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                             maxLines: 2,
                             softWrap: true,
                             overflow: TextOverflow.visible,
-                            style: const TextStyle(fontSize: 9.6, height: 1.18, fontWeight: FontWeight.w800, color: Color(0xFF6E6860)),
+                            style: TextStyle(fontSize: 9.6, height: 1.18, fontWeight: FontWeight.w800, color: _darkMode ? const Color(0xFFC6D0CA) : const Color(0xFF6E6860)),
                           ),
                         ),
                       ],

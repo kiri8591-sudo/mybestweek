@@ -5,6 +5,124 @@ part of '../main.dart';
 
 extension _AppShellPart on _MaBelleSemaineAppState {
 
+  ThemeData _buildDarkTheme() {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: const Color(0xFF789A87),
+      brightness: Brightness.dark,
+    ).copyWith(
+      primary: const Color(0xFFA9C8B6),
+      onPrimary: const Color(0xFF173123),
+      secondary: const Color(0xFF98B5A4),
+      onSecondary: const Color(0xFF13251B),
+      tertiary: const Color(0xFFE2AA91),
+      onTertiary: const Color(0xFF351A10),
+      surface: const Color(0xFF1B211E),
+      onSurface: const Color(0xFFE7ECE8),
+      surfaceContainerHighest: const Color(0xFF2A322E),
+      outline: const Color(0xFF59655E),
+    );
+    return ThemeData.dark(useMaterial3: true).copyWith(
+      platform: TargetPlatform.iOS,
+      colorScheme: scheme,
+      textTheme: _farmhouseTextTheme().apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface),
+      scaffoldBackgroundColor: const Color(0xFF121614),
+      canvasColor: const Color(0xFF121614),
+      iconTheme: const IconThemeData(size: 18, color: Color(0xFFB8C3BD)),
+      appBarTheme: AppBarTheme(
+        backgroundColor: const Color(0xFF1A201D),
+        foregroundColor: scheme.onSurface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: true,
+        toolbarHeight: 62,
+        titleTextStyle: TextStyle(
+          fontSize: 18.5,
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+          fontFamily: GoogleFonts.lora().fontFamily,
+          fontFamilyFallback: const ['Times New Roman', 'serif'],
+        ),
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        color: const Color(0xFF202622),
+        surfaceTintColor: Colors.transparent,
+        margin: EdgeInsets.zero,
+        shadowColor: const Color(0x40000000),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: const BorderSide(color: Color(0xFF39433E), width: 1.2),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: const Color(0xFF202622),
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: TextStyle(
+          fontFamily: GoogleFonts.lora().fontFamily,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+        ),
+        contentTextStyle: const TextStyle(fontSize: 13, height: 1.35, color: Color(0xFFD0D8D3)),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Color(0xFF202622),
+        modalBackgroundColor: Color(0xFF202622),
+        surfaceTintColor: Colors.transparent,
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        showDragHandle: true,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: const Color(0xFF1B211E),
+        indicatorColor: const Color(0xFF385346),
+        height: 82,
+        elevation: 0,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        labelTextStyle: const WidgetStatePropertyAll(
+          TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFB9C4BE)),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF252D29),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF49554E)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF49554E)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFA9C8B6), width: 1.5),
+        ),
+        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFB8C3BD)),
+        floatingLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFA9C8B6)),
+        hintStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: Color(0xFF8F9A95)),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        side: const BorderSide(color: Color(0xFF46514B)),
+        backgroundColor: const Color(0xFF28312C),
+        selectedColor: const Color(0xFF34493E),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        labelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFFD3DBD6)),
+      ),
+    );
+  }
+
+  void _toggleDarkMode() {
+    setState(() => _darkMode = !_darkMode);
+    _queueLocalStatePersist();
+  }
+
   Widget _buildAppShell(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -190,6 +308,8 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           side: const BorderSide(color: Color(0xFFB8B9B4), width: 1.3),
         ),
       ),
+      darkTheme: _buildDarkTheme(),
+      themeMode: _darkMode ? ThemeMode.dark : ThemeMode.light,
       home: Scaffold(
         key: ValueKey('root-$_resetGeneration'),
         body: SafeArea(

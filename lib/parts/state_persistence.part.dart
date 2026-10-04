@@ -236,6 +236,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         'moves': activityMoveLogs.length,
       },
       'appVersion': _MaBelleSemaineAppState.version,
+      'darkMode': _darkMode,
       'createdAt': DateTime.now().toIso8601String(),
       'lastICloudBackupAt': _lastICloudBackupAt?.toIso8601String(),
       'lastFileBackupAt': _lastFileBackupAt?.toIso8601String(),
@@ -624,6 +625,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         _lastICloudBackupAt = cloudBackupDate == null ? null : DateTime.tryParse(cloudBackupDate);
         final fileBackupDate = _asString(root['lastFileBackupAt']);
         _lastFileBackupAt = fileBackupDate == null ? null : DateTime.tryParse(fileBackupDate);
+        _darkMode = _asBool(root['darkMode'], false);
         _userName = _asString(root['userName']) ?? '';
         _weatherCity = _asString(root['weatherCity']) ?? '';
         _weatherText = _asString(root['weatherText']) ?? '';

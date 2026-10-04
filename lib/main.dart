@@ -60,8 +60,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.3.15';
-  static const buildVersion = '12.3.14+18';
+  static const version = 'V12.3.16';
+  static const buildVersion = '12.3.16+19';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -176,6 +176,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   DateTime? _lastICloudBackupAt;
   DateTime? _lastFileBackupAt;
   String _userName = '';
+  bool _darkMode = false;
   String _weatherCity = '';
   String _todayNameday = '';
   String _todayNamedayDateKey = '';
