@@ -5,6 +5,7 @@ part of '../main.dart';
 
 extension _AppLifecyclePart on _MaBelleSemaineAppState {
   void _initializeAppLifecycle() {
+    WidgetsBinding.instance.addObserver(this);
     final random = Random();
     _morningThought = _MaBelleSemaineAppState.morningThoughts[random.nextInt(_MaBelleSemaineAppState.morningThoughts.length)];
     _morningThoughtIcon = _MaBelleSemaineAppState._morningThoughtIcons[random.nextInt(_MaBelleSemaineAppState._morningThoughtIcons.length)];
@@ -45,9 +46,33 @@ extension _AppLifecyclePart on _MaBelleSemaineAppState {
     });
   }
 
-  void _disposeAppLifecycle() {
-    // Dernière tentative synchrone avant destruction du State.
+  void _handleAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      // Sur iPhone, quitter l'application par balayage peut interrompre
+      // une écriture SharedPreferences encore en attente. On force ici une
+      // nouvelle sauvegarde de l'état courant et on attend la fin de la
+      // chaîne d'écritures tant que le cycle de vie nous laisse du temps.
+      unawaited(_persistForAppLifecycle());
+    }
+  }
+
+  Future<void> _persistForAppLifecycle() async {
+    if (!mounted || _isHydratingLocalState) return;
+    _persistenceGeneration++;
     _persistLocalState(recordUndo: false);
+    await _flushPersistenceWrites();
+  }
+
+  void _disposeAppLifecycle() {
+    // Dernière tentative avant destruction du State. La sauvegarde de cycle
+    // de vie est prioritaire sur l'ancien simple appel best-effort.
+    if (!_isHydratingLocalState) {
+      _persistLocalState(recordUndo: false);
+    }
+    WidgetsBinding.instance.removeObserver(this);
     _visibilitySubscription?.cancel();
     _pageHideSubscription?.cancel();
     _clockTimer?.cancel();

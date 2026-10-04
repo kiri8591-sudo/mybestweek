@@ -788,7 +788,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    '${dateText()} · ${_clockText()} · ${_dayMoment()}',
+                                    '${dateText()} · ${_clockText()}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: Color(0xFF756E67)),
@@ -816,6 +816,13 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45), letterSpacing: -0.2, height: 1.05),
                                   ),
                                 ],
+                                const SizedBox(height: 3),
+                                Text(
+                                  _MaBelleSemaineAppState.version,
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  style: const TextStyle(fontSize: 8.7, fontWeight: FontWeight.w800, color: Color(0xFF79877F), letterSpacing: .1),
+                                ),
                               ],
                             ),
                           ],
@@ -856,59 +863,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                         onSelected: (value) {
                           if (value == 'data') openDataManager();
                           if (value == 'identity') _editHomeIdentity();
-                          if (value == 'about') {
-                            showDialog<void>(
-                              context: context,
-                              builder: (dialogContext) => AlertDialog(
-                                title: Row(
-                                  children: [
-                                    _uiIcon('info', Icons.info_outline_rounded, size: 22, color: const Color(0xFF60786B)),
-                                    const SizedBox(width: 8),
-                                    const Expanded(child: Text('À propos')),
-                                  ],
-                                ),
-                                content: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('MyBestWeek', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF3F4B45))),
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFEAF2ED),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          _uiIcon('info', Icons.verified_outlined, size: 17, color: const Color(0xFF60786B)),
-                                          const SizedBox(width: 7),
-                                          const Expanded(
-                                            child: Text(
-                                              'Version',
-                                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6D7771)),
-                                            ),
-                                          ),
-                                          Text(
-                                            '${_MaBelleSemaineAppState.version} · ${_MaBelleSemaineAppState.buildVersion}',
-                                            maxLines: 1,
-                                            softWrap: false,
-                                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: Color(0xFF4F6D5D)),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 9),
-                                    const Text('Coach hebdomadaire ludique pour organiser une retraite active.', style: TextStyle(fontSize: 11.5, height: 1.3, color: Color(0xFF68736F))),
-                                  ],
-                                ),
-                                actions: [
-                                  TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Fermer')),
-                                ],
-                              ),
-                            );
-                          }
+
                         },
                         itemBuilder: (context) => [
                           PopupMenuItem<String>(
@@ -938,14 +893,6 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               contentPadding: EdgeInsets.zero,
                               leading: _uiIcon('settings', Icons.tune_rounded, size: 18),
                               title: const Text('Personnaliser l’accueil'),
-                            ),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'about',
-                            child: ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: _uiIcon('info', Icons.info_outline_rounded, size: 18),
-                              title: const Text('À propos'),
                             ),
                           ),
                         ],
@@ -1082,9 +1029,10 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                         Expanded(
                           child: Text(
                             _todayFocus(),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 9.6, fontWeight: FontWeight.w800, color: Color(0xFF6E6860)),
+                            maxLines: 2,
+                            softWrap: true,
+                            overflow: TextOverflow.visible,
+                            style: const TextStyle(fontSize: 9.6, height: 1.18, fontWeight: FontWeight.w800, color: Color(0xFF6E6860)),
                           ),
                         ),
                       ],

@@ -59,9 +59,9 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 
-class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
-  static const version = 'V12.3.13';
-  static const buildVersion = '12.3.13+17';
+class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
+  static const version = 'V12.3.15';
+  static const buildVersion = '12.3.14+18';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -272,6 +272,11 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> {
   void initState() {
     super.initState();
     _initializeAppLifecycle();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _handleAppLifecycleState(state);
   }
 
 
