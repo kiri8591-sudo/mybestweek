@@ -678,12 +678,66 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                   ),
                 ),
                 const SizedBox(height: 8),
-                criterion(title: 'Priorités', subtitle: 'Faire remonter les activités importantes.', value: priorities, onChanged: (v) => setSheetState(() => priorities = v)),
-                criterion(title: 'Historique', subtitle: 'Tenir compte de ce qui a été fait récemment et des ressentis.', value: history, onChanged: (v) => setSheetState(() => history = v)),
-                criterion(title: 'Équilibre de la charge', subtitle: 'Éviter de concentrer trop de minutes sur une même journée.', value: balance, onChanged: (v) => setSheetState(() => balance = v)),
-                criterion(title: 'Jours préférés', subtitle: 'Favoriser les jours choisis dans les fiches activités.', value: preferred, onChanged: (v) => setSheetState(() => preferred = v)),
-                criterion(title: 'Alternance', subtitle: 'Éviter de répéter inutilement la même activité.', value: alternate, onChanged: (v) => setSheetState(() => alternate = v)),
-                criterion(title: 'Apprendre mes habitudes', subtitle: 'Utiliser les jours et moments où tu réalises réellement tes activités.', value: learnHabits, onChanged: (v) => setSheetState(() => learnHabits = v)),
+                criterion(
+                  title: 'Priorités',
+                  subtitle: 'Faire remonter les activités importantes.',
+                  value: priorities,
+                  onChanged: (v) {
+                    setSheetState(() => priorities = v);
+                    _generationRespectPriorities = v;
+                    _queueLocalStatePersist();
+                  },
+                ),
+                criterion(
+                  title: 'Historique',
+                  subtitle: 'Tenir compte de ce qui a été fait récemment et des ressentis.',
+                  value: history,
+                  onChanged: (v) {
+                    setSheetState(() => history = v);
+                    _generationUseHistory = v;
+                    _queueLocalStatePersist();
+                  },
+                ),
+                criterion(
+                  title: 'Équilibre de la charge',
+                  subtitle: 'Éviter de concentrer trop de minutes sur une même journée.',
+                  value: balance,
+                  onChanged: (v) {
+                    setSheetState(() => balance = v);
+                    _generationBalanceLoad = v;
+                    _queueLocalStatePersist();
+                  },
+                ),
+                criterion(
+                  title: 'Jours préférés',
+                  subtitle: 'Favoriser les jours choisis dans les fiches activités.',
+                  value: preferred,
+                  onChanged: (v) {
+                    setSheetState(() => preferred = v);
+                    _generationRespectPreferredDays = v;
+                    _queueLocalStatePersist();
+                  },
+                ),
+                criterion(
+                  title: 'Alternance',
+                  subtitle: 'Éviter de répéter inutilement la même activité.',
+                  value: alternate,
+                  onChanged: (v) {
+                    setSheetState(() => alternate = v);
+                    _generationAlternateActivities = v;
+                    _queueLocalStatePersist();
+                  },
+                ),
+                criterion(
+                  title: 'Apprendre mes habitudes',
+                  subtitle: 'Utiliser les jours et moments où tu réalises réellement tes activités.',
+                  value: learnHabits,
+                  onChanged: (v) {
+                    setSheetState(() => learnHabits = v);
+                    _generationLearnHabits = v;
+                    _queueLocalStatePersist();
+                  },
+                ),
                 const SizedBox(height: 10),
                 const Text('Consignes par activité', style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 3),
@@ -711,6 +765,9 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                           isDense: true,
                           items: options.map((rule) => DropdownMenuItem<String>(value: rule, child: Text(_generationActivityRuleLabel(rule), style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700)))).toList(),
                           onChanged: (value) {
+                            // Une consigne par activité est une préférence durable.
+                            // Elle est donc appliquée immédiatement à l'état principal
+                            // et persistée sans attendre le bouton de génération.
                             setSheetState(() {
                               if (value == null || value == 'normal') {
                                 localRules.remove(activity.id);
@@ -718,6 +775,12 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                                 localRules[activity.id] = value;
                               }
                             });
+                            if (value == null || value == 'normal') {
+                              _generationActivityRules.remove(activity.id);
+                            } else {
+                              _generationActivityRules[activity.id] = value;
+                            }
+                            _queueLocalStatePersist();
                           },
                         ),
                       ),
