@@ -68,7 +68,7 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
                   height: 38,
                   decoration: BoxDecoration(
                     color: _colors.tintSoft,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadius.m),
                   ),
                   alignment: Alignment.center,
                   child: _activityIconWidget(_uiIconValue('sportTimer', ''), size: 21),
@@ -78,9 +78,9 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Combien de temps ?', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: _colors.textStrong)),
+                      Text('Combien de temps ?', style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
                       const SizedBox(height: 1),
-                      Text(widget.activityName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11.5, color: _colors.textMuted)),
+                      Text(widget.activityName, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.label, color: _colors.textMuted)),
                     ],
                   ),
                 ),
@@ -92,11 +92,11 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
               height: 44,
               child: FilledButton(
                 onPressed: _closing ? null : () => _close(planned),
-                child: Text('✓ ${planned} min · comme prévu', style: const TextStyle(fontWeight: FontWeight.w900)),
+                child: Text('✓ ${planned} min · comme prévu', style: const TextStyle(fontWeight: FontWeight.w800)),
               ),
             ),
             const SizedBox(height: 8),
-            Text('Ou choisis rapidement une autre durée', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+            Text('Ou choisis rapidement une autre durée', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.textMuted)),
             const SizedBox(height: 5),
             Wrap(
               spacing: 6,
@@ -107,10 +107,10 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
                   onPressed: _closing ? null : () => _close(value),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 11),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.m)),
                     side: BorderSide(color: value == planned ? _colors.accentOutline : _colors.border),
                   ),
-                  child: Text('$value', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: value == planned ? _colors.accentStrongText : _colors.textMuted)),
+                  child: Text('$value', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: value == planned ? _colors.accentStrongText : _colors.textMuted)),
                 ),
               )).toList(),
             ),
@@ -246,7 +246,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
               Text(
                 labels[day],
                 style: TextStyle(
-                  fontSize: 8,
+                  fontSize: AppType.micro,
                   fontWeight: FontWeight.w800,
                   color: _colors.textMuted,
                 ),
@@ -254,7 +254,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
               const SizedBox(height: 1),
               InkWell(
                 onTap: () => widget.onToggleDay(activity, day),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(AppRadius.xs),
                 child: Container(
                   width: 18,
                   height: 18,
@@ -265,7 +265,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                         : planned
                             ? _colors.tintStrong
                             : _colors.surfaceSoft,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
                     border: Border.all(
                       color: active
                           ? _colors.accentFillBorder
@@ -278,8 +278,8 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                           ? Text(
                               '•',
                               style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w900,
+                                fontSize: AppType.bodyL,
+                                fontWeight: FontWeight.w800,
                                 color: _colors.accentText,
                               ),
                             )
@@ -359,10 +359,10 @@ class _SportWeekPageState extends State<_SportWeekPage> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(widget.dayNames[day].substring(0, 3),
-            style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: _colors.textMuted)),
+            style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _colors.textMuted)),
         const SizedBox(height: 3),
         InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.s),
           onTap: () => widget.onToggleDay(activity, day),
           child: Container(
             width: 34,
@@ -370,11 +370,11 @@ class _SportWeekPageState extends State<_SportWeekPage> {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: background,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppRadius.s),
               border: Border.all(color: border),
             ),
             child: Text(label,
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: foreground)),
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.bodyL, color: foreground)),
           ),
         ),
       ],
@@ -439,15 +439,15 @@ class _SportWeekPageState extends State<_SportWeekPage> {
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
       decoration: BoxDecoration(
         color: _colors.card,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.l),
         border: Border.all(color: _colors.border),
       ),
       child: Column(children: [
         _uiIcon(iconKey, icon, size: 18, color: _colors.accentIcon),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: _colors.textStrong)),
+        Text(value, style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.titleL, color: _colors.textStrong)),
         const SizedBox(height: 2),
-        Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 9.5, color: _colors.textMuted)),
+        Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: AppType.caption, color: _colors.textMuted)),
       ]),
     );
 
@@ -487,7 +487,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
       padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
       decoration: BoxDecoration(
         color: _colors.surfaceSunken,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.l),
         border: Border.all(color: _colors.border),
       ),
       child: Column(children: [
@@ -601,7 +601,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           child: Text(
             'Vue journalière · ${_dateLabel(_selectedDate)}',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.bodyL),
           ),
         ),
         IconButton(
@@ -640,7 +640,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
                       decoration: BoxDecoration(
                         color: selected ? _colors.tintStrong : _colors.surfaceSoft,
-                        borderRadius: BorderRadius.circular(11),
+                        borderRadius: BorderRadius.circular(AppRadius.m),
                         border: Border.all(
                           color: selected ? _colors.accentFill : _colors.border,
                           width: selected ? 1.5 : 1,
@@ -651,21 +651,21 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                         children: [
                           Text(
                             widget.dayNames[dayIndex].substring(0, 3).toUpperCase(),
-                            style: TextStyle(fontSize: 7.0, fontWeight: FontWeight.w900, color: _colors.textMuted),
+                            style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _colors.textMuted),
                           ),
                           const SizedBox(height: 1),
                           Text(
                             '${d.day}',
                             style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
+                              fontSize: AppType.bodyL,
+                              fontWeight: FontWeight.w800,
                               color: selected ? _colors.accentText : _colors.textStrong,
                             ),
                           ),
                           const SizedBox(height: 1),
                           Text(
                             items.isEmpty ? '·' : '$done/${items.length}',
-                            style: TextStyle(fontSize: 7.0, fontWeight: FontWeight.w700, color: _colors.textWarm),
+                            style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textWarm),
                           ),
                         ],
                       ),
@@ -696,29 +696,29 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     final done = items.where((p) => p.done).fold<int>(0, (s, p) => s + (p.realisedMinutes ?? p.duration));
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
-      decoration: BoxDecoration(color: _colors.tintSoft, borderRadius: BorderRadius.circular(16), border: Border.all(color: _colors.borderTint)),
+      decoration: BoxDecoration(color: _colors.tintSoft, borderRadius: BorderRadius.circular(AppRadius.l), border: Border.all(color: _colors.borderTint)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           _sportProgramIcon(size: 22),
           const SizedBox(width: 7),
-          Expanded(child: Text('Activités du jour · ${widget.dayNames[day]} ${_dateLabel(_selectedDate)}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5))),
+          Expanded(child: Text('Activités du jour · ${widget.dayNames[day]} ${_dateLabel(_selectedDate)}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.bodyL))),
           IconButton(
             tooltip: 'Ajouter une activité Sport',
             visualDensity: VisualDensity.compact,
             onPressed: () => widget.onAddSportActivity(day),
             icon: _uiIcon('add', Icons.add_circle_outline, size: 18, color: _colors.accentIcon),
           ),
-          Text('$done / $planned min', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+          Text('$done / $planned min', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.textMuted)),
         ]),
         const SizedBox(height: 3),
-        Text(target > 0 ? 'Budget Sport : $target min' : 'Pas de budget Sport prévu ce jour', style: TextStyle(fontSize: 11, color: _colors.textMuted)),
+        Text(target > 0 ? 'Budget Sport : $target min' : 'Pas de budget Sport prévu ce jour', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted)),
         const SizedBox(height: 8),
         if (items.isEmpty)
-          Text('Aucune activité Sport prévue ce jour.', style: TextStyle(fontSize: 12.5, color: _colors.textMuted))
+          Text('Aucune activité Sport prévue ce jour.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted))
         else
           ...items.map((item) {
             final activity = item.activityId == null ? null : _allSportActivities().firstWhere((a) => a.id == item.activityId, orElse: () => _allSportActivities().first);
-            final titleStyle = _detailMetaStyle().copyWith(fontWeight: FontWeight.w900, color: _colors.textStrong);
+            final titleStyle = _detailMetaStyle().copyWith(fontWeight: FontWeight.w800, color: _colors.textStrong);
             return Padding(
               padding: const EdgeInsets.only(top: 5),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -727,7 +727,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppRadius.s),
                       onTap: activity == null ? null : () => widget.onOpenActivity(activity),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 2),
@@ -747,7 +747,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: _colors.goldBg,
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(AppRadius.s),
                                   border: Border.all(color: _colors.goldBorder),
                                 ),
                                 child: Row(
@@ -755,7 +755,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                                   children: [
                                     _uiIcon('priority', Icons.star_rounded, size: 11, color: _colors.goldText),
                                     const SizedBox(width: 2),
-                                    Text('Priorité', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, letterSpacing: 0.05, color: _colors.goldText)),
+                                    Text('Priorité', style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, letterSpacing: 0.05, color: _colors.goldText)),
                                   ],
                                 ),
                               ),
@@ -791,14 +791,14 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                         if (activity == null) return;
                         setState(() => widget.onToggleDay(activity, day));
                       },
-                      borderRadius: BorderRadius.circular(7),
+                      borderRadius: BorderRadius.circular(AppRadius.s),
                       child: Container(
                         width: 23,
                         height: 23,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           color: item.done ? _colors.accentFill : _colors.surfaceSoft,
-                          borderRadius: BorderRadius.circular(7),
+                          borderRadius: BorderRadius.circular(AppRadius.s),
                           border: Border.all(color: item.done ? _colors.accentFillBorder : _colors.borderStrong),
                         ),
                         child: item.done ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
@@ -833,14 +833,14 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                   padding: const EdgeInsets.symmetric(vertical: 3),
                   decoration: BoxDecoration(
                     color: day == selectedDay ? _colors.tintSoft : Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
                   ),
                   child: Center(
                     child: Text(
                       labels[day],
                       style: TextStyle(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w900,
+                        fontSize: AppType.caption,
+                        fontWeight: FontWeight.w800,
                         color: day == selectedDay ? _colors.accentText : _colors.textWarm,
                       ),
                     ),
@@ -878,26 +878,26 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         padding: const EdgeInsets.symmetric(vertical: 2),
         decoration: BoxDecoration(
           color: selected ? _colors.tintSoft : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.s),
         ),
         child: Center(
           child: InkWell(
             onTap: () => widget.onToggleDay(activity, day),
-            borderRadius: BorderRadius.circular(7),
+            borderRadius: BorderRadius.circular(AppRadius.s),
             child: Container(
               width: 24,
               height: 24,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: background,
-                borderRadius: BorderRadius.circular(7),
+                borderRadius: BorderRadius.circular(AppRadius.s),
                 border: Border.all(color: selected ? _colors.accentFill : border, width: selected ? 1.2 : 1),
               ),
               child: Text(
                 label,
                 style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
+                  fontSize: AppType.bodyL,
+                  fontWeight: FontWeight.w800,
                   color: foreground,
                 ),
               ),
@@ -913,14 +913,14 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     final planned = _plannedCount(activity);
     final done = _doneCount(activity);
     final target = _target(activity);
-    final labelStyle = _detailMetaStyle().copyWith(fontWeight: FontWeight.w900, color: _colors.textStrong);
+    final labelStyle = _detailMetaStyle().copyWith(fontWeight: FontWeight.w800, color: _colors.textStrong);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 5),
       padding: const EdgeInsets.fromLTRB(7, 6, 7, 5),
       decoration: BoxDecoration(
         color: missing ? _colors.warnBg : _colors.card,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.m),
         border: Border.all(
           color: missing ? _colors.warnBorder : _colors.border,
           width: activity.category == 'Sport' ? (missing ? 1.2 : 1.0) : (missing ? 0.8 : 0.55),
@@ -932,7 +932,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           const SizedBox(width: 6),
           Expanded(
             child: InkWell(
-              borderRadius: BorderRadius.circular(9),
+              borderRadius: BorderRadius.circular(AppRadius.s),
               onTap: () => widget.onOpenActivity(activity),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 1),
@@ -962,7 +962,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
               '$done/$planned · cible ${target}×',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: _detailMetaStyle().copyWith(fontSize: 10.2, fontWeight: FontWeight.w700, color: _colors.textWarm),
+              style: _detailMetaStyle().copyWith(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textWarm),
             ),
           ),
           ..._trackingDayIndices().map((day) => _compactDayCell(activity, day)),
@@ -1004,7 +1004,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         child: Container(
           decoration: BoxDecoration(
             color: done ? _colors.accentFill : _colors.card,
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(AppRadius.xs),
             border: Border.all(
               color: done ? _colors.accentFill : _colors.borderStrong,
               width: 0.9,
@@ -1022,7 +1022,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         child: Center(
           child: Text(
             '$day',
-            style: TextStyle(fontSize: 6.5, fontWeight: FontWeight.w800, color: _colors.textWarm),
+            style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _colors.textWarm),
           ),
         ),
       );
@@ -1055,7 +1055,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           child: Text(
             _monthLabel(),
             textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.title),
           ),
         ),
         IconButton(
@@ -1069,7 +1069,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
       if (visible.isEmpty)
         Padding(
           padding: EdgeInsets.only(bottom: 6),
-          child: Text('Aucune activité ne correspond aux filtres.', style: TextStyle(fontSize: 11.5, color: _colors.textMuted)),
+          child: Text('Aucune activité ne correspond aux filtres.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted)),
         )
       else ...[
         Row(
@@ -1079,7 +1079,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
               width: 92,
               child: Padding(
                 padding: EdgeInsets.only(top: 1),
-                child: Text('ACTIVITÉ', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: _colors.textWarm)),
+                child: Text('ACTIVITÉ', style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _colors.textWarm)),
               ),
             ),
             compactCells(visible.first, header: true),
@@ -1102,7 +1102,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                           const SizedBox(width: 3),
                           Expanded(
                             child: InkWell(
-                              borderRadius: BorderRadius.circular(7),
+                              borderRadius: BorderRadius.circular(AppRadius.s),
                               onTap: () => widget.onOpenActivity(activity),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 1),
@@ -1110,7 +1110,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                               activity.name,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w800, height: 1.05),
+                              style: const TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, height: 1.05),
                                 ),
                               ),
                             ),
@@ -1158,11 +1158,11 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         children: [
           Container(
             padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
-            decoration: BoxDecoration(color: _colors.tintStrong, borderRadius: BorderRadius.circular(20), border: Border.all(color: _colors.borderTint)),
+            decoration: BoxDecoration(color: _colors.tintStrong, borderRadius: BorderRadius.circular(AppRadius.xl), border: Border.all(color: _colors.borderTint)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [mascotAvatarInline(size: 40), const SizedBox(width: 10), Expanded(child: Text('Bilan Sport', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _colors.textStrong)))]),
+              Row(children: [mascotAvatarInline(size: 40), const SizedBox(width: 10), Expanded(child: Text('Bilan Sport', style: TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800, color: _colors.textStrong)))]),
               const SizedBox(height: 8),
-              Text('Une vue synthétique de la semaine, avec filtre par activité, état, tri et historique mensuel.', style: TextStyle(fontSize: 12.5, color: _colors.textMuted, height: 1.35)),
+              Text('Une vue synthétique de la semaine, avec filtre par activité, état, tri et historique mensuel.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted, height: 1.35)),
               const SizedBox(height: 12),
               _summary(),
             ]),
@@ -1172,7 +1172,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: _colors.border)),
+            decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.xl), border: Border.all(color: _colors.border)),
             child: _view == 'Semaine'
                 ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     _dailyDateNavigator(),
@@ -1183,19 +1183,19 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                       padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
                       decoration: BoxDecoration(
                         color: _colors.tintSoft,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(AppRadius.l),
                         border: Border.all(color: _colors.borderTint),
                       ),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Row(children: [
                           _uiIcon('sportWeek', Icons.view_week_outlined, size: 17, color: _colors.accentIcon),
                           const SizedBox(width: 6),
-                          const Expanded(child: Text('Suivi des activités · 7 jours', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13.5))),
+                          const Expanded(child: Text('Suivi des activités · 7 jours', style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.bodyL))),
                         ]),
                         const SizedBox(height: 3),
                         Text(
                           'Les 7 jours restent visibles et les cases restent cliquables ; le jour sélectionné est mis en évidence.',
-                          style: TextStyle(fontSize: 9.5, color: _colors.textMuted),
+                          style: TextStyle(fontSize: AppType.caption, color: _colors.textMuted),
                         ),
                         const SizedBox(height: 6),
                         _weekDayHeader(),
@@ -1210,19 +1210,19 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           ),
           if (inactive.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text('MISES EN ATTENTE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: .7, color: _colors.textWarm)),
+            Text('MISES EN ATTENTE', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, letterSpacing: .7, color: _colors.textWarm)),
             const SizedBox(height: 7),
             ...inactive.map((activity) => Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.fromLTRB(13, 10, 13, 10),
-              decoration: BoxDecoration(color: _colors.surfaceSunken, borderRadius: BorderRadius.circular(15), border: Border.all(color: _colors.border)),
+              decoration: BoxDecoration(color: _colors.surfaceSunken, borderRadius: BorderRadius.circular(AppRadius.l), border: Border.all(color: _colors.border)),
               child: Row(children: [
                 _activityIconWidget(activity.emoji, size: 28),
                 const SizedBox(width: 9),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(activity.name, style: TextStyle(fontWeight: FontWeight.w800, color: _colors.textWarm)),
                   const SizedBox(height: 2),
-                  Text('${activity.duration} min · ⏸ PLUS TARD', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w900, color: _colors.warnText)),
+                  Text('${activity.duration} min · ⏸ PLUS TARD', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.warnText)),
                 ])),
                 OutlinedButton.icon(onPressed: () { widget.onReactivate(activity); Navigator.pop(context); }, icon: _uiIcon('sportReactivate', Icons.refresh_rounded, size: 16), label: const Text('Réactiver')),
               ]),
@@ -1248,7 +1248,7 @@ class _SportCoachJournalSheet extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 22),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Journal du coach Sport', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+          Text('Journal du coach Sport', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
           Text(sorted.isEmpty ? 'Aucune analyse Sport pour le moment.' : 'Les analyses et ajustements du coach.'),
           const SizedBox(height: 14),
@@ -1265,19 +1265,19 @@ class _SportCoachJournalSheet extends StatelessWidget {
                       final dateLabel = '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')} · ${d.hour.toString().padLeft(2, '0')}h${d.minute.toString().padLeft(2, '0')}';
                       return Container(
                         padding: const EdgeInsets.all(13),
-                        decoration: BoxDecoration(color: _colors.surfaceSunken, borderRadius: BorderRadius.circular(15), border: Border.all(color: _colors.border)),
+                        decoration: BoxDecoration(color: _colors.surfaceSunken, borderRadius: BorderRadius.circular(AppRadius.l), border: Border.all(color: _colors.border)),
                         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           mascotAvatarInline(size: 34),
                           const SizedBox(width: 9),
                           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(log.activityName, style: const TextStyle(fontWeight: FontWeight.w900)),
+                            Text(log.activityName, style: const TextStyle(fontWeight: FontWeight.w800)),
                             const SizedBox(height: 3),
-                            Text(dateLabel, style: TextStyle(fontSize: 11, color: _colors.textMuted)),
+                            Text(dateLabel, style: TextStyle(fontSize: AppType.label, color: _colors.textMuted)),
                             const SizedBox(height: 5),
                             Text(log.message, style: const TextStyle(height: 1.3)),
                             if (log.adjustment != null) ...[
                               const SizedBox(height: 5),
-                              Text('⚙️ ${log.adjustment}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _colors.accentText)),
+                              Text('⚙️ ${log.adjustment}', style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.accentText)),
                             ],
                           ])),
                         ]),
@@ -1343,8 +1343,8 @@ class _SportDailySlider extends StatelessWidget {
           Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-            decoration: BoxDecoration(color: _colors.tintStrong, borderRadius: BorderRadius.circular(10)),
-            child: Text('$safe min', style: TextStyle(fontWeight: FontWeight.w900, color: _colors.accentText)),
+            decoration: BoxDecoration(color: _colors.tintStrong, borderRadius: BorderRadius.circular(AppRadius.m)),
+            child: Text('$safe min', style: TextStyle(fontWeight: FontWeight.w800, color: _colors.accentText)),
           ),
         ]),
         Slider(

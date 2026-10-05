@@ -166,19 +166,19 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
                 height: 40,
                 decoration: BoxDecoration(
                   color: _colors.card.withValues(alpha: .74),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.l),
                 ),
                 alignment: Alignment.center,
-                child: Text(icon, style: const TextStyle(fontSize: 21)),
+                child: Text(icon, style: const TextStyle(fontSize: AppType.h1)),
               ),
               const SizedBox(width: 9),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(fontSize: 13.4, fontWeight: FontWeight.w900, color: _colors.textStrong)),
+                    Text(title, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
                     const SizedBox(height: 3),
-                    Text(message, style: TextStyle(fontSize: 10.5, height: 1.28, fontWeight: FontWeight.w700, color: _colors.accentIcon)),
+                    Text(message, style: TextStyle(fontSize: AppType.small, height: 1.28, fontWeight: FontWeight.w700, color: _colors.accentIcon)),
                   ],
                 ),
               ),
@@ -188,9 +188,9 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                   decoration: BoxDecoration(
                     color: _colors.card.withValues(alpha: .78),
-                    borderRadius: BorderRadius.circular(99),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
-                  child: Text('$todayDone/${todayActionItems.length}', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: _colors.accentIcon)),
+                  child: Text('$todayDone/${todayActionItems.length}', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
                 ),
               ],
             ],
@@ -199,15 +199,15 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
           Row(
             children: [
               Expanded(
-                child: Text(progressLabel, style: TextStyle(fontSize: 9.6, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
+                child: Text(progressLabel, style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
               ),
               const SizedBox(width: 8),
-              Text('${(weekProgress * 100).round()} %', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: _colors.accentIcon)),
+              Text('${(weekProgress * 100).round()} %', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
             ],
           ),
           const SizedBox(height: 3),
           ClipRRect(
-            borderRadius: BorderRadius.circular(99),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
             child: LinearProgressIndicator(
               value: weekProgress,
               minHeight: 4,

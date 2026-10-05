@@ -125,6 +125,17 @@ Widget _activityIconWidget(String value, {double size = 24}) {
     }
     return Text('🖼️', style: TextStyle(fontSize: size * .78));
   }
+  if (value.startsWith('pack://')) {
+    return Image.asset(
+      'assets/icons/pack/${value.substring('pack://'.length)}.png',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.medium,
+      gaplessPlayback: true,
+      errorBuilder: (_, __, ___) => Text('🖼️', style: TextStyle(fontSize: size * .78)),
+    );
+  }
   if (value == '🧸') return mascotChoiceAvatar(size: size);
   return Text(value, style: TextStyle(fontSize: size * .78));
 }

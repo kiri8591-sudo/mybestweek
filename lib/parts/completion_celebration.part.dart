@@ -70,7 +70,7 @@ class _CompletionCelebrationState extends State<_CompletionCelebration>
                   opacity: (sparkFade * .9).clamp(0.0, 1.0).toDouble(),
                   child: Transform.scale(
                     scale: .5 + .65 * burst,
-                    child: Text(_sparks[i], style: const TextStyle(fontSize: 11)),
+                    child: Text(_sparks[i], style: const TextStyle(fontSize: AppType.label)),
                   ),
                 ),
               ),
@@ -82,7 +82,7 @@ class _CompletionCelebrationState extends State<_CompletionCelebration>
                   angle: angle,
                   child: Transform.scale(
                     scale: scale,
-                    child: Text(_emoji, style: const TextStyle(fontSize: 30)),
+                    child: Text(_emoji, style: const TextStyle(fontSize: AppType.hero)),
                   ),
                 ),
               ),

@@ -586,13 +586,13 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
               Row(children: [
                 mascotAvatarInline(size: 38),
                 const SizedBox(width: 10),
-                Expanded(child: Text('Pourquoi ces choix ?', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900))),
+                Expanded(child: Text('Pourquoi ces choix ?', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800))),
               ]),
               const SizedBox(height: 8),
               Text(_lastPlanningCoachExplanation.isEmpty
                   ? 'Je n’ai pas encore de décision récente à expliquer. Dès la prochaine génération, je détaillerai mes arbitrages.'
                   : _lastPlanningCoachExplanation,
-                  style: const TextStyle(fontSize: 12.5, height: 1.35)),
+                  style: const TextStyle(fontSize: AppType.body, height: 1.35)),
               const SizedBox(height: 14),
               if (_lastPlanningDecisionDetails.isEmpty)
                 const Card(child: Padding(padding: EdgeInsets.all(14), child: Text('Aucun détail de décision disponible pour le moment.')))
@@ -606,14 +606,14 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         _uiIcon('coach', Icons.arrow_forward_rounded, size: 17, color: _colors.accentIcon),
                         const SizedBox(width: 7),
-                        Expanded(child: Text(detail, style: const TextStyle(fontSize: 11.8, height: 1.3))),
+                        Expanded(child: Text(detail, style: const TextStyle(fontSize: AppType.label, height: 1.3))),
                       ]),
                     ),
                   ),
                 )),
               const SizedBox(height: 6),
               Text('Le premier motif affiché est le facteur réellement décisif dans l’ordre des arbitrages. Une météo simplement consultée, une habitude secondaire ou un signal faible ne sont pas présentés comme cause principale. Le passé et aujourd’hui ne sont jamais réécrits par « Repenser ».',
-                  style: TextStyle(fontSize: 11.5, color: _colors.textMuted, height: 1.3)),
+                  style: TextStyle(fontSize: AppType.label, color: _colors.textMuted, height: 1.3)),
               const SizedBox(height: 12),
               FilledButton.icon(onPressed: () => Navigator.pop(context), icon: _uiIcon('confirm', Icons.check, size: 18, color: _colors.accentIcon), label: const Text('Fermer')),
             ],
@@ -649,7 +649,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
             value: value,
             onChanged: onChanged,
             title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: Text(subtitle, style: const TextStyle(fontSize: 11.5)),
+            subtitle: Text(subtitle, style: const TextStyle(fontSize: AppType.label)),
             contentPadding: EdgeInsets.zero,
           );
         }
@@ -659,22 +659,22 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(18, 6, 18, 22 + MediaQuery.of(context).viewInsets.bottom),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Générer le planning', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                const Text('Générer le planning', style: TextStyle(fontSize: AppType.h1, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 5),
-                Text('Par défaut, les jours passés et aujourd’hui sont conservés. Tu peux aussi choisir de reconstruire toute la semaine.', style: TextStyle(fontSize: 12.2, color: _colors.textMuted, height: 1.35)),
+                Text('Par défaut, les jours passés et aujourd’hui sont conservés. Tu peux aussi choisir de reconstruire toute la semaine.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted, height: 1.35)),
                 const SizedBox(height: 10),
                 SwitchListTile.adaptive(
                   value: rebuildWholeWeek,
                   onChanged: rebuildLockedAfterReset ? null : (v) => setSheetState(() => rebuildWholeWeek = v),
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Reconstruire toute la semaine', style: TextStyle(fontWeight: FontWeight.w900)),
+                  title: const Text('Reconstruire toute la semaine', style: TextStyle(fontWeight: FontWeight.w800)),
                   subtitle: Text(
                     rebuildLockedAfterReset
                         ? 'Après une réinitialisation, cette première génération reconstruit obligatoirement lundi → dimanche. L’historique ayant été remis à zéro reste vide.'
                         : rebuildWholeWeek
                             ? 'Lundi → dimanche seront recréés. Le planning actuel de la semaine sera remplacé ; l’historique des réalisations reste conservé.'
                         : 'Les jours passés et aujourd’hui restent inchangés ; seuls les jours futurs sont repensés.',
-                    style: const TextStyle(fontSize: 11.5, height: 1.3),
+                    style: const TextStyle(fontSize: AppType.label, height: 1.3),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -685,9 +685,9 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                 criterion(title: 'Alternance', subtitle: 'Éviter de répéter inutilement la même activité.', value: alternate, onChanged: (v) => setSheetState(() => alternate = v)),
                 criterion(title: 'Apprendre mes habitudes', subtitle: 'Utiliser les jours et moments où tu réalises réellement tes activités.', value: learnHabits, onChanged: (v) => setSheetState(() => learnHabits = v)),
                 const SizedBox(height: 10),
-                const Text('Consignes par activité', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                const Text('Consignes par activité', style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 3),
-                Text('Tu peux demander une activité prioritaire, à éviter, moins souvent ou plus souvent.', style: TextStyle(fontSize: 11.5, color: _colors.textMuted)),
+                Text('Tu peux demander une activité prioritaire, à éviter, moins souvent ou plus souvent.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted)),
                 const SizedBox(height: 8),
                 ...ordered.map((activity) {
                   final currentRule = localRules[activity.id] ?? 'normal';
@@ -697,19 +697,19 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                     padding: const EdgeInsets.fromLTRB(9, 7, 7, 7),
                     decoration: BoxDecoration(
                       color: _colors.card,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.m),
                       border: Border.all(color: _colors.border),
                     ),
                     child: Row(children: [
                       _activityIconWidget(activity.emoji, size: 25),
                       const SizedBox(width: 7),
-                      Expanded(child: Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
+                      Expanded(child: Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.body))),
                       const SizedBox(width: 6),
                       DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: currentRule,
                           isDense: true,
-                          items: options.map((rule) => DropdownMenuItem<String>(value: rule, child: Text(_generationActivityRuleLabel(rule), style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)))).toList(),
+                          items: options.map((rule) => DropdownMenuItem<String>(value: rule, child: Text(_generationActivityRuleLabel(rule), style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700)))).toList(),
                           onChanged: (value) {
                             setSheetState(() {
                               if (value == null || value == 'normal') {
@@ -725,7 +725,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                   );
                 }),
                 const SizedBox(height: 6),
-                Text('La fréquence de base reste la règle de référence : « Plus de » ajoute une occurrence future au maximum, « Moins de » en retire une, sans modifier le passé.', style: TextStyle(fontSize: 11.5, color: _colors.textMuted, height: 1.3)),
+                Text('La fréquence de base reste la règle de référence : « Plus de » ajoute une occurrence future au maximum, « Moins de » en retire une, sans modifier le passé.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted, height: 1.3)),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,

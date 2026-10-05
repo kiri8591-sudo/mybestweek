@@ -77,8 +77,8 @@ class _DataPageState extends State<_DataPage> {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w900,
+                  fontSize: AppType.label,
+                  fontWeight: FontWeight.w800,
                   color: _colors.textStrong,
                 ),
               ),
@@ -88,7 +88,7 @@ class _DataPageState extends State<_DataPage> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 9.8,
+                  fontSize: AppType.caption,
                   height: 1.22,
                   color: _colors.textMuted,
                 ),
@@ -108,7 +108,7 @@ class _DataPageState extends State<_DataPage> {
       SnackBar(
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 18),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
         content: Text(ok ? 'Sauvegarde restaurée avec succès.' : 'Aucune sauvegarde valide restaurée.'),
       ),
     );
@@ -142,11 +142,11 @@ class _DataPageState extends State<_DataPage> {
       height: 46,
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(AppRadius.l),
       ),
       alignment: Alignment.center,
       child: emoji != null
-          ? Text(emoji, style: const TextStyle(fontSize: 23))
+          ? _activityIconWidget(emoji, size: 26)
           : (systemKey == null ? Icon(icon, color: foreground, size: 23) : _uiIcon(systemKey!, icon, size: 23, color: foreground)),
     );
   }
@@ -169,7 +169,7 @@ class _DataPageState extends State<_DataPage> {
     return Container(
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         border: Border.all(color: border),
         boxShadow: [
           BoxShadow(
@@ -192,11 +192,11 @@ class _DataPageState extends State<_DataPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(eyebrow.toUpperCase(), style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: .6, color: _colors.textMuted)),
+                    Text(eyebrow.toUpperCase(), style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, letterSpacing: .6, color: _colors.textMuted)),
                     const SizedBox(height: 2),
-                    Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: _colors.textStrong)),
+                    Text(title, style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
                     const SizedBox(height: 4),
-                    Text(description, style: TextStyle(fontSize: 11.5, height: 1.3, color: _colors.textMuted)),
+                    Text(description, style: TextStyle(fontSize: AppType.label, height: 1.3, color: _colors.textMuted)),
                   ],
                 ),
               ),
@@ -211,8 +211,8 @@ class _DataPageState extends State<_DataPage> {
               style: FilledButton.styleFrom(
                 backgroundColor: accent,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
+                textStyle: const TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800),
               ),
               icon: systemKey == null ? Icon(icon, size: 18) : _uiIcon(systemKey!, icon, size: 18, color: Colors.white),
               label: Text(buttonLabel),
@@ -220,7 +220,7 @@ class _DataPageState extends State<_DataPage> {
           ),
           if (footer != null) ...[
             const SizedBox(height: 8),
-            Text(footer, style: TextStyle(fontSize: 9.8, height: 1.25, color: _colors.textMuted)),
+            Text(footer, style: TextStyle(fontSize: AppType.caption, height: 1.25, color: _colors.textMuted)),
           ],
         ],
       ),
@@ -235,7 +235,7 @@ class _DataPageState extends State<_DataPage> {
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
         color: due ? _colors.goldBg : _colors.tintStrong,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.m),
         border: Border.all(color: due ? _colors.goldBorder : _colors.borderTint),
       ),
       child: Row(
@@ -243,7 +243,7 @@ class _DataPageState extends State<_DataPage> {
         children: [
           _uiIcon(due ? 'backupDue' : 'backupOk', due ? Icons.schedule_rounded : Icons.check_circle_outline_rounded, size: 14, color: due ? _colors.textWarm : _colors.accentIcon),
           const SizedBox(width: 5),
-          Flexible(child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: due ? _colors.textWarm : _colors.accentIcon))),
+          Flexible(child: Text(label, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: due ? _colors.textWarm : _colors.accentIcon))),
         ],
       ),
     );
@@ -263,7 +263,7 @@ class _DataPageState extends State<_DataPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         titleSpacing: 0,
-        title: Text('Sauvegarde', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: _colors.textStrong)),
+        title: Text('Sauvegarde', style: TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800, color: _colors.textStrong)),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
@@ -276,7 +276,7 @@ class _DataPageState extends State<_DataPage> {
                 end: Alignment.bottomRight,
                 colors: [_colors.tintSoft, _colors.surfaceSoft],
               ),
-              borderRadius: BorderRadius.circular(26),
+              borderRadius: BorderRadius.circular(AppRadius.xxl),
               border: Border.all(color: _colors.borderTint),
             ),
             child: Row(
@@ -286,20 +286,20 @@ class _DataPageState extends State<_DataPage> {
                   height: 58,
                   decoration: BoxDecoration(
                     color: _colors.card,
-                    borderRadius: BorderRadius.circular(19),
+                    borderRadius: BorderRadius.circular(AppRadius.xl),
                     boxShadow: [BoxShadow(blurRadius: 10, offset: Offset(0, 4), color: _colors.shadow)],
                   ),
                   alignment: Alignment.center,
-                  child: const Text('☁️', style: TextStyle(fontSize: 29)),
+                  child: const Text('☁️', style: TextStyle(fontSize: AppType.hero)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Tes données, au calme.', style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900, color: _colors.textStrong)),
+                      Text('Tes données, au calme.', style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
                       SizedBox(height: 3),
-                      Text('La sauvegarde sur cet appareil est automatique. La copie de sécurité se fait dans iCloud.', style: TextStyle(fontSize: 10.8, height: 1.3, color: _colors.textMuted)),
+                      Text('La sauvegarde sur cet appareil est automatique. La copie de sécurité se fait dans iCloud.', style: TextStyle(fontSize: AppType.small, height: 1.3, color: _colors.textMuted)),
                     ],
                   ),
                 ),
@@ -311,7 +311,7 @@ class _DataPageState extends State<_DataPage> {
           Container(
             decoration: BoxDecoration(
               color: _colors.surfaceSoft,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppRadius.xl),
               border: Border.all(color: _colors.borderTint),
             ),
             padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
@@ -319,12 +319,12 @@ class _DataPageState extends State<_DataPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  const Text('🛡️', style: TextStyle(fontSize: 19)),
+                  const Text('🛡️', style: TextStyle(fontSize: AppType.h2)),
                   const SizedBox(width: 7),
                   Expanded(
                     child: Text(
                       'Ton filet de sécurité',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, color: _colors.textStrong),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: _colors.textStrong),
                     ),
                   ),
                   _statusPill(),
@@ -344,7 +344,7 @@ class _DataPageState extends State<_DataPage> {
           Container(
             decoration: BoxDecoration(
               color: _colors.tintSoft,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(AppRadius.xxl),
               border: Border.all(color: _colors.borderTint),
             ),
             padding: const EdgeInsets.fromLTRB(15, 15, 15, 14),
@@ -358,18 +358,18 @@ class _DataPageState extends State<_DataPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('SAUVEGARDE', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: .6, color: _colors.textMuted)),
+                        Text('SAUVEGARDE', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, letterSpacing: .6, color: _colors.textMuted)),
                         SizedBox(height: 2),
-                        Text('iCloud', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: _colors.accentText)),
+                        Text('iCloud', style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.accentText)),
                       ],
                     ),
                   ),
                   _statusPill(),
                 ]),
                 const SizedBox(height: 9),
-                Text('Une seule sauvegarde de sécurité : enregistre le fichier dans Fichiers → iCloud Drive.', style: TextStyle(fontSize: 11.5, height: 1.3, color: _colors.accentText)),
+                Text('Une seule sauvegarde de sécurité : enregistre le fichier dans Fichiers → iCloud Drive.', style: TextStyle(fontSize: AppType.label, height: 1.3, color: _colors.accentText)),
                 const SizedBox(height: 7),
-                Text(widget.getCloudBackupStatus(), style: TextStyle(fontSize: 10.2, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+                Text(widget.getCloudBackupStatus(), style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.textMuted)),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
@@ -379,15 +379,15 @@ class _DataPageState extends State<_DataPage> {
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFF627A93),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
+                      textStyle: const TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800),
                     ),
                     icon: _uiIcon('backupUpload', Icons.cloud_upload_rounded, size: 18),
                     label: const Text('Sauvegarder dans iCloud'),
                   ),
                 ),
                 const SizedBox(height: 8),
-                Center(child: Text('Rappel conseillé tous les ${widget.cloudReminderDays} jours', style: TextStyle(fontSize: 9.8, color: _colors.textMuted))),
+                Center(child: Text('Rappel conseillé tous les ${widget.cloudReminderDays} jours', style: TextStyle(fontSize: AppType.caption, color: _colors.textMuted))),
               ],
             ),
           ),
@@ -396,7 +396,7 @@ class _DataPageState extends State<_DataPage> {
             padding: const EdgeInsets.fromLTRB(15, 15, 15, 14),
             decoration: BoxDecoration(
               color: _colors.tintStrong,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(AppRadius.xxl),
               border: Border.all(color: _colors.borderTint),
             ),
             child: Row(
@@ -408,11 +408,11 @@ class _DataPageState extends State<_DataPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('RETROUVER', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: .6, color: _colors.accentIcon)),
+                      Text('RETROUVER', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, letterSpacing: .6, color: _colors.accentIcon)),
                       const SizedBox(height: 2),
-                      Text('Restaurer', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: _colors.textStrong)),
+                      Text('Restaurer', style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
                       const SizedBox(height: 4),
-                      Text('Choisis une sauvegarde .json créée par MyBestWeek pour retrouver ton état précédent.', style: TextStyle(fontSize: 11.5, height: 1.3, color: _colors.accentIcon)),
+                      Text('Choisis une sauvegarde .json créée par MyBestWeek pour retrouver ton état précédent.', style: TextStyle(fontSize: AppType.label, height: 1.3, color: _colors.accentIcon)),
                       const SizedBox(height: 11),
                       SizedBox(
                         width: double.infinity,
@@ -423,8 +423,8 @@ class _DataPageState extends State<_DataPage> {
                             foregroundColor: _colors.accentIcon,
                             backgroundColor: _colors.card,
                             side: BorderSide(color: _colors.accentSoftBorder),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
+                            textStyle: const TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800),
                           ),
                           icon: _uiIcon('backupFolder', Icons.folder_open_rounded, size: 18),
                           label: const Text('Choisir un fichier'),
@@ -442,11 +442,11 @@ class _DataPageState extends State<_DataPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('ZONE SENSIBLE', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: .6, color: _colors.warnText)),
+                Text('ZONE SENSIBLE', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, letterSpacing: .6, color: _colors.warnText)),
                 const SizedBox(height: 4),
-                Text('Réinitialisation', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: _colors.danger)),
+                Text('Réinitialisation', style: TextStyle(fontSize: AppType.title, fontWeight: FontWeight.w800, color: _colors.danger)),
                 const SizedBox(height: 3),
-                Text('Efface le planning, les validations, l’historique et le bilan. Tes activités restent conservées.', style: TextStyle(fontSize: 10.5, height: 1.3, color: _colors.danger)),
+                Text('Efface le planning, les validations, l’historique et le bilan. Tes activités restent conservées.', style: TextStyle(fontSize: AppType.small, height: 1.3, color: _colors.danger)),
                 const SizedBox(height: 9),
                 SizedBox(
                   width: double.infinity,
@@ -456,8 +456,8 @@ class _DataPageState extends State<_DataPage> {
                     style: TextButton.styleFrom(
                       foregroundColor: _colors.textWarm,
                       backgroundColor: _colors.peachBg,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
+                      textStyle: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800),
                     ),
                     icon: _uiIcon('backupReset', Icons.restart_alt_rounded, size: 17),
                     label: const Text('Réinitialiser les données'),
@@ -513,19 +513,19 @@ class _HomeMascotSheet extends StatelessWidget {
           children: [
             Text(
               'Personnaliser la mascotte',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _colors.textStrong),
+              style: TextStyle(fontSize: AppType.h1, fontWeight: FontWeight.w800, color: _colors.textStrong),
             ),
             const SizedBox(height: 5),
             Text(
               'L’Ourson reste le choix par défaut. Tu peux choisir n’importe quelle icône, une icône personnelle ou conserver une photo.',
-              style: TextStyle(fontSize: 12.5, color: _colors.textMuted),
+              style: TextStyle(fontSize: AppType.body, color: _colors.textMuted),
             ),
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () => Navigator.pop(context, const _HomeMascotChoice(kind: 'ourson', emoji: '🧸')),
-                icon: const Text('🧸', style: TextStyle(fontSize: 21)),
+                icon: const Text('🧸', style: TextStyle(fontSize: AppType.h1)),
                 label: const Align(alignment: Alignment.centerLeft, child: Text('Ourson MyBestWeek')),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -540,7 +540,7 @@ class _HomeMascotSheet extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Icônes et icônes personnelles',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: _colors.accentIcon),
+              style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.accentIcon),
             ),
             const SizedBox(height: 7),
             GridView.builder(
@@ -558,11 +558,11 @@ class _HomeMascotSheet extends StatelessWidget {
                 final selected = currentKind == 'emoji' && currentEmoji == value;
                 return InkWell(
                   onTap: () => Navigator.pop(context, _HomeMascotChoice(kind: 'emoji', emoji: value)),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.l),
                   child: Container(
                     decoration: BoxDecoration(
                       color: selected ? _colors.tintStrong : _colors.card,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppRadius.l),
                       border: Border.all(
                         color: selected ? _colors.accentFill : _colors.borderStrong,
                         width: selected ? 1.6 : 1,
@@ -635,9 +635,9 @@ class _HomeIdentitySheetState extends State<_HomeIdentitySheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Personnaliser l’accueil', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: _colors.textStrong)),
+            Text('Personnaliser l’accueil', style: TextStyle(fontSize: AppType.h1, fontWeight: FontWeight.w800, color: _colors.textStrong)),
             const SizedBox(height: 6),
-            Text('Ces informations servent uniquement à personnaliser ton accueil et la météo affichée.', style: TextStyle(fontSize: 12.5, color: _colors.textMuted)),
+            Text('Ces informations servent uniquement à personnaliser ton accueil et la météo affichée.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted)),
             const SizedBox(height: 16),
             TextField(
               controller: nameController,
@@ -649,7 +649,7 @@ class _HomeIdentitySheetState extends State<_HomeIdentitySheet> {
                 prefixIcon: _uiIcon('identity', Icons.person_outline_rounded, size: 18),
                 filled: true,
                 fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.l), borderSide: BorderSide.none),
               ),
             ),
             const SizedBox(height: 12),
@@ -663,7 +663,7 @@ class _HomeIdentitySheetState extends State<_HomeIdentitySheet> {
                 prefixIcon: _uiIcon('location', Icons.location_on_outlined, size: 18),
                 filled: true,
                 fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.l), borderSide: BorderSide.none),
               ),
             ),
             const SizedBox(height: 16),
@@ -717,21 +717,21 @@ class _DailySummarySheetState extends State<_DailySummarySheet> {
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            const Text('✨', style: TextStyle(fontSize: 22)),
+            const Text('✨', style: TextStyle(fontSize: AppType.h1)),
             const SizedBox(width: 7),
-            Expanded(child: Text('Petit bilan · ${widget.dayLabel}', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: _colors.textStrong))),
-            Text(_selectedMood, style: const TextStyle(fontSize: 28)),
+            Expanded(child: Text('Petit bilan · ${widget.dayLabel}', style: TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800, color: _colors.textStrong))),
+            Text(_selectedMood, style: const TextStyle(fontSize: AppType.hero)),
           ]),
           const SizedBox(height: 5),
-          Text('Un souvenir léger de la journée, utile aussi au Coach pour apprendre ton rythme.', style: TextStyle(fontSize: 11.2, color: _colors.textMuted, height: 1.25)),
+          Text('Un souvenir léger de la journée, utile aussi au Coach pour apprendre ton rythme.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted, height: 1.25)),
           const SizedBox(height: 13),
           if (summary != null)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
-              decoration: BoxDecoration(color: _colors.surfaceSunken, borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(color: _colors.surfaceSunken, borderRadius: BorderRadius.circular(AppRadius.l)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(summary.summary, style: TextStyle(fontSize: 12.2, fontWeight: FontWeight.w800, color: _colors.textMuted, height: 1.28)),
+                Text(summary.summary, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textMuted, height: 1.28)),
                 if (summary.activityTitles.isNotEmpty) ...[
                   const SizedBox(height: 7),
                   Wrap(
@@ -739,15 +739,15 @@ class _DailySummarySheetState extends State<_DailySummarySheet> {
                     runSpacing: 5,
                     children: summary.activityTitles.map((title) => Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(99)),
-                      child: Text(title, style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800, color: _colors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.pill)),
+                      child: Text(title, style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
                     )).toList(),
                   ),
                 ],
               ]),
             ),
           const SizedBox(height: 12),
-          Text('Comment as-tu vécu ta journée ?', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: _colors.textStrong)),
+          Text('Comment as-tu vécu ta journée ?', style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textStrong)),
           const SizedBox(height: 7),
           Row(children: moods.map((entry) {
             final selected = _selectedMood == entry.$1;
@@ -755,20 +755,20 @@ class _DailySummarySheetState extends State<_DailySummarySheet> {
               child: Padding(
                 padding: const EdgeInsets.only(right: 5),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.l),
                   onTap: () => setState(() => _selectedMood = entry.$1),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 140),
                     padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 3),
                     decoration: BoxDecoration(
                       color: selected ? _colors.tintStrong : _colors.surfaceSoft,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppRadius.l),
                       border: Border.all(color: selected ? _colors.accentSoftBorder : _colors.border, width: selected ? 1.5 : 1),
                     ),
                     child: Column(children: [
-                      Text(entry.$1, style: const TextStyle(fontSize: 22)),
+                      Text(entry.$1, style: const TextStyle(fontSize: AppType.h1)),
                       const SizedBox(height: 2),
-                      Text(entry.$2, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 8.4, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+                      Text(entry.$2, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _colors.textMuted)),
                     ]),
                   ),
                 ),
@@ -963,9 +963,9 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(13, 12, 13, 10),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Choisir dans mes activités', style: TextStyle(fontWeight: FontWeight.w900)),
+                    const Text('Choisir dans mes activités', style: TextStyle(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 7),
-                    Text('Thème', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+                    Text('Thème', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
                     const SizedBox(height: 5),
                     SizedBox(
                       height: 38,
@@ -991,7 +991,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                                 }
                               }
                             }),
-                            labelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                            labelStyle: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800),
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                           );
                         },
@@ -1010,19 +1010,19 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                       ...filteredAvailableActivities.map((a) {
                         final selected = a.id == selectedActivityId;
                         return InkWell(
-                          borderRadius: BorderRadius.circular(15),
+                          borderRadius: BorderRadius.circular(AppRadius.l),
                           onTap: () => _selectActivity(a.id),
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 6),
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                             decoration: BoxDecoration(
                               color: selected ? _colors.tintStrong : _colors.card,
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(AppRadius.l),
                               border: Border.all(color: selected ? _colors.accentSoftBorder : _colors.border),
                             ),
                             child: Row(children: [
                               InkWell(
-                                borderRadius: BorderRadius.circular(18),
+                                borderRadius: BorderRadius.circular(AppRadius.xl),
                                 onTap: () => widget.onEditActivityIcon(a),
                                 child: Tooltip(message: 'Modifier l’icône', child: _activityIconWidget(a.emoji, size: 30)),
                               ),
@@ -1053,7 +1053,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    fontSize: 11.5,
+                                    fontSize: AppType.label,
                                     color: a.isFrozen ? _colors.textWarm : _colors.textMuted,
                                   ),
                                 ),
@@ -1099,7 +1099,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                 ),
               ),
               const SizedBox(height: 14),
-              Text('Thème', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+              Text('Thème', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
               const SizedBox(height: 5),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -1110,7 +1110,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                       label: Text(theme),
                       selected: category == theme,
                       onSelected: (_) => setState(() => category = theme),
-                      labelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                      labelStyle: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     ),
                   )).toList(),
@@ -1118,7 +1118,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
               ),
               const SizedBox(height: 14),
               InkWell(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.l),
                 onTap: () async {
                   final picked = await widget.onPickActivityIcon(name: titleController.text.trim().isEmpty ? 'Nouvelle activité' : titleController.text.trim(), category: category, current: emoji);
                   if (picked != null && mounted) setState(() => emoji = picked);

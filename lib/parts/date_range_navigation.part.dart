@@ -41,17 +41,17 @@ extension _DateRangeNavigationPart on _MaBelleSemaineAppState {
         padding: const EdgeInsets.fromLTRB(11, 9, 9, 8),
         decoration: BoxDecoration(
           color: _colors.border,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(AppRadius.l),
           border: Border.all(color: _colors.goldBorder),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Text('🗓️', style: TextStyle(fontSize: 19)),
+            Text('🗓️', style: TextStyle(fontSize: AppType.h2)),
             SizedBox(width: 7),
-            Expanded(child: Text('Activités sur plusieurs jours', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w900, color: _colors.textWarm))),
+            Expanded(child: Text('Activités sur plusieurs jours', style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textWarm))),
           ]),
           const SizedBox(height: 3),
-          Text('Présentes pendant toute la période. Elles ne se valident pas.', style: TextStyle(fontSize: 10.5, color: _colors.textMuted, fontWeight: FontWeight.w600)),
+          Text('Présentes pendant toute la période. Elles ne se valident pas.', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted, fontWeight: FontWeight.w600)),
           const SizedBox(height: 5),
           ...items.map((item) {
             final activity = findActivity(item.activityId!);
@@ -60,7 +60,7 @@ extension _DateRangeNavigationPart on _MaBelleSemaineAppState {
               padding: const EdgeInsets.fromLTRB(7, 7, 5, 7),
               decoration: BoxDecoration(
                 color: _colors.card,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.m),
                 border: Border.all(color: _colors.borderStrong),
               ),
               child: Row(children: [
@@ -68,14 +68,14 @@ extension _DateRangeNavigationPart on _MaBelleSemaineAppState {
                 const SizedBox(width: 8),
                 Expanded(
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppRadius.s),
                     onTap: activity == null ? null : () => addOrEditActivity(original: activity),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13.2, fontWeight: FontWeight.w900, color: _colors.textStrong)),
+                        Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
                         const SizedBox(height: 2),
-                        Text(activity == null ? 'Période' : _dateRangeLabel(activity), style: TextStyle(fontSize: 10.2, color: _colors.textMuted, fontWeight: FontWeight.w700)),
+                        Text(activity == null ? 'Période' : _dateRangeLabel(activity), style: TextStyle(fontSize: AppType.small, color: _colors.textMuted, fontWeight: FontWeight.w700)),
                       ]),
                     ),
                   ),

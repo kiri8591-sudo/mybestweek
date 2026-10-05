@@ -1,7 +1,7 @@
 name: ma_belle_semaine
 description: Coach hebdomadaire ludique pour organiser une retraite active.
 publish_to: 'none'
-version: 12.4.1+21
+version: 12.4.2+22
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -21,3 +21,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icons/pack/

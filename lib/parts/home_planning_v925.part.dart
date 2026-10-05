@@ -267,11 +267,11 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: Text(mood, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _colors.textWarm))),
+        Expanded(child: Text(mood, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textWarm))),
         if (day == today)
           Padding(
             padding: EdgeInsets.only(left: 8),
-            child: Text('FOCUS DU JOUR', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: _colors.danger)),
+            child: Text('FOCUS DU JOUR', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.danger)),
           ),
       ],
     );
@@ -281,8 +281,8 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 92, child: Text(time, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: _colors.accentText))),
-        Expanded(child: Text(title, style: TextStyle(fontSize: 13.5, color: _colors.textStrong))),
+        SizedBox(width: 92, child: Text(time, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.accentText))),
+        Expanded(child: Text(title, style: TextStyle(fontSize: AppType.bodyL, color: _colors.textStrong))),
       ]),
     );
   }
@@ -320,7 +320,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(item.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+              Text(item.title, style: const TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
               Text('Ce créneau est passé. Que veux-tu en faire ?', style: TextStyle(color: _colors.textMuted)),
               const SizedBox(height: 12),
@@ -437,7 +437,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
           padding: const EdgeInsets.fromLTRB(7, 6, 5, 6),
           decoration: BoxDecoration(
             color: _colors.card,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppRadius.l),
             border: Border.all(
               color: highlightMission ? _colors.warnBorder : _colors.border,
               width: highlightMission ? 1.25 : 1,
@@ -452,14 +452,14 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                 onChanged: (_) => openPlanItem(item),
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xs)),
               ),
               const SizedBox(width: 3),
               _activityIconWidget(emoji, size: 28),
               const SizedBox(width: 8),
               Expanded(
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppRadius.m),
                   onTap: () {
                     if (isPast) {
                       _showPastPlanQuickActions(item);
@@ -487,12 +487,12 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
                                   color: _colors.warnBg,
-                                  borderRadius: BorderRadius.circular(7),
+                                  borderRadius: BorderRadius.circular(AppRadius.s),
                                   border: Border.all(color: _colors.warnBorder),
                                 ),
                                 child: Text(
                                   'MISSION',
-                                  style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, letterSpacing: .45, color: _colors.danger),
+                                  style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, letterSpacing: .45, color: _colors.danger),
                                 ),
                               ),
                               const SizedBox(width: 6),
@@ -517,7 +517,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                             maxLines: 2,
                             softWrap: true,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 9.2, fontWeight: FontWeight.w700, color: _colors.textWarm, height: 1.15),
+                            style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textWarm, height: 1.15),
                           ),
                         ],
                         if (isSport || highlightMission || isDailyPriority || activity != null) ...[

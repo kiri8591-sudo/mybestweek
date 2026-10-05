@@ -32,7 +32,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
             padding: EdgeInsets.all(highlighted ? 7 : 0),
             decoration: BoxDecoration(
               color: highlighted ? _colors.tintStrong : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppRadius.l),
               border: highlighted ? Border.all(color: _colors.accentSoftBorder, width: 1.5) : null,
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -41,20 +41,20 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                   padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                   decoration: BoxDecoration(
                     color: _colors.tintStrong,
-                    borderRadius: BorderRadius.circular(13),
+                    borderRadius: BorderRadius.circular(AppRadius.m),
                     boxShadow: [BoxShadow(color: _colors.shadow, blurRadius: 5, offset: Offset(0, 2))],
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text(label == 'Matin' ? '🌤️' : label == 'Après-midi' ? '🌿' : '🌙', style: const TextStyle(fontSize: 15.5, height: 1)),
+                    Text(label == 'Matin' ? '🌤️' : label == 'Après-midi' ? '🌿' : '🌙', style: const TextStyle(fontSize: AppType.title, height: 1)),
                     const SizedBox(width: 6),
-                    Text(label, style: GoogleFonts.nunitoSans(fontSize: 15.5, fontWeight: FontWeight.w900, color: _colors.textStrong, letterSpacing: .05)),
+                    Text(label, style: GoogleFonts.nunitoSans(fontSize: AppType.title, fontWeight: FontWeight.w800, color: _colors.textStrong, letterSpacing: .05)),
                   ]),
                 ),
                 if (highlighted) ...[
                   const SizedBox(width: 7),
                   _systemIconWidget('dragDown', fallback: '↓', size: 16),
                   const SizedBox(width: 3),
-                  Text('Déposer ici', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
+                  Text('Déposer ici', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
                 ],
               ]),
               const SizedBox(height: 4),
@@ -62,7 +62,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: .65), borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: .65), borderRadius: BorderRadius.circular(AppRadius.m)),
                   child: Center(child: Text('Déposer l’activité ici', style: TextStyle(fontWeight: FontWeight.w700, color: _colors.accentIcon))),
                 )
               else
@@ -82,7 +82,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
       padding: const EdgeInsets.only(top: 8),
       child: Container(
         padding: const EdgeInsets.fromLTRB(8, 9, 6, 9),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: _colors.shadowSoft, blurRadius: 5, offset: Offset(0, 2))]),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(AppRadius.l), boxShadow: [BoxShadow(color: _colors.shadowSoft, blurRadius: 5, offset: Offset(0, 2))]),
         child: Row(
           children: [
             Checkbox(
@@ -91,7 +91,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                 openPlanItem(item);
               },
               visualDensity: VisualDensity.compact,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xs)),
             ),
             const SizedBox(width: 2),
             if (activity != null || item.customEmoji != null) ...[
@@ -100,7 +100,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
             ],
             Expanded(
               child: InkWell(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.m),
                 onTap: () { final a = item.activityId == null ? null : findActivity(item.activityId!); if (a != null && _isSportActivity(a)) { addOrEditActivity(original: a); } else if (_isGenericActivityItem(item)) { _openGenericActivity(item); } else { openItemActions(item); } },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 3),
@@ -203,7 +203,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
               Row(children: [
                 _uiIcon('coach', Icons.psychology_alt_rounded, size: 21, color: _colors.accentIcon),
                 const SizedBox(width: 8),
-                Expanded(child: Text('Pourquoi ce choix ?', style: GoogleFonts.lora(fontSize: 19, fontWeight: FontWeight.w700, color: _colors.textStrong))),
+                Expanded(child: Text('Pourquoi ce choix ?', style: GoogleFonts.lora(fontSize: AppType.h2, fontWeight: FontWeight.w700, color: _colors.textStrong))),
               ]),
               const SizedBox(height: 12),
               Text(item.title, style: _detailTitleStyle()),
@@ -220,8 +220,8 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
     return Container(
       width: 67,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-      decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(12)),
-      child: Text(period, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: _colors.accentText)),
+      decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.m)),
+      child: Text(period, textAlign: TextAlign.center, style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.accentText)),
     );
   }
 

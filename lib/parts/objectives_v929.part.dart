@@ -146,16 +146,16 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                   height: 46,
                   decoration: BoxDecoration(
                     color: _colors.tintStrong,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(AppRadius.l),
                   ),
                   alignment: Alignment.center,
-                  child: const Text('🎯', style: TextStyle(fontSize: 25)),
+                  child: const Text('🎯', style: TextStyle(fontSize: AppType.display)),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     widget.existing == null ? 'Nouvel objectif' : 'Modifier l’objectif',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                    style: const TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800),
                   ),
                 ),
               ],
@@ -163,13 +163,13 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
             const SizedBox(height: 16),
             Text(
               'Activité',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: _colors.textMuted),
+              style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textMuted),
             ),
             const SizedBox(height: 6),
             Container(
               decoration: BoxDecoration(
                 color: _colors.card,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.l),
                 border: Border.all(color: _colors.borderStrong),
               ),
               constraints: const BoxConstraints(maxHeight: 255),
@@ -200,7 +200,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                           const Positioned(
                             right: -7,
                             bottom: -4,
-                            child: Text('🧊', style: TextStyle(fontSize: 12)),
+                            child: Text('🧊', style: TextStyle(fontSize: AppType.body)),
                           ),
                       ],
                     ),
@@ -209,7 +209,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 12.6,
+                        fontSize: AppType.body,
                         fontWeight: FontWeight.w800,
                         color: frozen ? _colors.textFaint : _colors.textStrong,
                       ),
@@ -219,13 +219,13 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                             frozenLinkedToExisting
                                 ? 'Activité gelée · liée à cet objectif · sélection conservée'
                                 : 'Activité gelée · non sélectionnable pour un nouvel objectif',
-                            style: TextStyle(fontSize: 10.2, color: _colors.textFaint, fontWeight: FontWeight.w700),
+                            style: TextStyle(fontSize: AppType.small, color: _colors.textFaint, fontWeight: FontWeight.w700),
                           )
                         : null,
                     trailing: selected
                         ? Icon(Icons.check_circle_rounded, color: _colors.textMuted, size: 20)
                         : frozen
-                            ? Text('GELÉE', style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: _colors.textMuted))
+                            ? Text('GELÉE', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.textMuted))
                             : Icon(Icons.radio_button_unchecked_rounded, color: _colors.textFaint, size: 19),
                     onTap: selectable ? () => setState(() => activityId = activity.id) : null,
                   );
@@ -281,19 +281,19 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
             Container(
               decoration: BoxDecoration(
                 color: _colors.surfaceSoft,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppRadius.l),
                 border: Border.all(color: _colors.borderTint),
               ),
               padding: const EdgeInsets.all(11),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('💡', style: TextStyle(fontSize: 17)),
+                  Text('💡', style: TextStyle(fontSize: AppType.titleL)),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'La récompense est gagnée une fois par période lorsque la cible est atteinte. Elle reste cumulée.',
-                      style: TextStyle(fontSize: 10.9, height: 1.32, color: _colors.accentText, fontWeight: FontWeight.w700),
+                      style: TextStyle(fontSize: AppType.small, height: 1.32, color: _colors.accentText, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],
@@ -651,13 +651,13 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         onTap: () => _addOrEditGoal(existing: goal),
         child: Container(
           padding: const EdgeInsets.fromLTRB(12, 11, 11, 10),
           decoration: BoxDecoration(
             color: complete ? _colors.tintStrong : _colors.card,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppRadius.xl),
             border: Border.all(
               color: complete ? _colors.borderTint : _colors.border,
             ),
@@ -672,7 +672,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     height: 44,
                     decoration: BoxDecoration(
                       color: complete ? _colors.tintStrong : _colors.surfaceSoft,
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(AppRadius.l),
                     ),
                     alignment: Alignment.center,
                     child: _activityIconWidget(_uiIconValue('objectiveDetail', ''), size: 22),
@@ -690,8 +690,8 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 13.2,
-                                  fontWeight: FontWeight.w900,
+                                  fontSize: AppType.bodyL,
+                                  fontWeight: FontWeight.w800,
                                   color: complete ? _colors.accentIcon : _colors.textStrong,
                                 ),
                               ),
@@ -706,7 +706,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                         Text(
                           '${goal.target} ${_goalCadenceLabel(goal.cadence)}',
                           style: TextStyle(
-                            fontSize: 10.3,
+                            fontSize: AppType.small,
                             fontWeight: FontWeight.w700,
                             color: _colors.textMuted,
                           ),
@@ -724,7 +724,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                 children: [
                   Expanded(
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(99),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                       child: LinearProgressIndicator(
                         value: ratio,
                         minHeight: 7,
@@ -739,8 +739,8 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                   Text(
                     '$progress/${goal.target}',
                     style: TextStyle(
-                      fontSize: 11.1,
-                      fontWeight: FontWeight.w900,
+                      fontSize: AppType.label,
+                      fontWeight: FontWeight.w800,
                       color: _colors.textMuted,
                     ),
                   ),
@@ -755,7 +755,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 10.3,
+                        fontSize: AppType.small,
                         fontWeight: FontWeight.w800,
                         color: complete ? _colors.accentIcon : _colors.textMuted,
                       ),
@@ -765,8 +765,8 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                   Text(
                     '🎁 $rewardCount',
                     style: TextStyle(
-                      fontSize: 10.1,
-                      fontWeight: FontWeight.w900,
+                      fontSize: AppType.small,
+                      fontWeight: FontWeight.w800,
                       color: _colors.textWarm,
                     ),
                   ),
@@ -793,7 +793,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
         padding: const EdgeInsets.fromLTRB(12, 10, 11, 10),
         decoration: BoxDecoration(
           color: streak > 0 ? _colors.tintStrong : _colors.card,
-          borderRadius: BorderRadius.circular(19),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
           border: Border.all(
             color: streak > 0 ? _colors.borderTint : _colors.border,
           ),
@@ -805,7 +805,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
               height: 42,
               decoration: BoxDecoration(
                 color: _colors.tintStrong,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.l),
               ),
               alignment: Alignment.center,
               child: _activityIconWidget(activity.emoji, size: 23),
@@ -820,8 +820,8 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 12.3,
-                      fontWeight: FontWeight.w900,
+                      fontSize: AppType.body,
+                      fontWeight: FontWeight.w800,
                       color: _colors.textStrong,
                     ),
                   ),
@@ -831,7 +831,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                         ? 'Pas de série en cours${doneToday ? '' : ' · à toi de jouer aujourd’hui'}'
                         : '$streak jour${streak > 1 ? 's' : ''} consécutif${streak > 1 ? 's' : ''}${doneToday ? ' · aujourd’hui fait' : ' · jusqu’à hier'}',
                     style: TextStyle(
-                      fontSize: 10.1,
+                      fontSize: AppType.small,
                       fontWeight: FontWeight.w700,
                       color: _colors.textMuted,
                     ),
@@ -846,15 +846,15 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                 Text(
                   '$streak',
                   style: TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w900,
+                    fontSize: AppType.h1,
+                    fontWeight: FontWeight.w800,
                     color: _colors.accentIcon,
                   ),
                 ),
                 Text(
                   'record $best',
                   style: TextStyle(
-                    fontSize: 9.1,
+                    fontSize: AppType.micro,
                     fontWeight: FontWeight.w800,
                     color: _colors.textMuted,
                   ),
@@ -928,10 +928,10 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     height: 48,
                     decoration: BoxDecoration(
                       color: _colors.card,
-                      borderRadius: BorderRadius.circular(17),
+                      borderRadius: BorderRadius.circular(AppRadius.l),
                     ),
                     alignment: Alignment.center,
-                    child: const Text('🎯', style: TextStyle(fontSize: 26)),
+                    child: const Text('🎯', style: TextStyle(fontSize: AppType.hero)),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -941,8 +941,8 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                         Text(
                           'Mes objectifs de réalisation',
                           style: TextStyle(
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.w900,
+                            fontSize: AppType.title,
+                            fontWeight: FontWeight.w800,
                             color: _colors.accentText,
                           ),
                         ),
@@ -952,7 +952,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                               ? 'Choisis une habitude concrète et une cible simple.'
                               : '$completedGoals/${goals.length} atteint${goals.length > 1 ? 's' : ''} sur la période actuelle · $totalRewards récompense${totalRewards > 1 ? 's' : ''} cumulée${totalRewards > 1 ? 's' : ''}.',
                           style: TextStyle(
-                            fontSize: 10.9,
+                            fontSize: AppType.small,
                             height: 1.3,
                             color: _colors.accentText,
                             fontWeight: FontWeight.w700,
@@ -975,8 +975,8 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                   child: Text(
                     'Objectifs',
                     style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
+                      fontSize: AppType.title,
+                      fontWeight: FontWeight.w800,
                       color: _colors.textStrong,
                     ),
                   ),
@@ -985,7 +985,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                   Text(
                     '${goals.length} actif${goals.length > 1 ? 's' : ''}',
                     style: TextStyle(
-                      fontSize: 10.4,
+                      fontSize: AppType.small,
                       fontWeight: FontWeight.w800,
                       color: _colors.textMuted,
                     ),
@@ -1006,13 +1006,13 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('🌱', style: TextStyle(fontSize: 21)),
+                    Text('🌱', style: TextStyle(fontSize: AppType.h1)),
                     SizedBox(width: 9),
                     Expanded(
                       child: Text(
                         'Aucun objectif pour le moment. Commence par une cible simple, par exemple 3 réalisations par semaine.',
                         style: TextStyle(
-                          fontSize: 11.3,
+                          fontSize: AppType.label,
                           height: 1.34,
                           color: _colors.textMuted,
                           fontWeight: FontWeight.w700,
@@ -1045,8 +1045,8 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                   child: Text(
                     'Streak Sport par activité',
                     style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
+                      fontSize: AppType.title,
+                      fontWeight: FontWeight.w800,
                       color: _colors.textStrong,
                     ),
                   ),
@@ -1054,7 +1054,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                 Text(
                   'jours consécutifs',
                   style: TextStyle(
-                    fontSize: 9.4,
+                    fontSize: AppType.caption,
                     fontWeight: FontWeight.w800,
                     color: _colors.textMuted,
                   ),
@@ -1075,7 +1075,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                 child: Text(
                   'Ajoute ou réactive une activité Sport pour suivre une série.',
                   style: TextStyle(
-                    fontSize: 11.2,
+                    fontSize: AppType.label,
                     color: _colors.textMuted,
                     fontWeight: FontWeight.w700,
                   ),

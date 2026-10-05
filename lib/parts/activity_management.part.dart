@@ -473,13 +473,14 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
       frequency: 1,
       priority: 1,
     );
+    var packTab = true;
     final picked = await showModalBottomSheet<String>(
       context: _navigatorKey.currentContext!,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (pickerContext) => StatefulBuilder(
         builder: (pickerContext, setPickerState) {
-          final values = _activityIconPalette(probe);
+          final values = packTab ? _packIconValuesFor(name, category) : _activityIconPalette(probe);
           return SafeArea(
             child: SizedBox(
               height: MediaQuery.of(pickerContext).size.height * .70,
@@ -489,7 +490,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      Expanded(child: Text('Choisir une icône · $name', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900))),
+                      Expanded(child: Text('Choisir une icône · $name', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800))),
                       _activityIconWidget(current, size: 30),
                     ]),
                     const SizedBox(height: 8),
@@ -526,6 +527,12 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       ),
                     ]),
                     const SizedBox(height: 8),
+                    Row(children: [
+                      ChoiceChip(label: const Text('Pack MyBestWeek'), selected: packTab, onSelected: (_) => setPickerState(() => packTab = true)),
+                      const SizedBox(width: 8),
+                      ChoiceChip(label: const Text('Emojis & images'), selected: !packTab, onSelected: (_) => setPickerState(() => packTab = false)),
+                    ]),
+                    const SizedBox(height: 8),
                     Expanded(
                       child: GridView.builder(
                         padding: const EdgeInsets.all(3),
@@ -540,13 +547,13 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                           final value = values[index];
                           final selected = value == current;
                           return InkWell(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppRadius.m),
                             onTap: () => Navigator.pop(pickerContext, value),
                             child: Container(
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: selected ? _colors.tintSoft : _colors.surfaceSoft,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(AppRadius.m),
                                 border: Border.all(color: selected ? _colors.accentSoftBorder : _colors.border, width: selected ? 1.2 : .6),
                               ),
                               child: _activityIconWidget(value, size: 28),
@@ -656,7 +663,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   : ListView(
                       children: [
                         if (customIcons.isNotEmpty) ...[
-                          const Text('Images', style: TextStyle(fontWeight: FontWeight.w900)),
+                          const Text('Images', style: TextStyle(fontWeight: FontWeight.w800)),
                           const SizedBox(height: 6),
                           ...customIcons.map((icon) {
                             final token = 'customicon://${icon.id}';
@@ -688,7 +695,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                         ],
                         if (customEmojis.isNotEmpty) ...[
                           if (customIcons.isNotEmpty) const SizedBox(height: 8),
-                          const Text('Emojis personnels', style: TextStyle(fontWeight: FontWeight.w900)),
+                          const Text('Emojis personnels', style: TextStyle(fontWeight: FontWeight.w800)),
                           const SizedBox(height: 6),
                           ...customEmojis.map((entry) {
                             final usage = _activityIconUsage(entry.value);
@@ -696,7 +703,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                               margin: const EdgeInsets.only(bottom: 6),
                               child: ListTile(
                                 dense: true,
-                                leading: Text(entry.value, style: const TextStyle(fontSize: 28)),
+                                leading: Text(entry.value, style: const TextStyle(fontSize: AppType.hero)),
                                 title: Text(usage == 0 ? 'Emoji personnel' : 'Utilisé par $usage activité${usage > 1 ? 's' : ''}'),
                                 trailing: IconButton(
                                   tooltip: 'Retirer de la palette',
@@ -846,19 +853,19 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
                       decoration: BoxDecoration(
                         color: _colors.peachBg,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(AppRadius.l),
                         border: Border.all(color: _colors.goldBorder),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Icônes suggérées', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: _colors.textWarm)),
+                          Text('Icônes suggérées', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textWarm)),
                           const SizedBox(height: 6),
                           Wrap(
                             spacing: 6,
                             runSpacing: 5,
                             children: suggestions.map((value) => ActionChip(
-                              label: value == '🧸' ? Row(mainAxisSize: MainAxisSize.min, children: [mascotChoiceAvatar(size: 20), const SizedBox(width: 4), const Text('Ourson')]) : Text(value, style: const TextStyle(fontSize: 19)),
+                              label: value == '🧸' ? Row(mainAxisSize: MainAxisSize.min, children: [mascotChoiceAvatar(size: 20), const SizedBox(width: 4), const Text('Ourson')]) : Text(value, style: const TextStyle(fontSize: AppType.h2)),
                               onPressed: () => setDialogState(() => emoji = value),
                               visualDensity: VisualDensity.compact,
                               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
@@ -883,7 +890,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                 ),
                 const SizedBox(height: 10),
                 InkWell(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.l),
                   onTap: () async {
                     final picked = await showDialog<String>(
                       context: context,
@@ -953,13 +960,13 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                                       itemBuilder: (_, index) {
                                         final value = uniqueValues[index];
                                         return InkWell(
-                                          borderRadius: BorderRadius.circular(13),
+                                          borderRadius: BorderRadius.circular(AppRadius.m),
                                           onTap: () => Navigator.pop(pickerContext, value),
                                           child: Container(
                                             alignment: Alignment.center,
                                             decoration: BoxDecoration(
                                               color: value == emoji ? _colors.tintSoft : _colors.surfaceSoft,
-                                              borderRadius: BorderRadius.circular(13),
+                                              borderRadius: BorderRadius.circular(AppRadius.m),
                                               border: Border.all(color: value == emoji ? _colors.accentSoftBorder : _colors.border),
                                             ),
                                             child: _activityIconWidget(value, size: 30),
@@ -1012,7 +1019,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                     padding: const EdgeInsets.fromLTRB(11, 9, 11, 10),
                     decoration: BoxDecoration(
                       color: dateRangeEnabled ? _colors.tintStrong : _colors.surfaceSoft,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppRadius.l),
                       border: Border.all(
                         color: dateRangeEnabled ? _colors.borderTint : _colors.border,
                       ),
@@ -1021,9 +1028,9 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(children: [
-                          const Text('🗓️', style: TextStyle(fontSize: 19)),
+                          const Text('🗓️', style: TextStyle(fontSize: AppType.h2)),
                           const SizedBox(width: 7),
-                          const Expanded(child: Text('Activité quotidienne sur une période', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5))),
+                          const Expanded(child: Text('Activité quotidienne sur une période', style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.body))),
                           Switch.adaptive(
                             value: dateRangeEnabled,
                             onChanged: (value) {
@@ -1039,7 +1046,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                         ]),
                         if (dateRangeEnabled) ...[
                           const SizedBox(height: 3),
-                          Text('Exemple : road trip, stage ou atelier réalisé chaque jour du début à la fin.', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: _colors.textMuted, height: 1.30)),
+                          Text('Exemple : road trip, stage ou atelier réalisé chaque jour du début à la fin.', style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w500, color: _colors.textMuted, height: 1.30)),
                           const SizedBox(height: 8),
                           Row(children: [
                             Expanded(
@@ -1066,7 +1073,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                                 style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10)),
                               ),
                             ),
-                            const Padding(padding: EdgeInsets.symmetric(horizontal: 6), child: Text('→', style: TextStyle(fontWeight: FontWeight.w900))),
+                            const Padding(padding: EdgeInsets.symmetric(horizontal: 6), child: Text('→', style: TextStyle(fontWeight: FontWeight.w800))),
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: () async {
@@ -1092,12 +1099,12 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                           if (rangeStart != null && rangeEnd != null && rangeEnd!.isBefore(rangeStart!))
                             Padding(
                               padding: EdgeInsets.only(top: 5),
-                              child: Text('La date de fin doit être postérieure ou égale à la date de début.', style: TextStyle(fontSize: 10.5, color: _colors.textWarm, fontWeight: FontWeight.w700)),
+                              child: Text('La date de fin doit être postérieure ou égale à la date de début.', style: TextStyle(fontSize: AppType.small, color: _colors.textWarm, fontWeight: FontWeight.w700)),
                             )
                           else if (rangeStart != null && rangeEnd != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 5),
-                              child: Text(_dateRangeLabel(Activity(id: '_tmp', name: '', emoji: '', category: category, duration: 1, frequency: 1, priority: 1, isDateRange: true, rangeStart: rangeStart, rangeEnd: rangeEnd)), style: TextStyle(fontSize: 10.5, color: _colors.textMuted, fontWeight: FontWeight.w700)),
+                              child: Text(_dateRangeLabel(Activity(id: '_tmp', name: '', emoji: '', category: category, duration: 1, frequency: 1, priority: 1, isDateRange: true, rangeStart: rangeStart, rangeEnd: rangeEnd)), style: TextStyle(fontSize: AppType.small, color: _colors.textMuted, fontWeight: FontWeight.w700)),
                             ),
                         ],
                       ],
@@ -1106,9 +1113,9 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                 ],
                 if (draft.isSportProgram) ...[
                   const SizedBox(height: 12),
-                  const Align(alignment: Alignment.centerLeft, child: Text('Durée Sport par jour', style: TextStyle(fontWeight: FontWeight.w900))),
+                  const Align(alignment: Alignment.centerLeft, child: Text('Durée Sport par jour', style: TextStyle(fontWeight: FontWeight.w800))),
                   const SizedBox(height: 4),
-                  Align(alignment: Alignment.centerLeft, child: Text('Le curseur fixe le plafond quotidien. Les activités Sport restent à l’intérieur de ce budget.', style: TextStyle(fontSize: 12, color: _colors.textMuted))),
+                  Align(alignment: Alignment.centerLeft, child: Text('Le curseur fixe le plafond quotidien. Les activités Sport restent à l’intérieur de ce budget.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted))),
                   const SizedBox(height: 6),
                   ...List.generate(7, (day) => _SportDailySlider(
                     label: dayNames[day],
@@ -1131,7 +1138,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Les jours/semaine et les occurrences dans une même journée sont deux réglages indépendants.',
-                      style: TextStyle(fontSize: 11, color: _colors.textMuted),
+                      style: TextStyle(fontSize: AppType.label, color: _colors.textMuted),
                     ),
                   ),
                 if (category == 'Sport') ...[
@@ -1146,7 +1153,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   Container(
                     margin: const EdgeInsets.only(top: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(color: _colors.surfaceSoft, borderRadius: BorderRadius.circular(14)),
+                    decoration: BoxDecoration(color: _colors.surfaceSoft, borderRadius: BorderRadius.circular(AppRadius.l)),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Row(children: [
                         const Expanded(child: Text('Plusieurs fois dans la même journée', style: TextStyle(fontWeight: FontWeight.w800))),
@@ -1155,7 +1162,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       ]),
                       if (allowMultiplePerDay) ...[
                         _StepperLine(label: "Nombre d'occurrences par jour", value: maxDailyOccurrences, min: 2, max: 3, onChanged: (v) => setDialogState(() => maxDailyOccurrences = v)),
-                        Text('Exemple : 2 occurrences = 20 min le matin + 20 min en fin de journée.', style: TextStyle(fontSize: 11, color: _colors.textMuted)),
+                        Text('Exemple : 2 occurrences = 20 min le matin + 20 min en fin de journée.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted)),
                       ],
                     ]),
                   ),
@@ -1167,7 +1174,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
                         color: _colors.surfaceSunken,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(AppRadius.l),
                         border: Border.all(color: _colors.borderStrong),
                       ),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1187,7 +1194,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                         ]),
                         if (allowMultiplePerDay) ...[
                           _StepperLine(label: "Nombre maximal de réalisations par jour", value: maxDailyOccurrences, min: 2, max: 3, onChanged: (v) => setDialogState(() => maxDailyOccurrences = v)),
-                          Text('Exemple : 2 réalisations = 20 min le matin + 20 min le soir.', style: TextStyle(fontSize: 11, color: _colors.textMuted)),
+                          Text('Exemple : 2 réalisations = 20 min le matin + 20 min le soir.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted)),
                         ],
                       ]),
                     ),
@@ -1199,7 +1206,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
                       color: activeInSportRotation ? _colors.tintSoft : _colors.surfaceSunken,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppRadius.l),
                       border: Border.all(
                         color: activeInSportRotation ? _colors.borderTint : _colors.border,
                       ),
@@ -1214,14 +1221,14 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                             children: [
                               Text(
                                 activeInSportRotation ? 'Dans la rotation Sport' : 'Mise en attente · « Plus tard »',
-                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5),
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.body),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 activeInSportRotation
                                     ? 'L’activité pourra être proposée cette semaine.'
                                     : 'L’activité reste enregistrée et pourra être réactivée depuis Semaine Sport.',
-                                style: TextStyle(fontSize: 10.5, color: _colors.textMuted),
+                                style: TextStyle(fontSize: AppType.small, color: _colors.textMuted),
                               ),
                             ],
                           ),
@@ -1251,16 +1258,16 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   padding: const EdgeInsets.fromLTRB(11, 9, 11, 9),
                   decoration: BoxDecoration(
                     color: isFrozen ? _colors.surfaceSunken : _colors.tintStrong,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadius.l),
                     border: Border.all(color: isFrozen ? _colors.borderStrong : _colors.borderTint),
                   ),
                   child: Row(children: [
-                    Text(isFrozen ? '🧊' : '🌱', style: const TextStyle(fontSize: 19)),
+                    Text(isFrozen ? '🧊' : '🌱', style: const TextStyle(fontSize: AppType.h2)),
                     const SizedBox(width: 8),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(isFrozen ? 'Activité gelée' : 'Activité active', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12.5)),
+                      Text(isFrozen ? 'Activité gelée' : 'Activité active', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.body)),
                       const SizedBox(height: 2),
-                      Text(isFrozen ? 'Elle reste dans tes activités mais ne sera plus proposée par le coach.' : 'Le coach peut de nouveau la proposer lors d’une prochaine régénération.', style: TextStyle(fontSize: 10.5, color: _colors.textMuted)),
+                      Text(isFrozen ? 'Elle reste dans tes activités mais ne sera plus proposée par le coach.' : 'Le coach peut de nouveau la proposer lors d’une prochaine régénération.', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
                     ])),
                     Switch.adaptive(value: isFrozen, onChanged: (v) => setDialogState(() => isFrozen = v)),
                   ]),

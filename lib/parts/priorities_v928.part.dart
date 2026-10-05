@@ -246,9 +246,9 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Mes priorités du jour', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: _colors.textStrong)),
+                  Text('Mes priorités du jour', style: TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800, color: _colors.textStrong)),
                   const SizedBox(height: 4),
-                  Text('${working.length}/5 choisies · sélectionne les activités qui comptent particulièrement pour toi.', style: TextStyle(fontSize: 11.5, color: _colors.textMuted, height: 1.3)),
+                  Text('${working.length}/5 choisies · sélectionne les activités qui comptent particulièrement pour toi.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted, height: 1.3)),
                   const SizedBox(height: 12),
                   SizedBox(
                     height: min(MediaQuery.of(context).size.height * .58, 520.0),
@@ -260,7 +260,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 7),
                           child: InkWell(
-                            borderRadius: BorderRadius.circular(17),
+                            borderRadius: BorderRadius.circular(AppRadius.l),
                             onTap: () {
                               if (!selected && working.length >= 5) {
                                 _showFeedback('Maximum 5 priorités pour garder la journée lisible.');
@@ -278,19 +278,19 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                               padding: const EdgeInsets.fromLTRB(11, 9, 8, 9),
                               decoration: BoxDecoration(
                                 color: selected ? _colors.tintStrong : _colors.surfaceSoft,
-                                borderRadius: BorderRadius.circular(17),
+                                borderRadius: BorderRadius.circular(AppRadius.l),
                                 border: Border.all(color: selected ? _colors.borderTint : _colors.border),
                               ),
                               child: Row(children: [
                                 Container(
                                   width: 40,
                                   height: 40,
-                                  decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(13)),
+                                  decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.m)),
                                   alignment: Alignment.center,
                                   child: _activityIconWidget(activity.emoji, size: 24),
                                 ),
                                 const SizedBox(width: 9),
-                                Expanded(child: Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: _colors.textStrong))),
+                                Expanded(child: Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textStrong))),
                                 Icon(selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: selected ? _colors.accentIcon : _colors.textFaint, size: 22),
                               ]),
                             ),
@@ -447,13 +447,13 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
           Container(
             width: 48,
             height: 48,
-            decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(17)),
+            decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.l)),
             alignment: Alignment.center,
-            child: Text(allDone ? '🎉' : '⭐', style: const TextStyle(fontSize: 27)),
+            child: Text(allDone ? '🎉' : '⭐', style: const TextStyle(fontSize: AppType.hero)),
           ),
           const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Mes priorités du jour', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: _colors.textStrong)),
+            Text('Mes priorités du jour', style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
             const SizedBox(height: 3),
             Text(
               selected.isEmpty
@@ -461,14 +461,14 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                   : _priorityBonusWonToday
                       ? 'Bravo : toutes tes priorités ont été réalisées aujourd’hui. Le bonus est gagné. ⭐'
                       : '$doneCount/${selected.length} réalisées aujourd’hui${allDone ? ' · bonus prêt' : ''}.',
-              style: TextStyle(fontSize: 11.2, height: 1.32, color: _colors.accentIcon, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: AppType.label, height: 1.32, color: _colors.accentIcon, fontWeight: FontWeight.w700),
             ),
           ])),
         ]),
         if (selected.isNotEmpty) ...[
           const SizedBox(height: 11),
           ClipRRect(
-            borderRadius: BorderRadius.circular(99),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
             child: LinearProgressIndicator(
               value: progress,
               minHeight: 7,
@@ -479,8 +479,8 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
         ],
         const SizedBox(height: 9),
         Row(children: [
-          Expanded(child: Text('⭐ $_priorityBonusTotal bonus cumulés', style: TextStyle(fontSize: 10.4, fontWeight: FontWeight.w900, color: _colors.accentIcon))),
-          Text('🎁 $rewardLabel', style: TextStyle(fontSize: 9.8, fontWeight: FontWeight.w800, color: _colors.danger)),
+          Expanded(child: Text('⭐ $_priorityBonusTotal bonus cumulés', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.accentIcon))),
+          Text('🎁 $rewardLabel', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.danger)),
         ]),
       ]),
     );
@@ -491,14 +491,14 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         onTap: () => _togglePriorityToday(activity),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.fromLTRB(12, 11, 11, 11),
           decoration: BoxDecoration(
             color: done ? _colors.tintStrong : _colors.card,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppRadius.xl),
             border: Border.all(color: done ? _colors.borderTint : _colors.border),
             boxShadow: [BoxShadow(color: _colors.shadowSoft, blurRadius: 7, offset: Offset(0, 2))],
           ),
@@ -508,16 +508,16 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
               height: 46,
               decoration: BoxDecoration(
                 color: done ? _colors.tintStrong : _colors.surfaceSunken,
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(AppRadius.l),
               ),
               alignment: Alignment.center,
               child: _activityIconWidget(activity.emoji, size: 28),
             ),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 13.2, fontWeight: FontWeight.w900, color: done ? _colors.accentIcon : _colors.textStrong, decoration: done ? TextDecoration.lineThrough : null)),
+              Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: done ? _colors.accentIcon : _colors.textStrong, decoration: done ? TextDecoration.lineThrough : null)),
               const SizedBox(height: 3),
-              Text(done ? 'Réalisée aujourd’hui' : '${activity.category} · ${activity.duration} min', style: TextStyle(fontSize: 10.4, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+              Text(done ? 'Réalisée aujourd’hui' : '${activity.category} · ${activity.duration} min', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted)),
             ])),
             const SizedBox(width: 7),
             Container(
@@ -543,13 +543,13 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
       padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Text('🧊', style: TextStyle(fontSize: 19)),
+          const Text('🧊', style: TextStyle(fontSize: AppType.h2)),
           const SizedBox(width: 7),
-          Expanded(child: Text('Activités gelées', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: _colors.textMuted))),
-          Text('${frozen.length}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: _colors.textMuted)),
+          Expanded(child: Text('Activités gelées', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textMuted))),
+          Text('${frozen.length}', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
         ]),
         const SizedBox(height: 5),
-        Text('Elles restent dans ta bibliothèque, mais le coach ne les propose plus. Reprends-les depuis « Activités » quand le moment sera venu.', style: TextStyle(fontSize: 10.8, height: 1.3, color: _colors.textMuted)),
+        Text('Elles restent dans ta bibliothèque, mais le coach ne les propose plus. Reprends-les depuis « Activités » quand le moment sera venu.', style: TextStyle(fontSize: AppType.small, height: 1.3, color: _colors.textMuted)),
       ]),
     );
   }
@@ -568,9 +568,9 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
           sliver: SliverToBoxAdapter(
             child: Row(children: [
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Priorités', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _colors.textStrong)),
+                Text('Priorités', style: TextStyle(fontSize: AppType.display, fontWeight: FontWeight.w800, color: _colors.textStrong)),
                 const SizedBox(height: 2),
-                Text(dayNames[today], style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+                Text(dayNames[today], style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textMuted)),
               ])),
               IconButton(
                 tooltip: 'Choisir mes priorités',
@@ -588,7 +588,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
           padding: const EdgeInsets.fromLTRB(16, 7, 16, 4),
           sliver: SliverToBoxAdapter(
             child: Row(children: [
-              Expanded(child: Text('Ton petit défi', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: _colors.textStrong))),
+              Expanded(child: Text('Ton petit défi', style: TextStyle(fontSize: AppType.title, fontWeight: FontWeight.w800, color: _colors.textStrong))),
               TextButton.icon(onPressed: _editDailyPriorities, icon: _uiIcon('edit', Icons.edit_rounded, size: 15), label: const Text('Choisir')),
             ]),
           ),
@@ -603,9 +603,9 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                 radius: 20,
                 padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('🌱 Commence par 1 à 5 activités', style: TextStyle(fontSize: 13.2, fontWeight: FontWeight.w900, color: _colors.accentIcon)),
+                  Text('🌱 Commence par 1 à 5 activités', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
                   const SizedBox(height: 4),
-                  Text('Ici, tu ne gères pas toute la semaine : tu choisis simplement ce qui compte le plus aujourd’hui.', style: TextStyle(fontSize: 10.8, height: 1.3, color: _colors.accentIcon)),
+                  Text('Ici, tu ne gères pas toute la semaine : tu choisis simplement ce qui compte le plus aujourd’hui.', style: TextStyle(fontSize: AppType.small, height: 1.3, color: _colors.accentIcon)),
                   const SizedBox(height: 9),
                   FilledButton.icon(onPressed: _editDailyPriorities, icon: _uiIcon('priority', Icons.star_rounded, size: 17), label: const Text('Choisir mes priorités')),
                 ]),

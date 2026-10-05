@@ -278,7 +278,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                   Expanded(
                     child: Text(
                       item.title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                     ),
                   ),
                   if (item.activityId == null || (findActivity(item.activityId!)?.category == 'Sport')) Text('${item.duration} min', style: _detailMetaStyle()),
@@ -408,7 +408,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                   onChanged: (v) => setDialogState(() => period = v ?? period),
                 ),
                 const SizedBox(height: 6),
-                Align(alignment: Alignment.centerLeft, child: Text('Tu peux déplacer cette activité vers un autre jour et choisir Matin, Après-midi ou Soir.', style: TextStyle(fontSize: 12, color: _colors.textMuted))),
+                Align(alignment: Alignment.centerLeft, child: Text('Tu peux déplacer cette activité vers un autre jour et choisir Matin, Après-midi ou Soir.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted))),
                 const SizedBox(height: 10),
                 if (item.activityId == null || (findActivity(item.activityId!)?.category == 'Sport')) ...[
                   TextField(

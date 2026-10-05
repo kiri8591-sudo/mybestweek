@@ -152,16 +152,16 @@ extension _SystemIconsPart on _MaBelleSemaineAppState {
               Row(children: [
                 _systemIconWidget('system', fallback: '⚙️', size: 24),
                 const SizedBox(width: 9),
-                Expanded(child: Text('Système · personnalisation', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _colors.textStrong))),
+                Expanded(child: Text('Système · personnalisation', style: TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800, color: _colors.textStrong))),
               ]),
               const SizedBox(height: 5),
-              Text('Personnalise les icônes de navigation, de rubriques, d’actions et des principaux menus. Les icônes d’action, de rubrique, de statistique et de détail sont personnalisables. Les indicateurs d’état purs (case cochée, radio, progression) restent fixes.', style: TextStyle(fontSize: 11.5, color: _colors.textMuted, height: 1.25)),
+              Text('Personnalise les icônes de navigation, de rubriques, d’actions et des principaux menus. Les icônes d’action, de rubrique, de statistique et de détail sont personnalisables. Les indicateurs d’état purs (case cochée, radio, progression) restent fixes.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted, height: 1.25)),
               const SizedBox(height: 10),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                decoration: BoxDecoration(color: _colors.tintSoft, borderRadius: BorderRadius.circular(12)),
-                child: Text('Signature commune : icônes d’action 18 px · icônes de détail 16–18 px · icônes d’en-tête 20–22 px. Les indicateurs d’état purs restent sémantiques.', style: TextStyle(fontSize: 10.5, color: _colors.textMuted, height: 1.25)),
+                decoration: BoxDecoration(color: _colors.tintSoft, borderRadius: BorderRadius.circular(AppRadius.m)),
+                child: Text('Signature commune : icônes d’action 18 px · icônes de détail 16–18 px · icônes d’en-tête 20–22 px. Les indicateurs d’état purs restent sémantiques.', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted, height: 1.25)),
               ),
               const SizedBox(height: 9),
               Flexible(
@@ -176,7 +176,7 @@ extension _SystemIconsPart on _MaBelleSemaineAppState {
                     final fallback = entry['fallback']!;
                     return Material(
                       color: _colors.surfaceSoft,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppRadius.l),
                       child: ListTile(
                         dense: true,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
@@ -185,13 +185,13 @@ extension _SystemIconsPart on _MaBelleSemaineAppState {
                           height: 39,
                           decoration: BoxDecoration(
                             color: _colors.card,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppRadius.m),
                           ),
                           alignment: Alignment.center,
                           child: _systemIconWidget(key, fallback: fallback, size: 23),
                         ),
-                        title: Text(label, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: _colors.textStrong)),
-                        subtitle: Text(_systemIconOverrides.containsKey(key) ? 'Personnalisée' : 'Par défaut', style: TextStyle(fontSize: 10.5, color: _colors.textMuted)),
+                        title: Text(label, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textStrong)),
+                        subtitle: Text(_systemIconOverrides.containsKey(key) ? 'Personnalisée' : 'Par défaut', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
                         trailing: Icon(Icons.chevron_right_rounded, color: _colors.textMuted),
                         onTap: () async {
                           Navigator.pop(sheetContext);
@@ -206,6 +206,18 @@ extension _SystemIconsPart on _MaBelleSemaineAppState {
                 ),
               ),
               const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: FilledButton.tonalIcon(
+                  onPressed: () async {
+                    Navigator.pop(sheetContext);
+                    await _applyIconPackToSystem();
+                    if (mounted) await _openSystemMenu();
+                  },
+                  icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+                  label: const Text('Appliquer le pack'),
+                )),
+              ]),
+              const SizedBox(height: 4),
               Row(children: [
                 Expanded(child: TextButton.icon(onPressed: _resetSystemIcons, icon: _systemIconWidget('remove', fallback: '➖', size: 18), label: const Text('Réinitialiser les icônes'))),
                 TextButton(onPressed: () => Navigator.pop(sheetContext), child: const Text('Fermer')),

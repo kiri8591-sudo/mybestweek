@@ -30,7 +30,7 @@ TextStyle _farmhouseSans(TextStyle? base) => GoogleFonts.nunitoSans(textStyle: b
 // Signature typographique MyBestWeek : une hiérarchie courte et stable.
 // Titre détail 12,5 px · informations secondaires 11 px · paragraphe 12 px.
 TextStyle _detailTitleStyle({TextDecoration? decoration}) => GoogleFonts.nunitoSans(
-      fontSize: 12.5,
+      fontSize: AppType.body,
       fontWeight: FontWeight.w800,
       color: const Color(0xFF3F4B45),
       height: 1.18,
@@ -38,14 +38,14 @@ TextStyle _detailTitleStyle({TextDecoration? decoration}) => GoogleFonts.nunitoS
     );
 
 TextStyle _detailMetaStyle() => GoogleFonts.nunitoSans(
-      fontSize: 11,
+      fontSize: AppType.label,
       fontWeight: FontWeight.w700,
       color: _colors.accentText,
       height: 1.18,
     );
 
 TextStyle _detailParagraphStyle() => GoogleFonts.nunitoSans(
-      fontSize: 12,
+      fontSize: AppType.body,
       fontWeight: FontWeight.w500,
       color: const Color(0xFF606A66),
       height: 1.30,
