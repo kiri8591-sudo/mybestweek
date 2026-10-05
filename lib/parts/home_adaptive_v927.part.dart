@@ -91,24 +91,24 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
           ? 'Tout est fait. Tu peux simplement profiter de la soirée.'
           : 'Tout ce qui était prévu est fait. Garde maintenant un peu de place pour toi ✨';
       icon = night ? '🌙' : '✨';
-      background = const Color(0xFFEAF6EE);
-      border = const Color(0xFFD2E7D9);
+      background = _colors.tintStrong;
+      border = _colors.borderTint;
     } else if (weatherBad) {
       title = evening ? 'Pour la suite' : 'Un petit ajustement de rythme';
       message = evening
           ? 'La sortie prévue peut attendre un moment plus favorable. Le reste de la journée reste ouvert.'
           : 'La météo est moins accueillante pour sortir. Garde les activités extérieures pour le bon moment.';
       icon = todayWeather?.icon ?? '🌦️';
-      background = const Color(0xFFEAF1F6);
-      border = const Color(0xFFD4E1EA);
+      background = _colors.tintStrong;
+      border = _colors.borderTint;
     } else if (night) {
       title = 'Pour demain';
       message = remaining.isEmpty
           ? 'La journée se termine doucement. Rien ne presse maintenant.'
           : '${remaining.length} moment${remaining.length > 1 ? 's' : ''} reste${remaining.length > 1 ? 'nt' : ''}, mais tu peux les laisser vivre à leur rythme.';
       icon = '🌙';
-      background = const Color(0xFFF0EEF6);
-      border = const Color(0xFFDDD8E9);
+      background = _colors.surfaceSoft;
+      border = _colors.borderTint;
     } else if (evening) {
       title = busyDay ? 'La journée avance bien' : 'Pour terminer la journée';
       message = remaining.isEmpty
@@ -117,8 +117,8 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
               ? 'Il reste un dernier moment à vivre tranquillement.${hasMusic ? ' 🎵' : hasSport ? ' 💪' : ''}'
               : '${remaining.length} moments restent à vivre · ${remainingMinutes} min environ.';
       icon = remaining.isEmpty ? '🌙' : '☕';
-      background = const Color(0xFFF3F0EA);
-      border = const Color(0xFFE2D9CA);
+      background = _colors.surfaceSunken;
+      border = _colors.borderStrong;
     } else if (afternoon) {
       title = todayDone > 0 ? 'La journée est bien lancée' : (busyDay ? 'Une journée bien remplie' : 'L’après-midi est à toi');
       message = weatherBad
@@ -129,8 +129,8 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
                   '${remainingMinutes > 0 ? ' · environ $remainingMinutes min' : ''}'
                   '${outdoorRemaining ? ' · le plein air peut trouver sa place' : ''}';
       icon = outdoorRemaining ? '🌿' : (hasSport ? '💪' : (hasMusic ? '🎵' : '🌤️'));
-      background = const Color(0xFFEAF6F0);
-      border = const Color(0xFFD4E7DD);
+      background = _colors.tintStrong;
+      border = _colors.borderTint;
     } else {
       title = busyDay ? 'Une belle journée se prépare' : (lightDay ? 'Une journée légère' : 'Pour bien commencer');
       message = weatherBad
@@ -140,8 +140,8 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
               : '${remaining.length} moments t’attendent aujourd’hui.'
                   '${outdoorRemaining ? ' Le plein air pourra apporter une vraie respiration.' : ''}';
       icon = outdoorRemaining ? '🌿' : (hasMusic ? '🎵' : (hasSport ? '💪' : '☀️'));
-      background = lightDay ? const Color(0xFFFFF5E8) : const Color(0xFFFFF1DE);
-      border = lightDay ? const Color(0xFFF0DDC1) : const Color(0xFFF0D7B6);
+      background = lightDay ? _colors.peachBg : _colors.peachBg;
+      border = lightDay ? _colors.goldBorder : _colors.goldBorder;
     }
 
     final progressLabel = weekTotal == 0
@@ -165,20 +165,20 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFCF7).withValues(alpha: .74),
-                  borderRadius: BorderRadius.circular(14),
+                  color: _colors.card.withValues(alpha: .74),
+                  borderRadius: BorderRadius.circular(AppRadius.l),
                 ),
                 alignment: Alignment.center,
-                child: Text(icon, style: const TextStyle(fontSize: 21)),
+                child: Text(icon, style: const TextStyle(fontSize: AppType.h1)),
               ),
               const SizedBox(width: 9),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 13.4, fontWeight: FontWeight.w900, color: Color(0xFF46544D))),
+                    Text(title, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
                     const SizedBox(height: 3),
-                    Text(message, style: const TextStyle(fontSize: 10.5, height: 1.28, fontWeight: FontWeight.w700, color: Color(0xFF68746D))),
+                    Text(message, style: TextStyle(fontSize: AppType.small, height: 1.28, fontWeight: FontWeight.w700, color: _colors.accentIcon)),
                   ],
                 ),
               ),
@@ -187,10 +187,10 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFFCF7).withValues(alpha: .78),
-                    borderRadius: BorderRadius.circular(99),
+                    color: _colors.card.withValues(alpha: .78),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
-                  child: Text('$todayDone/${todayActionItems.length}', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF60786B))),
+                  child: Text('$todayDone/${todayActionItems.length}', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
                 ),
               ],
             ],
@@ -199,19 +199,19 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
           Row(
             children: [
               Expanded(
-                child: Text(progressLabel, style: const TextStyle(fontSize: 9.6, fontWeight: FontWeight.w800, color: Color(0xFF68756E))),
+                child: Text(progressLabel, style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
               ),
               const SizedBox(width: 8),
-              Text('${(weekProgress * 100).round()} %', style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Color(0xFF527061))),
+              Text('${(weekProgress * 100).round()} %', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
             ],
           ),
           const SizedBox(height: 3),
           ClipRRect(
-            borderRadius: BorderRadius.circular(99),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
             child: LinearProgressIndicator(
               value: weekProgress,
               minHeight: 4,
-              backgroundColor: const Color(0xFFDCE7DF),
+              backgroundColor: _colors.tintStrong,
               valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF88AE98)),
             ),
           ),

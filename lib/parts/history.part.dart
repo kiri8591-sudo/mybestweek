@@ -147,17 +147,17 @@ class _HistorySheetState extends State<_HistorySheet> {
       child: Container(
         padding: const EdgeInsets.all(11),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F1E8),
-          borderRadius: BorderRadius.circular(14),
+          color: _colors.surfaceSunken,
+          borderRadius: BorderRadius.circular(AppRadius.l),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _uiIcon(iconKey, icon, size: 19, color: const Color(0xFF6F8E80)),
+            _uiIcon(iconKey, icon, size: 19, color: _colors.accentIcon),
             const SizedBox(height: 6),
-            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF33414A))),
+            Text(value, style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
             const SizedBox(height: 2),
-            Text(label, style: const TextStyle(fontSize: 10.5, color: Color(0xFF6F7777))),
+            Text(label, style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
           ],
         ),
       ),
@@ -174,17 +174,17 @@ class _HistorySheetState extends State<_HistorySheet> {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: const Color(0xFFE5EEE9),
-              borderRadius: BorderRadius.circular(10),
+              color: _colors.tintStrong,
+              borderRadius: BorderRadius.circular(AppRadius.m),
             ),
-            child: _uiIcon(iconKey, icon, size: 17, color: const Color(0xFF6F8E80)),
+            child: _uiIcon(iconKey, icon, size: 17, color: _colors.accentIcon),
           ),
           const SizedBox(width: 9),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
               const SizedBox(height: 2),
-              Text(text, style: const TextStyle(fontSize: 12.3, color: Color(0xFF606B6A), height: 1.3)),
+              Text(text, style: TextStyle(fontSize: AppType.body, color: _colors.textMuted, height: 1.3)),
             ]),
           ),
         ],
@@ -310,33 +310,33 @@ class _HistorySheetState extends State<_HistorySheet> {
     final ratio = _adherenceFor(activity, 30);
     return InkWell(
       onTap: () => _showActivityMemory(activity),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppRadius.m),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 7),
         child: Row(children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: const Color(0xFFE7EDF0),
+            backgroundColor: _colors.tintStrong,
             child: _activityIconWidget(activity.emoji, size: 24),
           ),
           const SizedBox(width: 9),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(activity.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12.3, fontWeight: FontWeight.w800)),
+            Text(activity.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textStrong)),
             const SizedBox(height: 4),
             ClipRRect(
-              borderRadius: BorderRadius.circular(5),
+              borderRadius: BorderRadius.circular(AppRadius.xs),
               child: LinearProgressIndicator(
                 minHeight: 6,
                 value: ratio,
-                backgroundColor: const Color(0xFFE4E5E1),
+                backgroundColor: _colors.border,
               ),
             ),
             const SizedBox(height: 3),
             Text('$done / ${expected.round()} · ${(_adherenceFor(activity, 30) * 100).round()} % · ${_lastDoneLabel(activity, 30)}',
-                style: const TextStyle(fontSize: 10.5, color: Color(0xFF737C7B))),
+                style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
           ])),
           const SizedBox(width: 5),
-          _uiIcon('planOpen', Icons.chevron_right, size: 19, color: const Color(0xFF8A9491)),
+          _uiIcon('planOpen', Icons.chevron_right, size: 19, color: _colors.textMuted),
         ]),
       ),
     );
@@ -359,41 +359,41 @@ class _HistorySheetState extends State<_HistorySheet> {
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              CircleAvatar(radius: 24, backgroundColor: const Color(0xFFE7EDF0), child: _activityIconWidget(activity.emoji, size: 34)),
+              CircleAvatar(radius: 24, backgroundColor: _colors.tintStrong, child: _activityIconWidget(activity.emoji, size: 34)),
               const SizedBox(width: 10),
-              Expanded(child: Text(activity.name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900))),
+              Expanded(child: Text(activity.name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))),
             ]),
             const SizedBox(height: 14),
-            Text('Mémoire sur 30 jours', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+            Text('Mémoire sur 30 jours', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
-            Text('Réalisée ${last30.length} fois · prévue environ ${ (activity.frequency.clamp(1, 7) * 30 / 7.0).round()} fois.', style: const TextStyle(fontSize: 12.3)),
+            Text('Réalisée ${last30.length} fois · prévue environ ${ (activity.frequency.clamp(1, 7) * 30 / 7.0).round()} fois.', style: const TextStyle(fontSize: AppType.body)),
             const SizedBox(height: 9),
             Container(
               padding: const EdgeInsets.fromLTRB(11, 9, 11, 9),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1EEE6),
-                borderRadius: BorderRadius.circular(12),
+                color: _colors.surfaceSunken,
+                borderRadius: BorderRadius.circular(AppRadius.m),
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Tes réglages', style: TextStyle(fontSize: 11.4, fontWeight: FontWeight.w900, color: Color(0xFF6C756F))),
+                Text('Tes réglages', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
                 const SizedBox(height: 4),
                 Text('${activity.frequency}×/semaine · ${activity.duration} min · priorité ${activity.priority}/5 · jours préférés : ${activity.preferredDays.isEmpty ? 'aucun' : activity.preferredDays.map((d) => d >= 0 && d < widget.dayNames.length ? widget.dayNames[d] : '').where((v) => v.isNotEmpty).join(', ')}',
-                    style: const TextStyle(fontSize: 11.3, height: 1.3)),
+                    style: const TextStyle(fontSize: AppType.label, height: 1.3)),
               ]),
             ),
             const SizedBox(height: 8),
-            Text('Dernière réalisation : ${_lastDoneLabel(activity, 30)} · jour habituel : ${_habitualDay(activity, 30)}.', style: const TextStyle(fontSize: 12.3)),
+            Text('Dernière réalisation : ${_lastDoneLabel(activity, 30)} · jour habituel : ${_habitualDay(activity, 30)}.', style: const TextStyle(fontSize: AppType.body)),
             const SizedBox(height: 5),
-            Text('Habitude apprise : ${_learnedMemorySentence(activity)}', style: const TextStyle(fontSize: 12.1, color: Color(0xFF5F6E68))),
+            Text('Habitude apprise : ${_learnedMemorySentence(activity)}', style: TextStyle(fontSize: AppType.body, color: _colors.accentIcon)),
             const SizedBox(height: 5),
-            Text('Temps : ${_durationText(realised)} réalisés', style: const TextStyle(fontSize: 12.3)),
+            Text('Temps : ${_durationText(realised)} réalisés', style: const TextStyle(fontSize: AppType.body)),
             if (planned > 0) ...[
               const SizedBox(height: 5),
-              Text('Écart sur les séances enregistrées : ${realised - planned >= 0 ? '+' : ''}${realised - planned} min.', style: const TextStyle(fontSize: 12.3)),
+              Text('Écart sur les séances enregistrées : ${realised - planned >= 0 ? '+' : ''}${realised - planned} min.', style: const TextStyle(fontSize: AppType.body)),
             ],
             if (difficult > 0 || veryGood > 0) ...[
               const SizedBox(height: 5),
-              Text('Ressentis : ${veryGood > 0 ? 'Très bien $veryGood' : ''}${veryGood > 0 && difficult > 0 ? ' · ' : ''}${difficult > 0 ? 'Difficile $difficult' : ''}.', style: const TextStyle(fontSize: 12.3)),
+              Text('Ressentis : ${veryGood > 0 ? 'Très bien $veryGood' : ''}${veryGood > 0 && difficult > 0 ? ' · ' : ''}${difficult > 0 ? 'Difficile $difficult' : ''}.', style: const TextStyle(fontSize: AppType.body)),
             ],
             const SizedBox(height: 14),
             SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Fermer'))),
@@ -493,14 +493,14 @@ class _HistorySheetState extends State<_HistorySheet> {
     return Column(
       children: [
         Card(
-          color: const Color(0xFFE9EEE9),
+          color: _colors.surfaceSunken,
           child: Padding(
             padding: const EdgeInsets.all(15),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Text('🧸', style: TextStyle(fontSize: 23)),
+                const Text('🧸', style: TextStyle(fontSize: AppType.display)),
                 const SizedBox(width: 8),
-                Expanded(child: Text('Ce que ton historique apprend', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                Expanded(child: Text('Ce que ton historique apprend', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
               ]),
               const SizedBox(height: 11),
               Row(children: [
@@ -511,30 +511,30 @@ class _HistorySheetState extends State<_HistorySheet> {
                 _metric('jours actifs · 7 j', '$activeDays/7', 'reviewActiveDays', Icons.calendar_month_outlined),
               ]),
               const SizedBox(height: 7),
-              Text('Sur 30 jours : ${last30.length} moments · ${_durationLabel(minutes30)} · $avgWeek moments/semaine en moyenne.', style: const TextStyle(fontSize: 11.7, color: Color(0xFF65706F))),
+              Text('Sur 30 jours : ${last30.length} moments · ${_durationLabel(minutes30)} · $avgWeek moments/semaine en moyenne.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted)),
               const SizedBox(height: 5),
-              Text('Tu réalises surtout tes activités le $busiestDay et la catégorie la plus présente est « $topCategory ».', style: const TextStyle(fontSize: 12.1, height: 1.3)),
+              Text('Tu réalises surtout tes activités le $busiestDay et la catégorie la plus présente est « $topCategory ».', style: const TextStyle(fontSize: AppType.body, height: 1.3)),
               if (topActivity != null) ...[
                 const SizedBox(height: 5),
-                Text('Ton activité la plus régulière sur 30 jours : ${topActivity.name}.', style: const TextStyle(fontSize: 12.1, fontWeight: FontWeight.w700)),
+                Text('Ton activité la plus régulière sur 30 jours : ${topActivity.name}.', style: const TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700)),
               ],
             ]),
           ),
         ),
         const SizedBox(height: 9),
         Card(
-          color: const Color(0xFFF3EEE4),
+          color: _colors.surfaceSunken,
           child: Padding(
             padding: const EdgeInsets.all(15),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                _uiIcon('settings', Icons.tune_outlined, size: 18, color: const Color(0xFFC67E67)),
+                _uiIcon('settings', Icons.tune_outlined, size: 18, color: _colors.danger),
                 const SizedBox(width: 8),
-                Text('À faire évoluer', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                Text('À faire évoluer', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
               ]),
               const SizedBox(height: 6),
               if (under.isEmpty)
-                const Text('Aucune activité ne présente un écart important sur les 30 derniers jours.', style: TextStyle(fontSize: 12.2, color: Color(0xFF697271)))
+                Text('Aucune activité ne présente un écart important sur les 30 derniers jours.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted))
               else
                 ...under.map((a) => _insightTile(
                       iconKey: 'histTrend',
@@ -544,7 +544,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                     )),
               if (anchored.isNotEmpty) ...[
                 const SizedBox(height: 11),
-                const Text('Bien ancrées', style: TextStyle(fontWeight: FontWeight.w900)),
+                const Text('Bien ancrées', style: TextStyle(fontWeight: FontWeight.w800)),
                 ...anchored.map((a) => _insightTile(
                       iconKey: 'histStable',
                       title: a.name,
@@ -557,17 +557,17 @@ class _HistorySheetState extends State<_HistorySheet> {
         ),
         const SizedBox(height: 9),
         Card(
-          color: const Color(0xFFE8F0EA),
+          color: _colors.tintStrong,
           child: Padding(
             padding: const EdgeInsets.all(15),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                _uiIcon('coach', Icons.psychology_outlined, size: 18, color: const Color(0xFF6F8E80)),
+                _uiIcon('coach', Icons.psychology_outlined, size: 18, color: _colors.accentIcon),
                 const SizedBox(width: 8),
-                Expanded(child: Text('Apprentissage du coach', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                Expanded(child: Text('Apprentissage du coach', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
               ]),
               const SizedBox(height: 6),
-              Text(_learningOverviewText(), style: const TextStyle(fontSize: 11.9, color: Color(0xFF5E6B65), height: 1.3)),
+              Text(_learningOverviewText(), style: TextStyle(fontSize: AppType.label, color: _colors.accentIcon, height: 1.3)),
               const SizedBox(height: 9),
               OutlinedButton.icon(
                 onPressed: widget.onOpenGenerationCriteria,
@@ -579,24 +579,24 @@ class _HistorySheetState extends State<_HistorySheet> {
         ),
         const SizedBox(height: 9),
         Card(
-          color: const Color(0xFFF7F3EA),
+          color: _colors.surfaceSunken,
           child: Padding(
             padding: const EdgeInsets.all(15),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                _uiIcon('insights', Icons.auto_graph_outlined, size: 18, color: const Color(0xFF7D988D)),
+                _uiIcon('insights', Icons.auto_graph_outlined, size: 18, color: _colors.accentIcon),
                 const SizedBox(width: 8),
-                Expanded(child: Text('Mémoire par activité', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
-                Text('${_memoryActivities().length}/${widget.activities.length}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF77746D))),
+                Expanded(child: Text('Mémoire par activité', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
+                Text('${_memoryActivities().length}/${widget.activities.length}', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textWarm)),
               ]),
               const SizedBox(height: 7),
-              const Text('Toutes tes activités ont une mémoire. Touche une ligne pour voir le détail sur 30 jours.', style: TextStyle(fontSize: 11.7, color: Color(0xFF687271), height: 1.3)),
+              Text('Toutes tes activités ont une mémoire. Touche une ligne pour voir le détail sur 30 jours.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted, height: 1.3)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
                 children: ['Toutes', 'Réalisé', 'À surveiller', 'Bien installées', 'Jamais réalisées'].map((value) => ChoiceChip(
-                      label: Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                      label: Text(value, style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800)),
                       selected: _memoryFilter == value,
                       onSelected: (_) => setState(() => _memoryFilter = value),
                       visualDensity: VisualDensity.compact,
@@ -604,7 +604,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                     )).toList(),
               ),
               const SizedBox(height: 8),
-              const Text('Type d’activité', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF606B6A))),
+              Text('Type d’activité', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
               const SizedBox(height: 5),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -614,7 +614,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                       Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: ChoiceChip(
-                          label: Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                          label: Text(value, style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800)),
                           selected: _memoryType == value,
                           onSelected: (_) => setState(() => _memoryType = value),
                           visualDensity: VisualDensity.compact,
@@ -627,7 +627,7 @@ class _HistorySheetState extends State<_HistorySheet> {
               const SizedBox(height: 7),
               Row(
                 children: [
-                  const Text('Trier par', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF606B6A))),
+                  Text('Trier par', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: DropdownButtonHideUnderline(
@@ -649,21 +649,21 @@ class _HistorySheetState extends State<_HistorySheet> {
                   ),
                   const SizedBox(width: 6),
                   InkWell(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppRadius.m),
                     onTap: () => setState(() => _memorySortAscending = !_memorySortAscending),
                     child: Container(
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE7EEE9),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFD3DED7)),
+                        color: _colors.tintStrong,
+                        borderRadius: BorderRadius.circular(AppRadius.m),
+                        border: Border.all(color: _colors.borderTint),
                       ),
                       child: _uiIcon(
                         _memorySortAscending ? 'histSortUp' : 'histSortDown',
                         _memorySortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
                         size: 18,
-                        color: const Color(0xFF526B78),
+                        color: _colors.accentText,
                       ),
                     ),
                   ),
@@ -672,38 +672,38 @@ class _HistorySheetState extends State<_HistorySheet> {
               const SizedBox(height: 3),
               Text(
                 _memorySortAscending ? 'Ordre croissant' : 'Ordre décroissant',
-                style: const TextStyle(fontSize: 10.5, color: Color(0xFF7A817F)),
+                style: TextStyle(fontSize: AppType.small, color: _colors.textMuted),
               ),
               const SizedBox(height: 4),
               ..._memoryActivities().map(_activityMemoryRow),
               if (_memoryActivities().isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Text('Aucune activité dans ce filtre.', style: TextStyle(fontSize: 12, color: Color(0xFF6F7777))),
+                  child: Text('Aucune activité dans ce filtre.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted)),
                 ),
             ]),
           ),
         ),
         const SizedBox(height: 9),
         Card(
-          color: const Color(0xFFE7EDF0),
+          color: _colors.tintStrong,
           child: Padding(
             padding: const EdgeInsets.all(15),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                _uiIcon('coach', Icons.psychology_outlined, size: 18, color: const Color(0xFF526B78)),
+                _uiIcon('coach', Icons.psychology_outlined, size: 18, color: _colors.accentText),
                 const SizedBox(width: 8),
-                Text('Ce que le coach retient', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                Text('Ce que le coach retient', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
               ]),
               const SizedBox(height: 8),
               const Text(
                 'Le prochain planning tient compte de la mémoire des 30 derniers jours : délai depuis la dernière réalisation, fréquence réelle, jours où l’activité est habituellement réalisée et ressentis difficiles ou très positifs.',
-                style: TextStyle(fontSize: 12.2, height: 1.35),
+                style: TextStyle(fontSize: AppType.body, height: 1.35),
               ),
               const SizedBox(height: 7),
-              const Text(
+              Text(
                 'Le coach ne remplace pas tes priorités ni tes jours préférés : l’historique sert à départager les possibilités et à éviter les répétitions inutiles.',
-                style: TextStyle(fontSize: 11.8, color: Color(0xFF687372), height: 1.3),
+                style: TextStyle(fontSize: AppType.label, color: _colors.textMuted, height: 1.3),
               ),
             ]),
           ),
@@ -734,7 +734,7 @@ class _HistorySheetState extends State<_HistorySheet> {
             activity ??= _mostFrequentActivity([log]);
             if (activity != null) _showActivityMemory(activity);
           },
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.m),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             child: Row(
@@ -742,7 +742,7 @@ class _HistorySheetState extends State<_HistorySheet> {
               children: [
                 CircleAvatar(
                   radius: 22,
-                  backgroundColor: const Color(0xFFE7EDF0),
+                  backgroundColor: _colors.tintStrong,
                   child: _activityIconWidget(_activityLogIconValue(log, widget.activities), size: 28),
                 ),
                 const SizedBox(width: 11),
@@ -762,15 +762,15 @@ class _HistorySheetState extends State<_HistorySheet> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF1E3DC),
-                                borderRadius: BorderRadius.circular(8),
+                                color: _colors.warnBg,
+                                borderRadius: BorderRadius.circular(AppRadius.s),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'IMPRÉVU',
                                 style: TextStyle(
-                                  fontSize: 9.5,
-                                  fontWeight: FontWeight.w900,
-                                  color: Color(0xFF9A634F),
+                                  fontSize: AppType.caption,
+                                  fontWeight: FontWeight.w800,
+                                  color: _colors.goldText,
                                 ),
                               ),
                             ),
@@ -779,21 +779,21 @@ class _HistorySheetState extends State<_HistorySheet> {
                       const SizedBox(height: 3),
                       Text(
                         '${widget.dayNames[log.day]} · ${log.period} · $dateLabel',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF697271)),
+                        style: TextStyle(fontSize: AppType.body, color: _colors.textMuted),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '✓ Validé · ${log.realisedMinutes} min',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF526B78),
+                          color: _colors.accentText,
                         ),
                       ),
                       if (log.feeling.isNotEmpty) ...[
                         const SizedBox(height: 3),
                         Text(
                           'Ressenti : ${log.feeling}',
-                          style: const TextStyle(fontSize: 11.5, color: Color(0xFF707A79)),
+                          style: TextStyle(fontSize: AppType.label, color: _colors.textMuted),
                         ),
                       ],
                     ],
@@ -824,7 +824,7 @@ class _HistorySheetState extends State<_HistorySheet> {
             Row(children: [
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Historique', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+                  Text('Historique', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
                   Text(widget.logs.isEmpty
                       ? 'Aucune activité enregistrée pour le moment.'
@@ -839,7 +839,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                 children: [
                   _analysisCard(),
                   const SizedBox(height: 14),
-                  Text('Journal des activités', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                  Text('Journal des activités', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                   const SizedBox(height: 8),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -861,7 +861,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                   if (widget.logs.isNotEmpty)
                     Text(
                       '${sorted.length} activité${sorted.length > 1 ? 's' : ''} affichée${sorted.length > 1 ? 's' : ''}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF697271)),
+                      style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted),
                     ),
                   const SizedBox(height: 8),
                   if (sorted.isEmpty)

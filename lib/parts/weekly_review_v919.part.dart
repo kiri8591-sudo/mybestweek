@@ -83,7 +83,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
         title: const Text('Bilan · 4 semaines'),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: _uiIconValue('reviewBack', '←').startsWith('customicon://') ? _activityIconWidget(_uiIconValue('reviewBack', '←'), size: 20) : Text(_uiIconValue('reviewBack', '←'), style: const TextStyle(fontSize: 20)),
+          icon: (_uiIconValue('reviewBack', '←').startsWith('customicon://') || _uiIconValue('reviewBack', '←').startsWith('pack://')) ? _activityIconWidget(_uiIconValue('reviewBack', '←'), size: 20) : Text(_uiIconValue('reviewBack', '←'), style: const TextStyle(fontSize: AppType.h1)),
           tooltip: 'Retour',
         ),
       ),
@@ -92,11 +92,11 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
           children: [
             Card(
-              color: const Color(0xFFE7EDF0),
+              color: _colors.tintStrong,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Cette semaine en quelques chiffres', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                  Text('Cette semaine en quelques chiffres', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
                   const SizedBox(height: 14),
                   Row(children: [
                     Expanded(child: _ReviewStat(label: 'Moments réalisés', value: '$completed/${trackedPlan.length}', iconKey: 'reviewMoments', icon: Icons.check_circle_outline)),
@@ -122,20 +122,20 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                     Expanded(child: _ReviewStat(label: 'Imprévus', value: '$unplanned', iconKey: 'reviewUnexpected', icon: Icons.auto_awesome_outlined)),
                   ]),
                   const SizedBox(height: 12),
-                  LinearProgressIndicator(value: completionRate, minHeight: 9, borderRadius: BorderRadius.circular(20)),
+                  LinearProgressIndicator(value: completionRate, minHeight: 9, borderRadius: BorderRadius.circular(AppRadius.xl)),
                 ]),
               ),
             ),
             const SizedBox(height: 12),
             Card(
-              color: const Color(0xFFE8F0EA),
+              color: _colors.tintStrong,
               child: Padding(
                 padding: const EdgeInsets.all(15),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    _uiIcon('coach', Icons.psychology_outlined, size: 18, color: const Color(0xFF6F8E80)),
+                    _uiIcon('coach', Icons.psychology_outlined, size: 18, color: _colors.accentIcon),
                     const SizedBox(width: 8),
-                    Expanded(child: Text('Le regard du coach', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                    Expanded(child: Text('Le regard du coach', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
                     IconButton(
                       visualDensity: VisualDensity.compact,
                       tooltip: 'Pourquoi ces choix ?',
@@ -144,13 +144,13 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                     ),
                   ]),
                   const SizedBox(height: 7),
-                  Text(widget.coachSummary, style: const TextStyle(fontSize: 12.1, height: 1.35)),
+                  Text(widget.coachSummary, style: const TextStyle(fontSize: AppType.body, height: 1.35)),
                   const SizedBox(height: 8),
                   ...widget.coachInsights.take(5).map((text) => Padding(
                     padding: const EdgeInsets.only(bottom: 5),
                     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      const Text('• ', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF6F8E80))),
-                      Expanded(child: Text(text, style: const TextStyle(fontSize: 11.6, color: Color(0xFF5E6B65), height: 1.25))),
+                      Text('• ', style: TextStyle(fontWeight: FontWeight.w800, color: _colors.accentIcon)),
+                      Expanded(child: Text(text, style: TextStyle(fontSize: AppType.label, color: _colors.accentIcon, height: 1.25))),
                     ]),
                   )),
                 ]),
@@ -210,37 +210,37 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                 return Column(
                   children: [
                     Card(
-                      color: const Color(0xFFEAF1EB),
+                      color: _colors.tintStrong,
                       child: Padding(
                         padding: const EdgeInsets.all(15),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Row(children: [
-                            _uiIcon('coach', Icons.auto_awesome_outlined, size: 19, color: const Color(0xFF6F8E80)),
+                            _uiIcon('coach', Icons.auto_awesome_outlined, size: 19, color: _colors.accentIcon),
                             const SizedBox(width: 8),
-                            Expanded(child: Text('La direction pour la suite', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                            Expanded(child: Text('La direction pour la suite', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
                           ]),
                           const SizedBox(height: 7),
-                          Text(directionTitle, style: const TextStyle(fontSize: 13.2, fontWeight: FontWeight.w900)),
+                          Text(directionTitle, style: const TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800)),
                           const SizedBox(height: 5),
-                          Text(directionText, style: const TextStyle(fontSize: 11.9, height: 1.35, color: Color(0xFF5E6B65))),
+                          Text(directionText, style: TextStyle(fontSize: AppType.label, height: 1.35, color: _colors.accentIcon)),
                         ]),
                       ),
                     ),
                     const SizedBox(height: 12),
                     Card(
-                      color: const Color(0xFFF3EEE8),
+                      color: _colors.surfaceSunken,
                   child: Padding(
                     padding: const EdgeInsets.all(15),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Row(children: [
-                        const Text('🗓️', style: TextStyle(fontSize: 18)),
+                        const Text('🗓️', style: TextStyle(fontSize: AppType.h2)),
                         const SizedBox(width: 7),
-                        Expanded(child: Text('Ton rythme sur 4 semaines', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                        Expanded(child: Text('Ton rythme sur 4 semaines', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
                       ]),
                       const SizedBox(height: 5),
-                      const Text(
+                      Text(
                         'Une vue simple des quatre dernières semaines pour voir le rythme réel, sans mélanger les semaines.',
-                        style: TextStyle(fontSize: 11.4, color: Color(0xFF68716D), height: 1.3),
+                        style: TextStyle(fontSize: AppType.label, color: _colors.textMuted, height: 1.3),
                       ),
                       const SizedBox(height: 11),
                       Row(children: [
@@ -275,19 +275,19 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
             ),
             const SizedBox(height: 12),
             Card(
-              color: const Color(0xFFF7F3EA),
+              color: _colors.surfaceSunken,
               child: Padding(
                 padding: const EdgeInsets.all(15),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    _uiIcon('insights', Icons.insights_outlined, size: 18, color: const Color(0xFF7D988D)),
+                    _uiIcon('insights', Icons.insights_outlined, size: 18, color: _colors.accentIcon),
                     const SizedBox(width: 8),
-                    Expanded(child: Text('À quoi sert ce bilan ?', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+                    Expanded(child: Text('À quoi sert ce bilan ?', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
                   ]),
                   const SizedBox(height: 7),
-                  const Text(
+                  Text(
                     'Le bilan compare ce qui était prévu avec ce qui a réellement été vécu. Il rassemble tes validations, tes durées, tes ressentis et tes déplacements pour aider MyBestWeek à mieux comprendre ton rythme.',
-                    style: TextStyle(fontSize: 12.1, height: 1.35, color: Color(0xFF606B6A)),
+                    style: TextStyle(fontSize: AppType.body, height: 1.35, color: _colors.textMuted),
                   ),
                   const SizedBox(height: 10),
                   Row(children: [
@@ -312,14 +312,14 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
             ),
             const SizedBox(height: 12),
             Card(
-              color: const Color(0xFFF3EEE4),
+              color: _colors.surfaceSunken,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    _uiIcon('reviewPiano', Icons.piano_outlined, size: 21, color: const Color(0xFFC67E67)),
+                    _uiIcon('reviewPiano', Icons.piano_outlined, size: 21, color: _colors.danger),
                     const SizedBox(width: 8),
-                    Text('Musique & mouvement', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                    Text('Musique & mouvement', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                   ]),
                   const SizedBox(height: 12),
                   Text('🎹 Piano réalisé : $pianoMinutes min'),
@@ -332,14 +332,14 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
             ),
             const SizedBox(height: 12),
             Card(
-              color: const Color(0xFFE5EEE9),
+              color: _colors.tintStrong,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    _uiIcon('reviewMood', Icons.sentiment_satisfied_alt_outlined, size: 21, color: const Color(0xFF6F8E80)),
+                    _uiIcon('reviewMood', Icons.sentiment_satisfied_alt_outlined, size: 21, color: _colors.accentIcon),
                     const SizedBox(width: 8),
-                    Text('Comment s’est passée la semaine ?', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                    Text('Comment s’est passée la semaine ?', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                   ]),
                   const SizedBox(height: 12),
                   Wrap(
@@ -364,28 +364,28 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
             ),
             const SizedBox(height: 12),
             Card(
-              color: const Color(0xFFF0EBDF),
+              color: _colors.border,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    _uiIcon('move', Icons.open_with_outlined, size: 18, color: const Color(0xFF6F8E80)),
+                    _uiIcon('move', Icons.open_with_outlined, size: 18, color: _colors.accentIcon),
                     const SizedBox(width: 8),
-                    Text('Les déplacements de la semaine', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                    Text('Les déplacements de la semaine', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                   ]),
                   const SizedBox(height: 8),
                   if (weekMoves.isEmpty)
-                    const Text('Aucune activité n’a été déplacée cette semaine.', style: TextStyle(color: Color(0xFF6F7777)))
+                    Text('Aucune activité n’a été déplacée cette semaine.', style: TextStyle(color: _colors.textMuted))
                   else
                     ...weekMoves.take(8).map((m) => Padding(
                       padding: const EdgeInsets.only(top: 7),
                       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text('↔ ', style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF6F8E80))),
-                        Expanded(child: Text('${m.activityName} · ${dayNames[m.fromDay]} ${m.fromPeriod} → ${dayNames[m.toDay]} ${m.toPeriod}', style: const TextStyle(fontSize: 12.5))),
+                        Text('↔ ', style: TextStyle(fontWeight: FontWeight.w800, color: _colors.accentIcon)),
+                        Expanded(child: Text('${m.activityName} · ${dayNames[m.fromDay]} ${m.fromPeriod} → ${dayNames[m.toDay]} ${m.toPeriod}', style: const TextStyle(fontSize: AppType.body))),
                       ]),
                     )),
                   if (weekMoves.length > 8)
-                    Padding(padding: const EdgeInsets.only(top: 8), child: Text('${weekMoves.length - 8} autre(s) déplacement(s).', style: const TextStyle(fontSize: 11.5, color: Color(0xFF6F7777)))),
+                    Padding(padding: const EdgeInsets.only(top: 8), child: Text('${weekMoves.length - 8} autre(s) déplacement(s).', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted))),
                 ]),
               ),
             ),
@@ -394,7 +394,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Mon petit bilan personnel', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+                  Text('Mon petit bilan personnel', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
                   const Text('Une phrase suffit : ce qui m’a plu, ce qui a été facile ou ce que j’aimerais changer.'),
                   const SizedBox(height: 12),
@@ -462,18 +462,18 @@ class _ReviewWeekRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF9),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE0DDD4)),
+        color: _colors.card,
+        borderRadius: BorderRadius.circular(AppRadius.l),
+        border: Border.all(color: _colors.borderStrong),
       ),
       child: Row(
         children: [
           SizedBox(
             width: 78,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label, style: const TextStyle(fontSize: 11.8, fontWeight: FontWeight.w900, color: Color(0xFF526B78))),
+              Text(label, style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.accentText)),
               const SizedBox(height: 2),
-              Text('${_dateLabel(summary.start)}–${_dateLabel(summary.end.subtract(const Duration(days: 1)))}', style: const TextStyle(fontSize: 9.2, color: Color(0xFF7A817E))),
+              Text('${_dateLabel(summary.start)}–${_dateLabel(summary.end.subtract(const Duration(days: 1)))}', style: TextStyle(fontSize: AppType.micro, color: _colors.textMuted)),
             ]),
           ),
           const SizedBox(width: 8),
@@ -482,11 +482,11 @@ class _ReviewWeekRow extends StatelessWidget {
               spacing: 7,
               runSpacing: 3,
               children: [
-                Text('${summary.activeDays} j', style: const TextStyle(fontSize: 10.8, fontWeight: FontWeight.w800)),
-                Text('${summary.moments} moments', style: const TextStyle(fontSize: 10.8, color: Color(0xFF626C68))),
-                Text('${summary.minutes} min', style: const TextStyle(fontSize: 10.8, color: Color(0xFF626C68))),
+                Text('${summary.activeDays} j', style: const TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800)),
+                Text('${summary.moments} moments', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
+                Text('${summary.minutes} min', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
                 if (summary.difficult > 0)
-                  Text('${summary.difficult} difficile${summary.difficult > 1 ? 's' : ''}', style: const TextStyle(fontSize: 10.8, color: Color(0xFF8A6C5D))),
+                  Text('${summary.difficult} difficile${summary.difficult > 1 ? 's' : ''}', style: TextStyle(fontSize: AppType.small, color: _colors.textWarm)),
               ],
             ),
           ),
@@ -510,17 +510,17 @@ class _ReviewStat extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF9),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE0DDD4)),
+        color: _colors.card,
+        borderRadius: BorderRadius.circular(AppRadius.l),
+        border: Border.all(color: _colors.borderStrong),
       ),
       child: Row(
         children: [
-          _uiIcon(iconKey, icon, size: 20, color: const Color(0xFF526B78)),
+          _uiIcon(iconKey, icon, size: 20, color: _colors.accentText),
           const SizedBox(width: 8),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-            Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: Color(0xFF6F7777))),
+            Text(value, style: const TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800)),
+            Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.label, color: _colors.textMuted)),
           ])),
         ],
       ),

@@ -31,30 +31,30 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
             duration: const Duration(milliseconds: 160),
             padding: EdgeInsets.all(highlighted ? 7 : 0),
             decoration: BoxDecoration(
-              color: highlighted ? const Color(0xFFDCEBE5) : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
-              border: highlighted ? Border.all(color: const Color(0xFF8EAD9F), width: 1.5) : null,
+              color: highlighted ? _colors.tintStrong : Colors.transparent,
+              borderRadius: BorderRadius.circular(AppRadius.l),
+              border: highlighted ? Border.all(color: _colors.accentSoftBorder, width: 1.5) : null,
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F0EB),
-                    borderRadius: BorderRadius.circular(13),
-                    boxShadow: const [BoxShadow(color: Color(0x10000000), blurRadius: 5, offset: Offset(0, 2))],
+                    color: _colors.tintStrong,
+                    borderRadius: BorderRadius.circular(AppRadius.m),
+                    boxShadow: [BoxShadow(color: _colors.shadow, blurRadius: 5, offset: Offset(0, 2))],
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text(label == 'Matin' ? '🌤️' : label == 'Après-midi' ? '🌿' : '🌙', style: const TextStyle(fontSize: 15.5, height: 1)),
+                    Text(label == 'Matin' ? '🌤️' : label == 'Après-midi' ? '🌿' : '🌙', style: const TextStyle(fontSize: AppType.title, height: 1)),
                     const SizedBox(width: 6),
-                    Text(label, style: GoogleFonts.nunitoSans(fontSize: 15.5, fontWeight: FontWeight.w900, color: const Color(0xFF405049), letterSpacing: .05)),
+                    Text(label, style: GoogleFonts.nunitoSans(fontSize: AppType.title, fontWeight: FontWeight.w800, color: _colors.textStrong, letterSpacing: .05)),
                   ]),
                 ),
                 if (highlighted) ...[
                   const SizedBox(width: 7),
                   _systemIconWidget('dragDown', fallback: '↓', size: 16),
                   const SizedBox(width: 3),
-                  const Text('Déposer ici', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFF6F8E80))),
+                  Text('Déposer ici', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
                 ],
               ]),
               const SizedBox(height: 4),
@@ -62,8 +62,8 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: .65), borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: Text('Déposer l’activité ici', style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF6F8E80)))),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: .65), borderRadius: BorderRadius.circular(AppRadius.m)),
+                  child: Center(child: Text('Déposer l’activité ici', style: TextStyle(fontWeight: FontWeight.w700, color: _colors.accentIcon))),
                 )
               else
                 ...items.map(todayCard),
@@ -77,12 +77,12 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
   Widget todayCard(PlanItem item) {
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
     final category = activity?.category ?? (item.customCategory ?? 'Autre');
-    final bg = item.optional ? const Color(0xFFF0EDE6) : _pastelFor(category);
+    final bg = item.optional ? _colors.surfaceSunken : _pastelFor(category);
     final card = Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Container(
         padding: const EdgeInsets.fromLTRB(8, 9, 6, 9),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16), boxShadow: const [BoxShadow(color: Color(0x0D000000), blurRadius: 5, offset: Offset(0, 2))]),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(AppRadius.l), boxShadow: [BoxShadow(color: _colors.shadowSoft, blurRadius: 5, offset: Offset(0, 2))]),
         child: Row(
           children: [
             Checkbox(
@@ -91,7 +91,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                 openPlanItem(item);
               },
               visualDensity: VisualDensity.compact,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xs)),
             ),
             const SizedBox(width: 2),
             if (activity != null || item.customEmoji != null) ...[
@@ -100,7 +100,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
             ],
             Expanded(
               child: InkWell(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.m),
                 onTap: () { final a = item.activityId == null ? null : findActivity(item.activityId!); if (a != null && _isSportActivity(a)) { addOrEditActivity(original: a); } else if (_isGenericActivityItem(item)) { _openGenericActivity(item); } else { openItemActions(item); } },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 3),
@@ -136,7 +136,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                 tooltip: 'Pourquoi le coach a choisi ce moment ?',
                 visualDensity: VisualDensity.compact,
                 onPressed: () => _showPlanItemCoachReason(item),
-                icon: _uiIcon('coach', Icons.psychology_alt_outlined, size: 18, color: const Color(0xFF789082)),
+                icon: _uiIcon('coach', Icons.psychology_alt_outlined, size: 18, color: _colors.accentIcon),
               ),
             IconButton(
               tooltip: _isGenericActivityItem(item) ? 'Déplacer' : 'Voir / modifier',
@@ -201,9 +201,9 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                _uiIcon('coach', Icons.psychology_alt_rounded, size: 21, color: const Color(0xFF60786B)),
+                _uiIcon('coach', Icons.psychology_alt_rounded, size: 21, color: _colors.accentIcon),
                 const SizedBox(width: 8),
-                Expanded(child: Text('Pourquoi ce choix ?', style: GoogleFonts.lora(fontSize: 19, fontWeight: FontWeight.w700, color: const Color(0xFF3B4842)))),
+                Expanded(child: Text('Pourquoi ce choix ?', style: GoogleFonts.lora(fontSize: AppType.h2, fontWeight: FontWeight.w700, color: _colors.textStrong))),
               ]),
               const SizedBox(height: 12),
               Text(item.title, style: _detailTitleStyle()),
@@ -220,20 +220,20 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
     return Container(
       width: 67,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-      decoration: BoxDecoration(color: const Color(0xFFFFFDF8), borderRadius: BorderRadius.circular(12)),
-      child: Text(period, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF526B78))),
+      decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.m)),
+      child: Text(period, textAlign: TextAlign.center, style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.accentText)),
     );
   }
 
   Color _pastelFor(String category) {
     switch (category) {
-      case 'Sport': return const Color(0xFFE3ECE7);
-      case 'Bien-être': return const Color(0xFFE7EAEA);
-      case 'Loisir': return const Color(0xFFE9E5DD);
-      case 'Culture': return const Color(0xFFF0E9D8);
-      case 'Sortie': return const Color(0xFFF1E3DC);
-      case 'Social': return const Color(0xFFE2E8EC);
-      default: return const Color(0xFFEEECE7);
+      case 'Sport': return _darkMode ? const Color(0xFF2A3C32) : const Color(0xFFE3ECE7);
+      case 'Bien-être': return _darkMode ? const Color(0xFF2B3638) : const Color(0xFFE7EAEA);
+      case 'Loisir': return _darkMode ? const Color(0xFF38342C) : const Color(0xFFE9E5DD);
+      case 'Culture': return _darkMode ? const Color(0xFF3A3524) : const Color(0xFFF0E9D8);
+      case 'Sortie': return _darkMode ? const Color(0xFF3A2D28) : const Color(0xFFF1E3DC);
+      case 'Social': return _darkMode ? const Color(0xFF2A3440) : const Color(0xFFE2E8EC);
+      default: return _darkMode ? const Color(0xFF303330) : const Color(0xFFEEECE7);
     }
   }
 

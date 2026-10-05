@@ -21,7 +21,12 @@ extension _AppShellPart on _MaBelleSemaineAppState {
       surfaceContainerHighest: const Color(0xFF2A322E),
       outline: const Color(0xFF59655E),
     );
-    return ThemeData.dark(useMaterial3: true).copyWith(
+    // fontFamily n'existe pas dans ThemeData.copyWith : il se règle à la construction.
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      fontFamily: GoogleFonts.nunitoSans().fontFamily,
+    ).copyWith(
       platform: TargetPlatform.iOS,
       colorScheme: scheme,
       textTheme: _farmhouseTextTheme().apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface),
@@ -124,6 +129,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
   }
 
   Widget _buildAppShell(BuildContext context) {
+    _colors = _darkMode ? AppColors.night : AppColors.light;
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'MyBestWeek',

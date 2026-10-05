@@ -44,6 +44,9 @@ part 'parts/undo.part.dart';
 part 'parts/home_adaptive_v927.part.dart';
 part 'parts/priorities_v928.part.dart';
 part 'parts/objectives_v929.part.dart';
+part 'parts/app_colors.part.dart';
+part 'parts/icon_pack.part.dart';
+part 'parts/app_tokens.part.dart';
 
 void main() {
   if (kIsWeb) _installMascotBrowserIcon();
@@ -60,8 +63,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.3.16';
-  static const buildVersion = '12.3.16+19';
+  static const version = 'V12.4.4';
+  static const buildVersion = '12.4.4+24';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',

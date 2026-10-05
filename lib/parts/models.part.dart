@@ -55,14 +55,14 @@ Widget _uiIcon(
   IconData fallback, {
   String? fallbackEmoji,
   double size = 18,
-  Color color = const Color(0xFF66736D),
+  Color? color,
 }) {
   final effectiveSize = _standardUiIconSize(key, size);
   final override = _systemUiIconOverrides[key];
   if (override != null && override.isNotEmpty) {
     return _activityIconWidget(override, size: effectiveSize);
   }
-  return Icon(fallback, size: effectiveSize, color: color);
+  return Icon(fallback, size: effectiveSize, color: color ?? _colors.textMuted);
 }
 
 Uint8List? _decodeCustomIconData(String data) {
@@ -124,6 +124,17 @@ Widget _activityIconWidget(String value, {double size = 24}) {
       } catch (_) {}
     }
     return Text('🖼️', style: TextStyle(fontSize: size * .78));
+  }
+  if (value.startsWith('pack://')) {
+    return Image.asset(
+      'assets/icons/pack/${value.substring('pack://'.length)}.png',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.medium,
+      gaplessPlayback: true,
+      errorBuilder: (_, __, ___) => Text('🖼️', style: TextStyle(fontSize: size * .78)),
+    );
   }
   if (value == '🧸') return mascotChoiceAvatar(size: size);
   return Text(value, style: TextStyle(fontSize: size * .78));
