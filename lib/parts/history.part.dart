@@ -23,6 +23,7 @@ class _HistorySheet extends StatefulWidget {
 class _HistorySheetState extends State<_HistorySheet> {
   String _historyFilter = 'Tout';
   String _memoryFilter = 'Toutes';
+  String _memoryNameFilter = '';
   String _memoryType = 'Tous';
   String _memorySort = 'Besoin';
   bool _memorySortAscending = false;
@@ -45,9 +46,21 @@ class _HistorySheetState extends State<_HistorySheet> {
         cutoff = null;
     }
 
-    final filtered = cutoff == null
-        ? [...widget.logs]
-        : widget.logs.where((log) => !log.date.isBefore(cutoff!)).toList();
+    final periodLogs = widget.logs
+        .where((log) => cutoff == null || !log.date.isBefore(cutoff!))
+        .toList();
+
+    // Le journal utilise exactement les mêmes filtres que « Mémoire par activité ».
+    // La sélection nom/type/état est donc calculée une seule fois par _memoryActivities(),
+    // puis les journaux de la période choisie sont ramenés aux activités retenues.
+    final visibleActivities = _memoryActivities();
+    final visibleIds = visibleActivities.map((a) => a.id).toSet();
+    final visibleNames = visibleActivities.map((a) => a.name.trim().toLowerCase()).toSet();
+
+    final filtered = periodLogs.where((log) {
+      if (log.activityId != null) return visibleIds.contains(log.activityId);
+      return visibleNames.contains(log.title.trim().toLowerCase());
+    }).toList();
     filtered.sort((a, b) => b.date.compareTo(a.date));
     return filtered;
   }
@@ -236,7 +249,9 @@ class _HistorySheetState extends State<_HistorySheet> {
   bool _memoryMatches(Activity activity) {
     final done = _countFor(activity, 30);
     final adherence = _adherenceFor(activity, 30);
-    if (_memoryType != 'Tous' && activity.category != _memoryType) return false;
+    if (_memoryType == 'Sport' && activity.category != 'Sport') return false;
+    if (_memoryType == 'Non sport' && activity.category == 'Sport') return false;
+    if (!{'Tous', 'Sport', 'Non sport'}.contains(_memoryType) && activity.category != _memoryType) return false;
     switch (_memoryFilter) {
       case 'Réalisé':
         return done > 0;
@@ -253,17 +268,17 @@ class _HistorySheetState extends State<_HistorySheet> {
   }
 
   List<String> _memoryTypes() {
-    final types = widget.activities
+    final categories = widget.activities
         .map((a) => a.category.trim())
-        .where((category) => category.isNotEmpty)
+        .where((category) => category.isNotEmpty && category != 'Sport')
         .toSet()
         .toList();
-    types.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    return types;
+    categories.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return ['Sport', 'Non sport', ...categories];
   }
 
   List<Activity> _memoryActivities() {
-    final visible = widget.activities.where(_memoryMatches).toList();
+    final visible = widget.activities.where((a) => _memoryMatches(a) && (_memoryNameFilter.trim().isEmpty || a.name.toLowerCase().contains(_memoryNameFilter.trim().toLowerCase()))).toList();
     visible.sort((a, b) {
       int compare;
       switch (_memorySort) {
@@ -312,31 +327,37 @@ class _HistorySheetState extends State<_HistorySheet> {
       onTap: () => _showActivityMemory(activity),
       borderRadius: BorderRadius.circular(AppRadius.m),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 7),
+        padding: const EdgeInsets.symmetric(vertical: 5),
         child: Row(children: [
           CircleAvatar(
-            radius: 18,
+            radius: 15,
             backgroundColor: _colors.tintStrong,
-            child: _activityIconWidget(activity.emoji, size: 24),
+            child: _activityIconWidget(activity.emoji, size: 20),
           ),
-          const SizedBox(width: 9),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(activity.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textStrong)),
-            const SizedBox(height: 4),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.xs),
-              child: LinearProgressIndicator(
-                minHeight: 6,
-                value: ratio,
-                backgroundColor: _colors.border,
-              ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              activity.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textStrong),
             ),
-            const SizedBox(height: 3),
-            Text('$done / ${expected.round()} · ${(_adherenceFor(activity, 30) * 100).round()} % · ${_lastDoneLabel(activity, 30)}',
-                style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
-          ])),
-          const SizedBox(width: 5),
-          _uiIcon('planOpen', Icons.chevron_right, size: 19, color: _colors.textMuted),
+          ),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 62,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.xs),
+              child: LinearProgressIndicator(minHeight: 5, value: ratio, backgroundColor: _colors.border),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '$done/${expected.round()}',
+            style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _colors.textWarm),
+          ),
+          const SizedBox(width: 4),
+          _uiIcon('planOpen', Icons.chevron_right, size: 17, color: _colors.textMuted),
         ]),
       ),
     );
@@ -604,6 +625,17 @@ class _HistorySheetState extends State<_HistorySheet> {
                     )).toList(),
               ),
               const SizedBox(height: 8),
+              TextField(
+                onChanged: (value) => setState(() => _memoryNameFilter = value),
+                maxLines: 1,
+                decoration: const InputDecoration(
+                  labelText: 'Filtrer par nom',
+                  hintText: 'Nom de l’activité',
+                  prefixIcon: Icon(Icons.search_rounded),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 8),
               Text('Type d’activité', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textMuted)),
               const SizedBox(height: 5),
               SingleChildScrollView(
@@ -715,11 +747,12 @@ class _HistorySheetState extends State<_HistorySheet> {
   Widget _historyLogCard(ActivityLog log) {
     final date = log.date;
     final dateLabel =
-        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} · ${date.hour.toString().padLeft(2, '0')}h${date.minute.toString().padLeft(2, '0')}';
+        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} · ${log.realisedMinutes} min';
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Card(
+        margin: EdgeInsets.zero,
         child: InkWell(
           onTap: () {
             Activity? activity;
@@ -736,68 +769,33 @@ class _HistorySheetState extends State<_HistorySheet> {
           },
           borderRadius: BorderRadius.circular(AppRadius.m),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
-                  radius: 22,
+                  radius: 16,
                   backgroundColor: _colors.tintStrong,
-                  child: _activityIconWidget(_activityLogIconValue(log, widget.activities), size: 28),
+                  child: _activityIconWidget(_activityLogIconValue(log, widget.activities), size: 20),
                 ),
-                const SizedBox(width: 11),
+                const SizedBox(width: 7),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              log.title,
-                              style: const TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                          ),
-                          if (log.unplanned)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: _colors.warnBg,
-                                borderRadius: BorderRadius.circular(AppRadius.s),
-                              ),
-                              child: Text(
-                                'IMPRÉVU',
-                                style: TextStyle(
-                                  fontSize: AppType.caption,
-                                  fontWeight: FontWeight.w700,
-                                  color: _colors.goldText,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '${widget.dayNames[log.day]} · ${log.period} · $dateLabel',
-                        style: TextStyle(fontSize: AppType.body, color: _colors.textMuted),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '✓ Validé · ${log.realisedMinutes} min',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: _colors.accentText,
-                        ),
-                      ),
-                      if (log.feeling.isNotEmpty) ...[
-                        const SizedBox(height: 3),
-                        Text(
-                          'Ressenti : ${log.feeling}',
-                          style: TextStyle(fontSize: AppType.label, color: _colors.textMuted),
-                        ),
-                      ],
-                    ],
+                  child: Text(
+                    log.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.body),
                   ),
+                ),
+                const SizedBox(width: 7),
+                if (log.unplanned)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 5),
+                    child: Text('IMPR.', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.goldText)),
+                  ),
+                Text(
+                  dateLabel,
+                  maxLines: 1,
+                  style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted),
                 ),
               ],
             ),

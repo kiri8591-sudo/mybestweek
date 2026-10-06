@@ -162,6 +162,7 @@ class _SportWeekPage extends StatefulWidget {
   final ValueChanged<Activity> onPostpone;
   final ValueChanged<Activity> onOpenActivity;
   final void Function(Activity activity, int day) onToggleDay;
+  final void Function(Activity activity, DateTime date) onToggleDate;
   final Future<void> Function(PlanItem item) onRemoveItem;
   final Future<void> Function(int day) onAddSportActivity;
   final void Function(int day, int minutes) onSetBudget;
@@ -181,6 +182,7 @@ class _SportWeekPage extends StatefulWidget {
     required this.onPostpone,
     required this.onOpenActivity,
     required this.onToggleDay,
+    required this.onToggleDate,
     required this.onRemoveItem,
     required this.onAddSportActivity,
     required this.onSetBudget,
@@ -201,6 +203,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
   String _view = 'Semaine';
   int? _selectedActivityId;
   DateTime _month = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  late DateTime _weekStart;
   late DateTime _selectedDate;
   late DateTime _dateStripStart;
 
@@ -211,6 +214,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     final now = DateTime.now();
     _selectedDate = DateTime(now.year, now.month, now.day);
     _dateStripStart = _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
+    _weekStart = _dateStripStart;
   }
 
   List<Activity> _allSportActivities() => widget.getActivities();
@@ -585,6 +589,29 @@ class _SportWeekPageState extends State<_SportWeekPage> {
 
   int _planDayIndex(DateTime d) => d.weekday - 1;
 
+  bool _isCurrentWeek() {
+    final now = DateTime.now();
+    final current = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+    return _sameDate(_weekStart, current);
+  }
+
+  DateTime _weekDayDate(int day) => _weekStart.add(Duration(days: day));
+
+  void _shiftWeek(int delta) {
+    setState(() {
+      _weekStart = _weekStart.add(Duration(days: 7 * delta));
+      _dateStripStart = _weekStart;
+      _selectedDate = _weekStart;
+    });
+  }
+
+  void _shiftMonth(int delta) {
+    if (!mounted || delta == 0) return;
+    setState(() {
+      _month = DateTime(_month.year, _month.month + delta, 1);
+    });
+  }
+
   Widget _dailyDateNavigator() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
@@ -683,9 +710,10 @@ class _SportWeekPageState extends State<_SportWeekPage> {
   bool _sameDate(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
 
   List<PlanItem> _itemsForDayForDate(int day, DateTime date) {
-    // Le planning courant est hebdomadaire : on affiche les éléments du jour
-    // correspondant au jour de semaine de la date sélectionnée.
-    return _allSportActivities().isEmpty ? <PlanItem>[] : widget.getPlan().where((p) => p.day == day && p.activityId != null && _allSportActivities().any((a) => a.id == p.activityId)).toList();
+    if (!_isCurrentWeek()) return <PlanItem>[];
+    return _allSportActivities().isEmpty
+        ? <PlanItem>[]
+        : widget.getPlan().where((p) => p.day == day && p.activityId != null && _allSportActivities().any((a) => a.id == p.activityId)).toList();
   }
 
   Widget _selectedDaySportDetail() {
@@ -713,7 +741,9 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         const SizedBox(height: 3),
         Text(target > 0 ? 'Budget Sport : $target min' : 'Pas de budget Sport prévu ce jour', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted)),
         const SizedBox(height: 8),
-        if (items.isEmpty)
+        if (!_isCurrentWeek())
+          Text('Les réalisations de cette semaine antérieure/postérieure sont cochables dans la grille.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted))
+        else if (items.isEmpty)
           Text('Aucune activité Sport prévue ce jour.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted))
         else
           ...items.map((item) {
@@ -820,87 +850,48 @@ class _SportWeekPageState extends State<_SportWeekPage> {
 
   Widget _weekDayHeader() {
     const labels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-    final selectedDay = _planDayIndex(_selectedDate);
-    final days = _trackingDayIndices();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 5),
-      child: Row(
-        children: [
-          const SizedBox(width: 115),
-          ...days.map((day) => Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 1),
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  decoration: BoxDecoration(
-                    color: day == selectedDay ? _colors.tintSoft : Colors.transparent,
-                    borderRadius: BorderRadius.circular(AppRadius.xs),
-                  ),
-                  child: Center(
-                    child: Text(
-                      labels[day],
-                      style: TextStyle(
-                        fontSize: AppType.caption,
-                        fontWeight: FontWeight.w700,
-                        color: day == selectedDay ? _colors.accentText : _colors.textWarm,
-                      ),
-                    ),
-                  ),
-                ),
-              )),
-        ],
-      ),
-    );
+    return Padding(padding: const EdgeInsets.only(bottom: 5), child: Row(children: [
+      const SizedBox(width: 115),
+      ...List.generate(7, (day) {
+        final date = _weekDayDate(day);
+        return Expanded(child: Container(margin: const EdgeInsets.symmetric(horizontal: 1), padding: const EdgeInsets.symmetric(vertical: 2), decoration: BoxDecoration(color: _sameDate(date, _selectedDate) ? _colors.tintSoft : Colors.transparent, borderRadius: BorderRadius.circular(AppRadius.xs)), child: Column(mainAxisSize: MainAxisSize.min, children: [Text(labels[day], style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.textWarm)), Text('${date.day}', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: _colors.textMuted))])));
+      }),
+    ]));
   }
 
   Widget _compactDayCell(Activity activity, int day) {
-    final items = _itemsFor(activity, day);
+    final date = _weekDayDate(day);
+    final currentWeek = _isCurrentWeek();
+    final items = currentWeek ? _itemsFor(activity, day) : <PlanItem>[];
     final planned = items.isNotEmpty;
-    final done = items.any((item) => item.done);
-    final selectedDay = _planDayIndex(_selectedDate);
-    final selected = day == selectedDay;
-    final label = done ? '✓' : (planned ? '•' : '');
-
-    final background = done
-        ? _colors.accentFill
-        : planned
-            ? _colors.tintStrong
-            : _colors.surfaceSoft;
-    final border = done
-        ? _colors.accentFillBorder
-        : planned
-            ? _colors.accentSoftBorder
-            : _colors.border;
-    final foreground = done ? Colors.white : _colors.accentText;
-
+    final logged = widget.getLogs().any((log) => _sameDate(log.date, date) &&
+            (log.activityId == activity.id ||
+                (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase())));
+    final done = currentWeek ? (items.any((item) => item.done) || logged) : logged;
+    final selected = _sameDate(date, _selectedDate);
+    final background = done ? _colors.accentFill : planned ? _colors.tintStrong : _colors.surfaceSoft;
+    final border = done ? _colors.accentFillBorder : planned ? _colors.accentSoftBorder : _colors.border;
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 1),
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        decoration: BoxDecoration(
-          color: selected ? _colors.tintSoft : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadius.s),
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 1),
+        decoration: BoxDecoration(color: selected ? _colors.tintSoft : Colors.transparent, borderRadius: BorderRadius.circular(AppRadius.xs)),
         child: Center(
           child: InkWell(
-            onTap: () => widget.onToggleDay(activity, day),
-            borderRadius: BorderRadius.circular(AppRadius.s),
+            onTap: () => widget.onToggleDate(activity, date),
+            borderRadius: BorderRadius.circular(AppRadius.xs),
             child: Container(
-              width: 24,
-              height: 24,
+              width: 19,
+              height: 19,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: background,
-                borderRadius: BorderRadius.circular(AppRadius.s),
-                border: Border.all(color: selected ? _colors.accentFill : border, width: selected ? 1.2 : 1),
+                borderRadius: BorderRadius.circular(AppRadius.xs),
+                border: Border.all(color: selected ? _colors.accentFill : border, width: selected ? 1.1 : .8),
               ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: AppType.bodyL,
-                  fontWeight: FontWeight.w700,
-                  color: foreground,
-                ),
-              ),
+              child: done ? const Icon(Icons.check, size: 10, color: Colors.white)
+                  : planned ? Text('•', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentText))
+                  : null,
             ),
           ),
         ),
@@ -909,64 +900,27 @@ class _SportWeekPageState extends State<_SportWeekPage> {
   }
 
   Widget _activityRow(Activity activity) {
-    final missing = _isMissingFromWeek(activity);
-    final planned = _plannedCount(activity);
-    final done = _doneCount(activity);
-    final target = _target(activity);
-    final labelStyle = _detailMetaStyle().copyWith(fontWeight: FontWeight.w800, color: _colors.textStrong);
-
+    final currentWeek = _isCurrentWeek();
+    final planned = currentWeek ? _plannedCount(activity) : 0;
+    final done = currentWeek
+        ? _doneCount(activity)
+        : widget.getLogs().where((log) => !log.date.isBefore(_weekStart) && log.date.isBefore(_weekStart.add(const Duration(days: 7))) && (log.activityId == activity.id || (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase()))).length;
     return Container(
-      margin: const EdgeInsets.only(bottom: 5),
-      padding: const EdgeInsets.fromLTRB(7, 6, 7, 5),
-      decoration: BoxDecoration(
-        color: missing ? _colors.warnBg : _colors.card,
-        borderRadius: BorderRadius.circular(AppRadius.m),
-        border: Border.all(
-          color: missing ? _colors.warnBorder : _colors.border,
-          width: activity.category == 'Sport' ? (missing ? 1.2 : 1.0) : (missing ? 0.8 : 0.55),
+      margin: const EdgeInsets.only(bottom: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.m), border: Border.all(color: _colors.border)),
+      child: Row(children: [
+        SizedBox(
+          width: 115,
+          child: Row(children: [
+            _activityIconWidget(activity.emoji, size: 18),
+            const SizedBox(width: 4),
+            Expanded(child: InkWell(borderRadius: BorderRadius.circular(AppRadius.s), onTap: () => widget.onOpenActivity(activity), child: Text(activity.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: _detailMetaStyle().copyWith(fontWeight: FontWeight.w800, color: _colors.textStrong)))),
+            const SizedBox(width: 3),
+            Text(currentWeek ? '$done/$planned' : '$done', style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textWarm)),
+          ]),
         ),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          _activityIconWidget(activity.emoji, size: 23),
-          const SizedBox(width: 6),
-          Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppRadius.s),
-              onTap: () => widget.onOpenActivity(activity),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 1),
-                child: Row(children: [
-                  Expanded(
-                    child: Text(
-                      activity.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: labelStyle,
-                    ),
-                  ),
-                  if (missing) Padding(
-                    padding: const EdgeInsets.only(left: 3),
-                    child: _activityIconWidget(_uiIconValue('sportWarning', ''), size: 13),
-                  ),
-                ]),
-              ),
-            ),
-          ),
-        ]),
-        const SizedBox(height: 3),
-        Row(children: [
-          SizedBox(
-            width: 115,
-            child: Text(
-              '$done/$planned · cible ${target}×',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: _detailMetaStyle().copyWith(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textWarm),
-            ),
-          ),
-          ..._trackingDayIndices().map((day) => _compactDayCell(activity, day)),
-        ]),
+        Expanded(child: Row(children: List.generate(7, (day) => _compactDayCell(activity, day)))),
       ]),
     );
   }
@@ -985,44 +939,31 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     final days = _daysInMonth();
     final logs = widget.getLogs();
 
-    bool doneOn(Activity activity, DateTime date) {
-      return logs.any((log) {
-        if (!_sameDay(log.date, date)) return false;
-        if (log.activityId == activity.id) return true;
-        return log.activityId == null &&
-            log.title.trim().toLowerCase() == activity.name.trim().toLowerCase();
-      });
-    }
+    bool doneOn(Activity activity, DateTime date) => logs.any((log) => _sameDate(log.date, date) &&
+        (log.activityId == activity.id || (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase())));
 
-    // Calendrier mensuel volontairement très compact : même logique que la vue
-    // 7 jours, mais avec une petite case par jour. Les 30/31 cases se répartissent
-    // automatiquement sur 1 ou 2 lignes à droite du nom de l'activité.
-    Widget check(bool done) {
-      return SizedBox(
-        width: 11,
-        height: 11,
-        child: Container(
-          decoration: BoxDecoration(
-            color: done ? _colors.accentFill : _colors.card,
-            borderRadius: BorderRadius.circular(AppRadius.xs),
-            border: Border.all(
-              color: done ? _colors.accentFill : _colors.borderStrong,
-              width: 0.9,
-            ),
-          ),
-          child: done ? const Icon(Icons.check, size: 8, color: Colors.white) : null,
-        ),
-      );
-    }
-
-    Widget dayNumber(int day) {
-      return SizedBox(
-        width: 11,
-        height: 11,
-        child: Center(
-          child: Text(
-            '$day',
-            style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textWarm),
+    Widget dayCell(Activity activity, DateTime date, bool done) {
+      return InkWell(
+        onTap: () => widget.onToggleDate(activity, date),
+        borderRadius: BorderRadius.circular(3),
+        child: SizedBox(
+          width: 14,
+          height: 16,
+          child: Center(
+            child: done
+                ? Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: _colors.accentFill,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                    child: const Icon(Icons.check, size: 8, color: Colors.white),
+                  )
+                : Text(
+                    '${date.day}',
+                    style: TextStyle(fontSize: 8.5, color: _colors.textWarm),
+                  ),
           ),
         ),
       );
@@ -1035,96 +976,52 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           runSpacing: 2,
           children: [
             for (var day = 1; day <= days; day++)
-              header
-                  ? dayNumber(day)
-                  : check(doneOn(activity, DateTime(_month.year, _month.month, day))),
+              if (header)
+                SizedBox(width: 11, height: 11, child: Center(child: Text('$day', style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textWarm))))
+              else
+                dayCell(activity, DateTime(_month.year, _month.month, day), doneOn(activity, DateTime(_month.year, _month.month, day))),
           ],
         ),
       );
     }
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        IconButton(
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-          onPressed: () => setState(() => _month = DateTime(_month.year, _month.month - 1, 1)),
-          icon: _activityIconWidget(_uiIconValue('sportBack', ''), size: 20),
-        ),
-        Expanded(
-          child: Text(
-            _monthLabel(),
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.title),
+    double dragDx = 0;
+    return GestureDetector(
+      onHorizontalDragStart: (_) => dragDx = 0,
+      onHorizontalDragUpdate: (details) => dragDx += details.delta.dx,
+      onHorizontalDragEnd: (_) {
+        if (dragDx.abs() > 40) _shiftMonth(dragDx < 0 ? 1 : -1);
+      },
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          IconButton(
+            tooltip: 'Mois précédent',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            onPressed: () => _shiftMonth(-1),
+            icon: const Icon(Icons.chevron_left_rounded, size: 24),
           ),
-        ),
-        IconButton(
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-          onPressed: () => setState(() => _month = DateTime(_month.year, _month.month + 1, 1)),
-          icon: _activityIconWidget(_uiIconValue('sportNext', ''), size: 20),
-        ),
+          Expanded(child: Text(_monthLabel(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.title))),
+          IconButton(
+            tooltip: 'Mois suivant',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            onPressed: () => _shiftMonth(1),
+            icon: const Icon(Icons.chevron_right_rounded, size: 24),
+          ),
+        ]),
+        Text('Toucher une case pour cocher/décocher une réalisation.', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
+        const SizedBox(height: 3),
+        if (visible.isEmpty)
+          Padding(padding: const EdgeInsets.only(bottom: 6), child: Text('Aucune activité ne correspond aux filtres.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted)))
+        else ...[
+          ...visible.map((activity) => Padding(padding: const EdgeInsets.only(bottom: 5), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(width: 92, child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [_activityIconWidget(activity.emoji, size: 16), const SizedBox(width: 3), Expanded(child: InkWell(borderRadius: BorderRadius.circular(AppRadius.s), onTap: () => widget.onOpenActivity(activity), child: Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textStrong))))])),
+            compactCells(activity, header: false),
+          ]))),
+        ],
       ]),
-      const SizedBox(height: 3),
-      if (visible.isEmpty)
-        Padding(
-          padding: EdgeInsets.only(bottom: 6),
-          child: Text('Aucune activité ne correspond aux filtres.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted)),
-        )
-      else ...[
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 92,
-              child: Padding(
-                padding: EdgeInsets.only(top: 1),
-                child: Text('ACTIVITÉ', style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textWarm)),
-              ),
-            ),
-            compactCells(visible.first, header: true),
-          ],
-        ),
-        const SizedBox(height: 4),
-        ...visible.map((activity) => Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 92,
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 1, right: 4),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _activityIconWidget(activity.emoji, size: 16),
-                          const SizedBox(width: 3),
-                          Expanded(
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(AppRadius.s),
-                              onTap: () => widget.onOpenActivity(activity),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 1),
-                                child: Text(
-                              activity.name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, height: 1.05),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  compactCells(activity, header: false),
-                ],
-              ),
-            )),
-      ],
-    ]);
+    );
   }
 
   @override
@@ -1198,11 +1095,21 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                           style: TextStyle(fontSize: AppType.caption, color: _colors.textMuted),
                         ),
                         const SizedBox(height: 6),
-                        _weekDayHeader(),
-                        if (trackingActivities.isEmpty)
-                          const Text('Aucune activité Sport n’est prévue pour ce jour.')
-                        else
-                          ...trackingActivities.map(_activityRow),
+                        GestureDetector(
+                          onHorizontalDragEnd: (details) {
+                            final v = details.primaryVelocity ?? 0;
+                            if (v.abs() > 250) _shiftWeek(v < 0 ? 1 : -1);
+                          },
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Row(children: [
+                              IconButton(padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 30, minHeight: 30), onPressed: () => _shiftWeek(-1), icon: _uiIcon('sportBack', Icons.chevron_left_rounded, size: 19)),
+                              Expanded(child: Text('Semaine · ${_dateLabel(_weekStart)} – ${_dateLabel(_weekStart.add(const Duration(days: 6)))}', textAlign: TextAlign.center, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.textStrong))),
+                              IconButton(padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 30, minHeight: 30), onPressed: () => _shiftWeek(1), icon: _uiIcon('sportNext', Icons.chevron_right_rounded, size: 19)),
+                            ]),
+                            _weekDayHeader(),
+                            if (trackingActivities.isEmpty) const Text('Aucune activité Sport n’est prévue pour ce jour.') else ...trackingActivities.map(_activityRow),
+                          ]),
+                        ),
                       ]),
                     ),
                   ])

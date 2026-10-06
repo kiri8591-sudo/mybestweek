@@ -395,6 +395,45 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
     _toggleSportActivityOnDayQuick(activity, day);
   }
 
+  void toggleSportActivityOnDate(Activity activity, DateTime date) {
+    if (!_isSportActivity(activity)) return;
+    final day = date.weekday - 1;
+    final monday = _startOfCurrentWeek();
+    final currentWeek = _sameDateOnlySport(date, monday.add(Duration(days: day)));
+    if (currentWeek) {
+      final items = plan.where((p) => p.activityId == activity.id && p.day == day).toList();
+      if (items.isNotEmpty) {
+        toggleSportActivityOnDay(activity, day);
+        return;
+      }
+    }
+    final existing = logs.indexWhere((log) => _sameDateOnlySport(log.date, date) && (log.activityId == activity.id || (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase())));
+    _prepareUndoSnapshot();
+    setState(() {
+      if (existing >= 0) {
+        logs.removeAt(existing);
+      } else {
+        final now = DateTime.now();
+        logs.add(ActivityLog(
+          date: DateTime(date.year, date.month, date.day, now.hour, now.minute, now.second),
+          title: activity.name,
+          emoji: activity.emoji,
+          category: activity.category,
+          period: _periodForActivity(activity, day),
+          day: day,
+          plannedMinutes: activity.duration,
+          realisedMinutes: activity.duration,
+          feeling: 'Bien',
+          unplanned: true,
+          activityId: activity.id,
+        ));
+      }
+    });
+    _queueLocalStatePersist();
+  }
+
+  bool _sameDateOnlySport(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+
   Future<void> _toggleSportActivityOnDayQuick(Activity activity, int day) async {
     PlanItem? item;
     for (final candidate in plan) {

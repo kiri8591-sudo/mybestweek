@@ -36,7 +36,7 @@ extension _PlanCompletionPart on _MaBelleSemaineAppState {
       item.feeling = 'Bien';
       logs.removeWhere((log) => log.planItemId == item.id);
       logs.add(ActivityLog(
-        date: now,
+        date: _historyDateForPlanItem(item, now),
         title: item.title,
         emoji: activity?.emoji ?? item.customEmoji ?? '📍',
         category: activity?.category ?? item.customCategory ?? 'Autre',
@@ -103,8 +103,9 @@ extension _PlanCompletionPart on _MaBelleSemaineAppState {
         item.realisedMinutes = actual;
         final matchingLogs = logs.where((log) => log.planItemId == item.id).toList();
         if (matchingLogs.isEmpty) {
+          final logNow = DateTime.now();
           logs.add(ActivityLog(
-            date: DateTime.now(),
+            date: _historyDateForPlanItem(item, logNow),
             title: item.title,
             emoji: activity.emoji,
             category: activity.category,
@@ -149,6 +150,14 @@ extension _PlanCompletionPart on _MaBelleSemaineAppState {
     }
   }
 
+
+  DateTime _historyDateForPlanItem(PlanItem item, DateTime now) {
+    final monday = _startOfCurrentWeek();
+    final target = DateTime(monday.year, monday.month, monday.day).add(Duration(days: item.day));
+    // Conserve l'heure réelle du geste, mais rattache la réalisation au bon jour.
+    return DateTime(target.year, target.month, target.day, now.hour, now.minute, now.second, now.millisecond, now.microsecond);
+  }
+
   void _completePlanItem(PlanItem item, Activity activity, [int? realisedMinutes]) {
     if (!mounted || item.done) return;
     final now = DateTime.now();
@@ -173,7 +182,7 @@ extension _PlanCompletionPart on _MaBelleSemaineAppState {
       item.feeling = 'Bien';
       logs.removeWhere((log) => log.planItemId == item.id);
       logs.add(ActivityLog(
-        date: now,
+        date: _historyDateForPlanItem(item, now),
         title: item.title,
         emoji: activity.emoji,
         category: activity.category,

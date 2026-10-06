@@ -20,6 +20,7 @@ part 'parts/state_sport_planning.part.dart';
 part 'parts/activity_management.part.dart';
 part 'parts/state_weather_home.part.dart';
 part 'parts/history.part.dart';
+part 'parts/non_sport_ui.part.dart';
 part 'parts/today_planning_v925.part.dart';
 part 'parts/weekly_review_v919.part.dart';
 part 'parts/sport_ui.part.dart';
@@ -63,8 +64,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.4.6';
-  static const buildVersion = '12.4.6+26';
+  static const version = 'V12.4.15';
+  static const buildVersion = '12.4.15+35';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',

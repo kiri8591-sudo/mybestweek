@@ -135,6 +135,7 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
           onPostpone: postponeSportActivity,
           onOpenActivity: (activity) => addOrEditActivity(original: activity),
           onToggleDay: toggleSportActivityOnDay,
+          onToggleDate: toggleSportActivityOnDate,
           onRemoveItem: _removePlanOccurrence,
           onAddSportActivity: _addSportActivityToDay,
           onSetBudget: _setSportDailyBudget,

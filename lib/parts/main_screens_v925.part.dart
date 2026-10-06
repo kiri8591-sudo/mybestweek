@@ -1796,6 +1796,12 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     tooltip: 'Semaine Sport',
                     icon: _systemIconWidget('sportWeek', fallback: '🗓️', size: 21),
                   ),
+                if (activities.any((a) => !_isSportActivity(a) && !a.isSportProgram))
+                  IconButton(
+                    onPressed: openNonSportWeekOverview,
+                    tooltip: 'Semaine Activités',
+                    icon: _systemIconWidget('calendar', fallback: '🗓️', size: 21),
+                  ),
                 IconButton(
                   tooltip: 'Ajouter une activité',
                   visualDensity: VisualDensity.compact,
