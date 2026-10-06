@@ -805,6 +805,18 @@ class _HistorySheetState extends State<_HistorySheet> {
     );
   }
 
+  void _openUnderstanding() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _ActivityUnderstandingPage(
+          logs: widget.logs,
+          activities: widget.activities,
+          dayNames: widget.dayNames,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final sorted = _filteredLogs();
@@ -819,7 +831,7 @@ class _HistorySheetState extends State<_HistorySheet> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Historique', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
@@ -828,6 +840,17 @@ class _HistorySheetState extends State<_HistorySheet> {
                       ? 'Aucune activité enregistrée pour le moment.'
                       : 'L’historique sert maintenant à comprendre ton rythme et à aider le coach.'),
                 ]),
+              ),
+              const SizedBox(width: 8),
+              FilledButton.tonalIcon(
+                onPressed: _openUnderstanding,
+                icon: _uiIcon('insights', Icons.auto_graph_outlined, size: 17),
+                label: const Text('Compréhension'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  minimumSize: const Size(0, 38),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
               ),
             ]),
             const SizedBox(height: 12),
@@ -883,6 +906,263 @@ class _HistorySheetState extends State<_HistorySheet> {
               ),
             ),
           ]),
+        ),
+      ),
+    );
+  }
+}
+
+
+class _ActivityUnderstandingPage extends StatefulWidget {
+  final List<ActivityLog> logs;
+  final List<Activity> activities;
+  final List<String> dayNames;
+
+  const _ActivityUnderstandingPage({
+    required this.logs,
+    required this.activities,
+    required this.dayNames,
+  });
+
+  @override
+  State<_ActivityUnderstandingPage> createState() => _ActivityUnderstandingPageState();
+}
+
+class _ActivityUnderstandingPageState extends State<_ActivityUnderstandingPage> {
+  DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+  String _typeFilter = 'Toutes';
+
+  bool _isSport(Activity activity) => activity.category.trim().toLowerCase() == 'sport';
+
+  bool _matchesType(Activity activity) {
+    if (_typeFilter == 'Sport') return _isSport(activity);
+    if (_typeFilter == 'Non sport') return !_isSport(activity);
+    return true;
+  }
+
+  String _monthLabel(DateTime value) {
+    const names = [
+      'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+      'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+    ];
+    return '${names[value.month - 1]} ${value.year}';
+  }
+
+  DateTime _previousMonth(DateTime value) => DateTime(value.year, value.month - 1);
+  DateTime _nextMonth(DateTime value) => DateTime(value.year, value.month + 1);
+
+  bool _sameMonth(DateTime date) => date.year == _month.year && date.month == _month.month;
+
+  bool _matchesActivity(ActivityLog log, Activity activity) {
+    return (log.activityId != null && log.activityId == activity.id) ||
+        (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase());
+  }
+
+  List<ActivityLog> _activityMonthLogs(Activity activity) {
+    return widget.logs.where((log) => _sameMonth(log.date) && _matchesActivity(log, activity)).toList();
+  }
+
+  int _daysInMonth() => DateTime(_month.year, _month.month + 1, 0).day;
+
+  double _targetCount(Activity activity) {
+    final frequency = activity.frequency.clamp(0, 7);
+    return frequency == 0 ? 0 : frequency * _daysInMonth() / 7.0;
+  }
+
+  double _progress(Activity activity, int realisedCount) {
+    final target = _targetCount(activity);
+    if (target <= 0) return 0;
+    return (realisedCount / target).clamp(0.0, 1.0).toDouble();
+  }
+
+  String _goalText(Activity activity) {
+    final frequency = activity.frequency.clamp(0, 7);
+    final duration = activity.duration;
+    if (frequency == 0 && duration == 0) return 'Aucun objectif renseigné';
+    final frequencyText = frequency == 1 ? '1×/semaine' : '$frequency×/semaine';
+    if (duration <= 0) return 'Objectif : $frequencyText';
+    return 'Objectif : $duration min · $frequencyText';
+  }
+
+  List<Activity> _visibleActivities() {
+    final result = widget.activities.where(_matchesType).toList();
+    result.sort((a, b) {
+      final ac = _activityMonthLogs(a).length;
+      final bc = _activityMonthLogs(b).length;
+      if (ac != bc) return bc.compareTo(ac);
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+    return result;
+  }
+
+  Widget _monthArrow({required bool previous}) {
+    return IconButton(
+      tooltip: previous ? 'Mois précédent' : 'Mois suivant',
+      visualDensity: VisualDensity.compact,
+      onPressed: () => setState(() {
+        _month = previous ? _previousMonth(_month) : _nextMonth(_month);
+      }),
+      icon: Icon(previous ? Icons.chevron_left_rounded : Icons.chevron_right_rounded),
+    );
+  }
+
+  Widget _statRow(Activity activity) {
+    final monthLogs = _activityMonthLogs(activity);
+    final count = monthLogs.length;
+    final progress = _progress(activity, count);
+    final target = _targetCount(activity);
+    final targetRounded = target.round();
+    final realisedMinutes = monthLogs.fold<int>(0, (sum, log) => sum + log.realisedMinutes);
+    final realisedText = realisedMinutes == 0 ? '' : ' · ${realisedMinutes} min réalisées';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      color: _colors.card,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(11, 9, 10, 9),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: _colors.tintStrong,
+                shape: BoxShape.circle,
+              ),
+              child: Center(child: _activityIconWidget(activity.emoji, size: 21)),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          activity.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textStrong),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '×$count',
+                        style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w900, color: _colors.textWarm),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${_goalText(activity)}$realisedText',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: AppType.small, color: _colors.textMuted),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 5,
+                      backgroundColor: _colors.border,
+                      valueColor: AlwaysStoppedAnimation<Color>(_colors.accentIcon),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    targetRounded == 0
+                        ? (count == 0 ? 'Pas encore réalisée ce mois-ci' : 'Réalisée ce mois-ci')
+                        : '$count / $targetRounded réalisation${targetRounded > 1 ? 's' : ''}',
+                    style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = _visibleActivities();
+    final monthLogs = widget.logs.where((log) => _sameMonth(log.date) &&
+        (_typeFilter == 'Toutes' || (_typeFilter == 'Sport' ? log.category == 'Sport' : log.category != 'Sport'))).toList();
+    final totalCount = monthLogs.length;
+    final totalMinutes = monthLogs.fold<int>(0, (sum, log) => sum + log.realisedMinutes);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Compréhension'),
+        leading: const BackButton(),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
+          children: [
+            Row(
+              children: [
+                Text('Compréhension', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                const Spacer(),
+                _monthArrow(previous: true),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _colors.surfaceSunken,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                  child: Text(_monthLabel(_month), style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800)),
+                ),
+                _monthArrow(previous: false),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text('Statistiques mensuelles', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+            const SizedBox(height: 9),
+            Row(
+              children: [
+                for (final filter in const ['Toutes', 'Sport', 'Non sport'])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ChoiceChip(
+                      label: Text(filter, style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700)),
+                      selected: _typeFilter == filter,
+                      onSelected: (_) => setState(() => _typeFilter = filter),
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Card(
+              color: _colors.surfaceSunken,
+              elevation: 0,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+                child: Row(
+                  children: [
+                    _uiIcon('insights', Icons.auto_graph_outlined, size: 18, color: _colors.accentIcon),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('$totalCount réalisation${totalCount > 1 ? 's' : ''} · $totalMinutes min vécues', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted))),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (visible.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 55),
+                child: Center(child: Text('Aucune activité dans ce filtre.', style: TextStyle(color: _colors.textMuted))),
+              )
+            else
+              ...visible.map(_statRow),
+          ],
         ),
       ),
     );

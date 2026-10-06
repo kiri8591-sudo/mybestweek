@@ -64,7 +64,7 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.4.15';
+  static const version = 'V12.4.16';
   static const buildVersion = '12.4.15+35';
 
   static const List<String> morningThoughts = [
