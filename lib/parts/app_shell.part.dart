@@ -5,120 +5,181 @@ part of '../main.dart';
 
 extension _AppShellPart on _MaBelleSemaineAppState {
 
-  ThemeData _buildDarkTheme() {
+  /// Thème Material unique, piloté par la palette AppColors : clair et sombre
+  /// partagent les mêmes formes, tailles et graisses ; seules les couleurs changent.
+  ThemeData _buildTheme(AppColors c, Brightness brightness) {
+    final dark = brightness == Brightness.dark;
     final scheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF789A87),
-      brightness: Brightness.dark,
+      seedColor: dark ? const Color(0xFF789A87) : const Color(0xFF7A9384),
+      brightness: brightness,
     ).copyWith(
-      primary: const Color(0xFFA9C8B6),
-      onPrimary: const Color(0xFF173123),
-      secondary: const Color(0xFF98B5A4),
-      onSecondary: const Color(0xFF13251B),
-      tertiary: const Color(0xFFE2AA91),
-      onTertiary: const Color(0xFF351A10),
-      surface: const Color(0xFF1B211E),
-      onSurface: const Color(0xFFE7ECE8),
-      surfaceContainerHighest: const Color(0xFF2A322E),
-      outline: const Color(0xFF59655E),
+      primary: c.primary,
+      onPrimary: c.onPrimary,
+      secondary: dark ? const Color(0xFF98B5A4) : const Color(0xFFB9CCBF),
+      onSecondary: dark ? const Color(0xFF13251B) : const Color(0xFF2F3F36),
+      tertiary: dark ? const Color(0xFFE2AA91) : const Color(0xFFC98268),
+      onTertiary: dark ? const Color(0xFF351A10) : Colors.white,
+      surface: c.card,
+      onSurface: c.textStrong,
+      surfaceContainerHighest: c.surfaceSunken,
+      outline: c.borderStrong,
     );
-    // fontFamily n'existe pas dans ThemeData.copyWith : il se règle à la construction.
+    final text = _farmhouseTextTheme().apply(bodyColor: c.textStrong, displayColor: c.textStrong);
+    final cardShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+      side: BorderSide(color: c.border, width: 1),
+    );
+    OutlineInputBorder inputBorder(Color color, [double width = 1]) => OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.l),
+          borderSide: BorderSide(color: color, width: width),
+        );
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: brightness,
       fontFamily: AppFonts.sans,
     ).copyWith(
       platform: TargetPlatform.iOS,
       colorScheme: scheme,
-      textTheme: _farmhouseTextTheme().apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface),
-      scaffoldBackgroundColor: const Color(0xFF121614),
-      canvasColor: const Color(0xFF121614),
-      iconTheme: const IconThemeData(size: 18, color: Color(0xFFB8C3BD)),
+      textTheme: text,
+      scaffoldBackgroundColor: c.scaffold,
+      canvasColor: c.scaffold,
+      iconTheme: IconThemeData(size: 18, color: c.textMuted),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.fuchsia: FadeUpwardsPageTransitionsBuilder(),
+        },
+      ),
       appBarTheme: AppBarTheme(
-        backgroundColor: const Color(0xFF1A201D),
-        foregroundColor: scheme.onSurface,
+        backgroundColor: c.appBar,
+        foregroundColor: c.textStrong,
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         centerTitle: true,
         toolbarHeight: 62,
         titleTextStyle: TextStyle(
-          fontSize: 18.5,
+          fontSize: AppType.titleL,
           fontWeight: FontWeight.w700,
-          color: scheme.onSurface,
+          color: c.textStrong,
           fontFamily: AppFonts.serif,
           fontFamilyFallback: const ['Times New Roman', 'serif'],
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: const Color(0xFF202622),
+        color: c.card,
         surfaceTintColor: Colors.transparent,
         margin: EdgeInsets.zero,
-        shadowColor: const Color(0x40000000),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: Color(0xFF39433E), width: 1.2),
-        ),
+        shadowColor: c.shadow,
+        shape: cardShape,
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: const Color(0xFF202622),
-        surfaceTintColor: Colors.transparent,
-        titleTextStyle: TextStyle(
-          fontFamily: AppFonts.serif,
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          color: scheme.onSurface,
-        ),
-        contentTextStyle: const TextStyle(fontSize: 13, height: 1.35, color: Color(0xFFD0D8D3)),
-      ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: Color(0xFF202622),
-        modalBackgroundColor: Color(0xFF202622),
+        backgroundColor: c.card,
         surfaceTintColor: Colors.transparent,
         elevation: 8,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xxl)),
+        titleTextStyle: TextStyle(
+          fontFamily: AppFonts.serif,
+          fontSize: AppType.titleL,
+          fontWeight: FontWeight.w700,
+          color: c.textStrong,
+        ),
+        contentTextStyle: TextStyle(fontSize: AppType.bodyL, height: 1.35, color: c.textMuted),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: c.card,
+        modalBackgroundColor: c.card,
+        surfaceTintColor: Colors.transparent,
+        elevation: 8,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
         ),
         showDragHandle: true,
       ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: const Color(0xFF1B211E),
-        indicatorColor: const Color(0xFF385346),
-        height: 82,
-        elevation: 0,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        labelTextStyle: const WidgetStatePropertyAll(
-          TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFB9C4BE)),
+      listTileTheme: const ListTileThemeData(
+        minVerticalPadding: 9,
+        contentPadding: EdgeInsets.symmetric(horizontal: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(AppRadius.l))),
+      ),
+      iconButtonTheme: const IconButtonThemeData(
+        style: ButtonStyle(
+          minimumSize: WidgetStatePropertyAll(Size(44, 44)),
+          tapTargetSize: MaterialTapTargetSize.padded,
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(0, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
+          textStyle: const TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(0, 46),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
+          side: BorderSide(color: c.borderStrong),
+          textStyle: const TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(0, 44),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.m)),
+          textStyle: const TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF252D29),
+        fillColor: c.inputFill,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF49554E)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF49554E)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFA9C8B6), width: 1.5),
-        ),
-        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFB8C3BD)),
-        floatingLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFA9C8B6)),
-        hintStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: Color(0xFF8F9A95)),
+        isDense: false,
+        border: inputBorder(c.borderStrong),
+        enabledBorder: inputBorder(c.borderStrong),
+        disabledBorder: inputBorder(c.border),
+        focusedBorder: inputBorder(c.accentOutline, 1.5),
+        errorBorder: inputBorder(c.danger, 1.2),
+        focusedErrorBorder: inputBorder(c.danger, 1.5),
+        labelStyle: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: c.textMuted),
+        floatingLabelStyle: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: c.accentStrongText),
+        hintStyle: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w500, color: c.textFaint),
+        helperStyle: TextStyle(fontSize: AppType.caption, height: 1.2, color: c.textWarm),
+        errorStyle: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: c.danger),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: c.card,
+        indicatorColor: c.navIndicator,
+        height: 82,
+        elevation: 0,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) => AppFonts.nunito(
+              fontSize: AppType.small,
+              fontWeight: FontWeight.w700,
+              color: states.contains(WidgetState.selected) ? c.accentStrongText : c.textMuted,
+            )),
       ),
       chipTheme: ChipThemeData(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        side: const BorderSide(color: Color(0xFF46514B)),
-        backgroundColor: const Color(0xFF28312C),
-        selectedColor: const Color(0xFF34493E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
+        side: BorderSide(color: c.border),
+        backgroundColor: c.chipBg,
+        selectedColor: c.tintStrong,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-        labelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Color(0xFFD3DBD6)),
+        labelStyle: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: c.textStrong),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        materialTapTargetSize: MaterialTapTargetSize.padded,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xs)),
+        side: BorderSide(color: c.borderStrong, width: 1.3),
       ),
     );
   }
@@ -135,186 +196,8 @@ extension _AppShellPart on _MaBelleSemaineAppState {
       title: 'MyBestWeek',
       navigatorKey: _navigatorKey,
       scaffoldMessengerKey: _scaffoldMessengerKey,
-      theme: ThemeData(
-        useMaterial3: true,
-        platform: TargetPlatform.iOS,
-        fontFamily: AppFonts.sans,
-        textTheme: _farmhouseTextTheme(),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF7A9384),
-          brightness: Brightness.light,
-        ).copyWith(
-          primary: const Color(0xFF456B57),
-          onPrimary: Colors.white,
-          secondary: const Color(0xFFB9CCBF),
-          onSecondary: Colors.white,
-          tertiary: const Color(0xFFC98268),
-          onTertiary: Colors.white,
-          surface: const Color(0xFFFFFCF7),
-          onSurface: const Color(0xFF34433C),
-        ),
-        scaffoldBackgroundColor: const Color(0xFFEEF2EE),
-        iconTheme: const IconThemeData(size: 18, color: Color(0xFF66736D)),
-        pageTransitionsTheme: PageTransitionsTheme(
-          builders: {
-            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-            TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
-            TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
-            TargetPlatform.fuchsia: FadeUpwardsPageTransitionsBuilder(),
-          },
-        ),
-        appBarTheme: AppBarTheme(
-          backgroundColor: const Color(0xFFF9F5ED),
-          foregroundColor: const Color(0xFF33414A),
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          surfaceTintColor: Colors.transparent,
-          centerTitle: true,
-          toolbarHeight: 62,
-          titleTextStyle: TextStyle(
-            fontSize: 18.5,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF33414A),
-            fontFamily: AppFonts.serif,
-            fontFamilyFallback: ['Times New Roman', 'serif'],
-          ),
-        ),
-        cardTheme: CardThemeData(
-          elevation: 0,
-          color: const Color(0xFFFFFEFC),
-          surfaceTintColor: Colors.transparent,
-          margin: EdgeInsets.zero,
-          shadowColor: const Color(0x14000000),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-            side: const BorderSide(color: Color(0xFFD8DED8), width: 1.2),
-          ),
-        ),
-        dialogTheme: DialogThemeData(
-          backgroundColor: const Color(0xFFFFFCF7),
-          surfaceTintColor: Colors.transparent,
-          elevation: 8,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          titleTextStyle: TextStyle(
-            fontFamily: AppFonts.serif,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF33414A),
-          ),
-          contentTextStyle: const TextStyle(
-            fontSize: 13,
-            height: 1.35,
-            color: Color(0xFF4D5954),
-          ),
-        ),
-        bottomSheetTheme: const BottomSheetThemeData(
-          backgroundColor: Color(0xFFFFFCF8),
-          modalBackgroundColor: Color(0xFFFFFCF8),
-          surfaceTintColor: Colors.transparent,
-          elevation: 8,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          showDragHandle: true,
-        ),
-        listTileTheme: const ListTileThemeData(
-          minVerticalPadding: 9,
-          contentPadding: EdgeInsets.symmetric(horizontal: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
-        ),
-        iconButtonTheme: const IconButtonThemeData(
-          style: ButtonStyle(
-            minimumSize: WidgetStatePropertyAll(Size(44, 44)),
-            tapTargetSize: MaterialTapTargetSize.padded,
-          ),
-        ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 48),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-            textStyle: const TextStyle(fontSize: 13.2, fontWeight: FontWeight.w800),
-          ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(0, 46),
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            side: const BorderSide(color: Color(0xFFDCCFC1)),
-            textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
-          ),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            minimumSize: const Size(0, 44),
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFFFFFEFA),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          isDense: false,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFDCD5CC)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFDCD5CC)),
-          ),
-          disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFE8E1D8)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFF789082), width: 1.5),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFD98F72), width: 1.2),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFFD98F72), width: 1.5),
-          ),
-          labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF68736F)),
-          floatingLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF60786B)),
-          hintStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: Color(0xFF9A9D99)),
-          helperStyle: const TextStyle(fontSize: 10.5, height: 1.2, color: Color(0xFF848A87)),
-          errorStyle: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFFC47B68)),
-        ),
-        navigationBarTheme: NavigationBarThemeData(
-          backgroundColor: const Color(0xFFFFFCF8),
-          indicatorColor: const Color(0xFFCFE3D5),
-          height: 82,
-          elevation: 0,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          labelTextStyle: WidgetStatePropertyAll(AppFonts.nunito(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF52616A))),
-        ),
-        chipTheme: ChipThemeData(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          side: const BorderSide(color: Color(0xFFE0D8CF)),
-          backgroundColor: const Color(0xFFFAF8F3),
-          selectedColor: const Color(0xFFDCE5E7),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          labelStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
-        ),
-        checkboxTheme: CheckboxThemeData(
-          materialTapTargetSize: MaterialTapTargetSize.padded,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          side: const BorderSide(color: Color(0xFFB8B9B4), width: 1.3),
-        ),
-      ),
-      darkTheme: _buildDarkTheme(),
+      theme: _buildTheme(AppColors.light, Brightness.light),
+      darkTheme: _buildTheme(AppColors.night, Brightness.dark),
       themeMode: _darkMode ? ThemeMode.dark : ThemeMode.light,
       home: Scaffold(
         key: ValueKey('root-$_resetGeneration'),
@@ -339,13 +222,13 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           minimum: const EdgeInsets.fromLTRB(10, 5, 10, 10),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFEFC),
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: const Color(0xFFD7DED8), width: 1.2),
-              boxShadow: const [BoxShadow(color: Color(0x18000000), blurRadius: 20, offset: Offset(0, 5))],
+              color: _colors.card,
+              borderRadius: BorderRadius.circular(AppRadius.xxl + 2),
+              border: Border.all(color: _colors.border, width: 1.2),
+              boxShadow: [BoxShadow(color: _colors.shadow, blurRadius: 20, offset: const Offset(0, 5))],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(25),
+              borderRadius: BorderRadius.circular(AppRadius.xxl + 1),
               child: NavigationBar(
                 selectedIndex: tab,
                 onDestinationSelected: (v) { setState(() => tab = v); },

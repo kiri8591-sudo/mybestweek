@@ -324,7 +324,7 @@ class _DataPageState extends State<_DataPage> {
                   Expanded(
                     child: Text(
                       'Ton filet de sécurité',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: _colors.textStrong),
+                      style: _sectionTitleStyle(context),
                     ),
                   ),
                   _statusPill(),
@@ -717,7 +717,7 @@ class _DailySummarySheetState extends State<_DailySummarySheet> {
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            const Text('✨', style: TextStyle(fontSize: AppType.h1)),
+            _activityIconWidget('pack://star', size: 24),
             const SizedBox(width: 7),
             Expanded(child: Text('Petit bilan · ${widget.dayLabel}', style: TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800, color: _colors.textStrong))),
             Text(_selectedMood, style: const TextStyle(fontSize: AppType.hero)),

@@ -586,7 +586,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
               Row(children: [
                 mascotAvatarInline(size: 38),
                 const SizedBox(width: 10),
-                Expanded(child: Text('Pourquoi ces choix ?', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800))),
+                Expanded(child: Text('Pourquoi ces choix ?', style: _sheetTitleStyle(context))),
               ]),
               const SizedBox(height: 8),
               Text(_lastPlanningCoachExplanation.isEmpty

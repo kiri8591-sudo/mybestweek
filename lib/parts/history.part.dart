@@ -1,5 +1,5 @@
-// V8.94 — Écran Historique / mémoire d’activité
-// Extraction architecturale uniquement : comportement conservé.
+// V12.5.0 — Historique harmonisé sur les composants communs (app_ui.part.dart).
+// Comportement, filtres et lignes compactes conservés ; journal groupé par jour.
 
 part of '../main.dart';
 
@@ -156,25 +156,7 @@ class _HistorySheetState extends State<_HistorySheet> {
   }
 
   Widget _metric(String label, String value, String iconKey, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(11),
-        decoration: BoxDecoration(
-          color: _colors.surfaceSunken,
-          borderRadius: BorderRadius.circular(AppRadius.l),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _uiIcon(iconKey, icon, size: 19, color: _colors.accentIcon),
-            const SizedBox(height: 6),
-            Text(value, style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
-            const SizedBox(height: 2),
-            Text(label, style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
-          ],
-        ),
-      ),
-    );
+    return Expanded(child: _StatTile(label: label, value: value, iconKey: iconKey, icon: icon));
   }
 
   Widget _insightTile({required String title, required String text, required String iconKey, required IconData icon}) {
@@ -195,7 +177,7 @@ class _HistorySheetState extends State<_HistorySheet> {
           const SizedBox(width: 9),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              Text(title, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong)),
               const SizedBox(height: 2),
               Text(text, style: TextStyle(fontSize: AppType.body, color: _colors.textMuted, height: 1.3)),
             ]),
@@ -348,7 +330,12 @@ class _HistorySheetState extends State<_HistorySheet> {
             width: 62,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(AppRadius.xs),
-              child: LinearProgressIndicator(minHeight: 5, value: ratio, backgroundColor: _colors.border),
+              child: LinearProgressIndicator(
+                minHeight: 5,
+                value: ratio,
+                backgroundColor: _colors.border,
+                valueColor: AlwaysStoppedAnimation<Color>(ratio >= .8 ? _colors.accentFill : ratio >= .65 ? _colors.accentOutline : _colors.warnBorder),
+              ),
             ),
           ),
           const SizedBox(width: 6),
@@ -382,10 +369,10 @@ class _HistorySheetState extends State<_HistorySheet> {
             Row(children: [
               CircleAvatar(radius: 24, backgroundColor: _colors.tintStrong, child: _activityIconWidget(activity.emoji, size: 34)),
               const SizedBox(width: 10),
-              Expanded(child: Text(activity.name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))),
+              Expanded(child: Text(activity.name, style: _sheetTitleStyle(context))),
             ]),
             const SizedBox(height: 14),
-            Text('Mémoire sur 30 jours', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            Text('Mémoire sur 30 jours', style: _sectionTitleStyle(context)),
             const SizedBox(height: 8),
             Text('Réalisée ${last30.length} fois · prévue environ ${ (activity.frequency.clamp(1, 7) * 30 / 7.0).round()} fois.', style: const TextStyle(fontSize: AppType.body)),
             const SizedBox(height: 9),
@@ -510,19 +497,21 @@ class _HistorySheetState extends State<_HistorySheet> {
     final topActivity = _mostFrequentActivity(last30);
     final under = _underTargetActivities();
     final anchored = _wellAnchoredActivities();
+    final memoryList = _memoryActivities();
 
     return Column(
       children: [
-        Card(
-          color: _colors.surfaceSunken,
+        _AppCard(
+          tone: _CardTone.soft,
+          padding: EdgeInsets.zero,
           child: Padding(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(AppSpace.l),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                const Text('🧸', style: TextStyle(fontSize: AppType.display)),
-                const SizedBox(width: 8),
-                Expanded(child: Text('Ce que ton historique apprend', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
-              ]),
+              _SectionHeader(
+                iconKey: 'insights',
+                fallbackIcon: Icons.auto_graph_outlined,
+                title: 'Ce que ton historique apprend',
+              ),
               const SizedBox(height: 11),
               Row(children: [
                 _metric('moments · 7 j', '${last7.length}', 'reviewMoments', Icons.check_circle_outline),
@@ -543,16 +532,17 @@ class _HistorySheetState extends State<_HistorySheet> {
           ),
         ),
         const SizedBox(height: 9),
-        Card(
-          color: _colors.surfaceSunken,
+        _AppCard(
+          tone: _CardTone.soft,
+          padding: EdgeInsets.zero,
           child: Padding(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(AppSpace.l),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                _uiIcon('settings', Icons.tune_outlined, size: 18, color: _colors.danger),
-                const SizedBox(width: 8),
-                Text('À faire évoluer', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-              ]),
+              _SectionHeader(
+                iconKey: 'settings',
+                fallbackIcon: Icons.tune_outlined,
+                title: 'À faire évoluer',
+              ),
               const SizedBox(height: 6),
               if (under.isEmpty)
                 Text('Aucune activité ne présente un écart important sur les 30 derniers jours.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted))
@@ -565,7 +555,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                     )),
               if (anchored.isNotEmpty) ...[
                 const SizedBox(height: 11),
-                const Text('Bien ancrées', style: TextStyle(fontWeight: FontWeight.w800)),
+                Text('Bien ancrées', style: _sectionTitleStyle(context)),
                 ...anchored.map((a) => _insightTile(
                       iconKey: 'histStable',
                       title: a.name,
@@ -577,16 +567,17 @@ class _HistorySheetState extends State<_HistorySheet> {
           ),
         ),
         const SizedBox(height: 9),
-        Card(
-          color: _colors.tintStrong,
+        _AppCard(
+          tone: _CardTone.tint,
+          padding: EdgeInsets.zero,
           child: Padding(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(AppSpace.l),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                _uiIcon('coach', Icons.psychology_outlined, size: 18, color: _colors.accentIcon),
-                const SizedBox(width: 8),
-                Expanded(child: Text('Apprentissage du coach', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
-              ]),
+              _SectionHeader(
+                iconKey: 'coach',
+                fallbackIcon: Icons.psychology_outlined,
+                title: 'Apprentissage du coach',
+              ),
               const SizedBox(height: 6),
               Text(_learningOverviewText(), style: TextStyle(fontSize: AppType.label, color: _colors.accentIcon, height: 1.3)),
               const SizedBox(height: 9),
@@ -599,30 +590,36 @@ class _HistorySheetState extends State<_HistorySheet> {
           ),
         ),
         const SizedBox(height: 9),
-        Card(
-          color: _colors.surfaceSunken,
+        _AppCard(
+          tone: _CardTone.soft,
+          padding: EdgeInsets.zero,
           child: Padding(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(AppSpace.l),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                _uiIcon('insights', Icons.auto_graph_outlined, size: 18, color: _colors.accentIcon),
-                const SizedBox(width: 8),
-                Expanded(child: Text('Mémoire par activité', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
-                Text('${_memoryActivities().length}/${widget.activities.length}', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textWarm)),
-              ]),
+              _SectionHeader(
+                iconKey: 'insights',
+                fallbackIcon: Icons.auto_graph_outlined,
+                title: 'Mémoire par activité',
+                trailing: _Pill('${memoryList.length}/${widget.activities.length}'),
+              ),
               const SizedBox(height: 7),
               Text('Toutes tes activités ont une mémoire. Touche une ligne pour voir le détail sur 30 jours.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted, height: 1.3)),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: ['Toutes', 'Réalisé', 'À surveiller', 'Bien installées', 'Jamais réalisées'].map((value) => ChoiceChip(
-                      label: Text(value, style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700)),
-                      selected: _memoryFilter == value,
-                      onSelected: (_) => setState(() => _memoryFilter = value),
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                    )).toList(),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: [
+                  for (final value in const ['Toutes', 'Réalisé', 'À surveiller', 'Bien installées', 'Jamais réalisées'])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ChoiceChip(
+                        label: Text(value, style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700)),
+                        selected: _memoryFilter == value,
+                        onSelected: (_) => setState(() => _memoryFilter = value),
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      ),
+                    ),
+                ]),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -707,8 +704,8 @@ class _HistorySheetState extends State<_HistorySheet> {
                 style: TextStyle(fontSize: AppType.small, color: _colors.textMuted),
               ),
               const SizedBox(height: 4),
-              ..._memoryActivities().map(_activityMemoryRow),
-              if (_memoryActivities().isEmpty)
+              ...memoryList.map(_activityMemoryRow),
+              if (memoryList.isEmpty)
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
                   child: Text('Aucune activité dans ce filtre.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted)),
@@ -717,16 +714,17 @@ class _HistorySheetState extends State<_HistorySheet> {
           ),
         ),
         const SizedBox(height: 9),
-        Card(
-          color: _colors.tintStrong,
+        _AppCard(
+          tone: _CardTone.tint,
+          padding: EdgeInsets.zero,
           child: Padding(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(AppSpace.l),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                _uiIcon('coach', Icons.psychology_outlined, size: 18, color: _colors.accentText),
-                const SizedBox(width: 8),
-                Text('Ce que le coach retient', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-              ]),
+              _SectionHeader(
+                iconKey: 'coach',
+                fallbackIcon: Icons.psychology_outlined,
+                title: 'Ce que le coach retient',
+              ),
               const SizedBox(height: 8),
               const Text(
                 'Le prochain planning tient compte de la mémoire des 30 derniers jours : délai depuis la dernière réalisation, fréquence réelle, jours où l’activité est habituellement réalisée et ressentis difficiles ou très positifs.',
@@ -746,8 +744,8 @@ class _HistorySheetState extends State<_HistorySheet> {
 
   Widget _historyLogCard(ActivityLog log) {
     final date = log.date;
-    final dateLabel =
-        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} · ${log.realisedMinutes} min';
+    final dateLabel = '${log.realisedMinutes} min';
+    final feeling = _normalizeFeeling(log.feeling);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
@@ -783,14 +781,22 @@ class _HistorySheetState extends State<_HistorySheet> {
                     log.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.body),
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppType.body, color: _colors.textStrong),
                   ),
                 ),
                 const SizedBox(width: 7),
                 if (log.unplanned)
                   Padding(
-                    padding: const EdgeInsets.only(right: 5),
-                    child: Text('IMPR.', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.goldText)),
+                    padding: const EdgeInsets.only(right: 6),
+                    child: _Pill('Imprévu', background: _colors.warnBg, foreground: _colors.goldText),
+                  ),
+                if (log.feeling.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 7),
+                    child: Tooltip(
+                      message: 'Ressenti : ${log.feeling}',
+                      child: Container(width: 9, height: 9, decoration: BoxDecoration(color: _feelingColor(feeling), shape: BoxShape.circle)),
+                    ),
                   ),
                 Text(
                   dateLabel,
@@ -817,9 +823,30 @@ class _HistorySheetState extends State<_HistorySheet> {
     );
   }
 
+  Widget _dayHeader(DateTime day) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, bottom: 5, left: 2),
+      child: Text(
+        _friendlyDayLabel(day, DateTime.now()),
+        style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textMuted),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final sorted = _filteredLogs();
+    // Entrées du journal : un en-tête par jour puis une ligne par réalisation.
+    final entries = <Object>[];
+    DateTime? lastDay;
+    for (final log in sorted) {
+      final day = DateTime(log.date.year, log.date.month, log.date.day);
+      if (lastDay == null || day != lastDay) {
+        entries.add(day);
+        lastDay = day;
+      }
+      entries.add(log);
+    }
 
     return DraggableScrollableSheet(
       expand: false,
@@ -829,16 +856,19 @@ class _HistorySheetState extends State<_HistorySheet> {
       builder: (_, controller) => SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
+          padding: const EdgeInsets.fromLTRB(AppSpace.l, 4, AppSpace.l, 18),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Historique', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                  Text('Historique', style: _sheetTitleStyle(context)),
                   const SizedBox(height: 4),
-                  Text(widget.logs.isEmpty
-                      ? 'Aucune activité enregistrée pour le moment.'
-                      : 'L’historique sert maintenant à comprendre ton rythme et à aider le coach.'),
+                  Text(
+                    widget.logs.isEmpty
+                        ? 'Aucune activité enregistrée pour le moment.'
+                        : 'Comprendre ton rythme et aider le coach.',
+                    style: _hintStyle(),
+                  ),
                 ]),
               ),
               const SizedBox(width: 8),
@@ -853,55 +883,66 @@ class _HistorySheetState extends State<_HistorySheet> {
                 ),
               ),
             ]),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpace.m),
             Expanded(
-              child: ListView(
+              child: CustomScrollView(
                 controller: controller,
-                children: [
-                  _analysisCard(),
-                  const SizedBox(height: 14),
-                  Text('Journal des activités', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 8),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment<String>(value: '1 mois', label: Text('1 mois')),
-                        ButtonSegment<String>(value: '3 mois', label: Text('3 mois')),
-                        ButtonSegment<String>(value: '1 an', label: Text('1 an')),
-                        ButtonSegment<String>(value: 'Tout', label: Text('Tout')),
-                      ],
-                      selected: <String>{_historyFilter},
-                      onSelectionChanged: (selection) {
-                        if (selection.isEmpty) return;
-                        setState(() => _historyFilter = selection.first);
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      _analysisCard(),
+                      const SizedBox(height: AppSpace.l),
+                      Text('Journal des activités', style: _sectionTitleStyle(context)),
+                      const SizedBox(height: AppSpace.s),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SegmentedButton<String>(
+                          segments: const [
+                            ButtonSegment<String>(value: '1 mois', label: Text('1 mois')),
+                            ButtonSegment<String>(value: '3 mois', label: Text('3 mois')),
+                            ButtonSegment<String>(value: '1 an', label: Text('1 an')),
+                            ButtonSegment<String>(value: 'Tout', label: Text('Tout')),
+                          ],
+                          selected: <String>{_historyFilter},
+                          onSelectionChanged: (selection) {
+                            if (selection.isEmpty) return;
+                            setState(() => _historyFilter = selection.first);
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (widget.logs.isNotEmpty)
+                        Text(
+                          '${sorted.length} réalisation${sorted.length > 1 ? 's' : ''} affichée${sorted.length > 1 ? 's' : ''}',
+                          style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted),
+                        ),
+                      if (sorted.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 35),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _activityIconWidget(_uiIconValue('histEmpty', '📖'), size: 42),
+                                const SizedBox(height: 10),
+                                Text('Aucune activité dans cette période.', style: TextStyle(color: _colors.textMuted)),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ]),
+                  ),
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final entry = entries[index];
+                        if (entry is DateTime) return _dayHeader(entry);
+                        return _historyLogCard(entry as ActivityLog);
                       },
+                      childCount: entries.length,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  if (widget.logs.isNotEmpty)
-                    Text(
-                      '${sorted.length} activité${sorted.length > 1 ? 's' : ''} affichée${sorted.length > 1 ? 's' : ''}',
-                      style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted),
-                    ),
-                  const SizedBox(height: 8),
-                  if (sorted.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 35),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _activityIconWidget(_uiIconValue('histEmpty', '📖'), size: 42),
-                          const SizedBox(height: 10),
-                          const Text('Aucune activité dans cette période.'),
-                        ],
-                      ),
-                    )
-                  else
-                    Column(
-                      children: sorted.map(_historyLogCard).toList(),
-                    ),
-                  const SizedBox(height: 24),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
                 ],
               ),
             ),
@@ -1015,12 +1056,12 @@ class _ActivityUnderstandingPageState extends State<_ActivityUnderstandingPage> 
     final realisedMinutes = monthLogs.fold<int>(0, (sum, log) => sum + log.realisedMinutes);
     final realisedText = realisedMinutes == 0 ? '' : ' · ${realisedMinutes} min réalisées';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: 0,
-      color: _colors.card,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpace.s),
+      child: _AppCard(
+      padding: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(11, 9, 10, 9),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1045,13 +1086,13 @@ class _ActivityUnderstandingPageState extends State<_ActivityUnderstandingPage> 
                           activity.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textStrong),
+                          style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textStrong),
                         ),
                       ),
                       const SizedBox(width: 6),
                       Text(
                         '×$count',
-                        style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w900, color: _colors.textWarm),
+                        style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textWarm),
                       ),
                     ],
                   ),
@@ -1067,9 +1108,9 @@ class _ActivityUnderstandingPageState extends State<_ActivityUnderstandingPage> 
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                     child: LinearProgressIndicator(
                       value: progress,
-                      minHeight: 5,
+                      minHeight: 6,
                       backgroundColor: _colors.border,
-                      valueColor: AlwaysStoppedAnimation<Color>(_colors.accentIcon),
+                      valueColor: AlwaysStoppedAnimation<Color>(progress >= .8 ? _colors.accentFill : progress >= .5 ? _colors.accentOutline : _colors.warnBorder),
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -1084,6 +1125,7 @@ class _ActivityUnderstandingPageState extends State<_ActivityUnderstandingPage> 
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -1103,27 +1145,30 @@ class _ActivityUnderstandingPageState extends State<_ActivityUnderstandingPage> 
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
+          padding: const EdgeInsets.fromLTRB(AppSpace.l, AppSpace.m, AppSpace.l, 28),
           children: [
             Row(
               children: [
-                Text('Compréhension', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-                const Spacer(),
                 _monthArrow(previous: true),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: _colors.surfaceSunken,
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                Expanded(
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _colors.tintStrong,
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
+                        border: Border.all(color: _colors.borderTint),
+                      ),
+                      child: Text(_monthLabel(_month), style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong)),
+                    ),
                   ),
-                  child: Text(_monthLabel(_month), style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800)),
                 ),
                 _monthArrow(previous: false),
               ],
             ),
-            const SizedBox(height: 2),
-            Text('Statistiques mensuelles', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted)),
-            const SizedBox(height: 9),
+            const SizedBox(height: AppSpace.s),
+            Center(child: Text('Statistiques mensuelles', style: _hintStyle())),
+            const SizedBox(height: AppSpace.m),
             Row(
               children: [
                 for (final filter in const ['Toutes', 'Sport', 'Non sport'])
@@ -1140,21 +1185,18 @@ class _ActivityUnderstandingPageState extends State<_ActivityUnderstandingPage> 
               ],
             ),
             const SizedBox(height: 10),
-            Card(
-              color: _colors.surfaceSunken,
-              elevation: 0,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
-                child: Row(
-                  children: [
-                    _uiIcon('insights', Icons.auto_graph_outlined, size: 18, color: _colors.accentIcon),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text('$totalCount réalisation${totalCount > 1 ? 's' : ''} · $totalMinutes min vécues', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted))),
-                  ],
-                ),
+            _AppCard(
+              tone: _CardTone.tint,
+              padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
+              child: Row(
+                children: [
+                  _uiIcon('insights', Icons.auto_graph_outlined, size: 20, color: _colors.accentIcon),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text('$totalCount réalisation${totalCount > 1 ? 's' : ''} · ${_minutesLabel(totalMinutes)} vécues', style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textStrong))),
+                ],
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpace.m),
             if (visible.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 55),

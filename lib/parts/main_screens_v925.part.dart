@@ -489,7 +489,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             child: Row(
               children: [
-                const Text('🌿', style: TextStyle(fontSize: AppType.titleL)),
+                _activityIconWidget('pack://leaf', size: 22),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -538,12 +538,14 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
   }
 
   Widget _kawaiiNavIcon(String emoji, Color bg, Color fg, {bool selected = false}) {
+    // En mode sombre, la pastille pastel devient une teinte translucide sur la carte.
+    final fill = _darkMode ? Color.alphaBlend(fg.withValues(alpha: selected ? .30 : .20), _colors.card) : bg;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       width: selected ? 42 : 38,
       height: selected ? 34 : 30,
       decoration: BoxDecoration(
-        color: bg,
+        color: fill,
         borderRadius: BorderRadius.circular(selected ? AppRadius.l : AppRadius.m),
         border: Border.all(color: fg.withValues(alpha: selected ? .20 : .13), width: 1),
         boxShadow: selected
@@ -1009,7 +1011,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    const Text('✨', style: TextStyle(fontSize: AppType.h2)),
+                    _activityIconWidget('pack://star', size: 24),
                     const SizedBox(width: 5),
                     Expanded(
                       child: FittedBox(
@@ -1114,7 +1116,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     padding: const EdgeInsets.fromLTRB(10, 8, 7, 8),
                     decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.l)),
                     child: Row(children: [
-                      const Text('💡', style: TextStyle(fontSize: AppType.titleL)),
+                      _activityIconWidget('pack://bulb', size: 22),
                       const SizedBox(width: 6),
                       Expanded(child: Text(sportCoachSuggestion, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentText))),
                       const SizedBox(width: 5),

@@ -149,7 +149,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                     borderRadius: BorderRadius.circular(AppRadius.l),
                   ),
                   alignment: Alignment.center,
-                  child: const Text('🎯', style: TextStyle(fontSize: AppType.display)),
+                  child: _activityIconWidget('pack://target', size: 24),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -288,7 +288,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('💡', style: TextStyle(fontSize: AppType.titleL)),
+                  _activityIconWidget('pack://bulb', size: 22),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -1006,7 +1006,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('🌱', style: TextStyle(fontSize: AppType.h1)),
+                    _activityIconWidget('pack://sprout', size: 24),
                     SizedBox(width: 9),
                     Expanded(
                       child: Text(

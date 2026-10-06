@@ -278,7 +278,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                   Expanded(
                     child: Text(
                       item.title,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                      style: _sheetTitleStyle(context),
                     ),
                   ),
                   if (item.activityId == null || (findActivity(item.activityId!)?.category == 'Sport')) Text('${item.duration} min', style: _detailMetaStyle()),

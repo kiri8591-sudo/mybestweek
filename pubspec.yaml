@@ -1,7 +1,7 @@
 name: ma_belle_semaine
 description: Coach hebdomadaire ludique pour organiser une retraite active.
 publish_to: 'none'
-version: 12.4.14+34
+version: 12.5.1+37
 
 environment:
   sdk: '>=3.4.0 <4.0.0'

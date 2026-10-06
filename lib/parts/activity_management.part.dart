@@ -945,7 +945,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(children: [
-                          const Text('🗓️', style: TextStyle(fontSize: AppType.h2)),
+                          _activityIconWidget('pack://calendar', size: 24),
                           const SizedBox(width: 7),
                           const Expanded(child: Text('Activité quotidienne sur une période', style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppType.body))),
                           Switch.adaptive(

@@ -46,7 +46,7 @@ extension _DateRangeNavigationPart on _MaBelleSemaineAppState {
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Text('🗓️', style: TextStyle(fontSize: AppType.h2)),
+            _activityIconWidget('pack://calendar', size: 24),
             SizedBox(width: 7),
             Expanded(child: Text('Activités sur plusieurs jours', style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textWarm))),
           ]),

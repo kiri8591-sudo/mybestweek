@@ -36,6 +36,13 @@ class AppColors {
     required this.borderTint,
     required this.shadow,
     required this.shadowSoft,
+    required this.scaffold,
+    required this.appBar,
+    required this.inputFill,
+    required this.chipBg,
+    required this.navIndicator,
+    required this.primary,
+    required this.onPrimary,
   });
 
   // Textes
@@ -73,6 +80,14 @@ class AppColors {
   final Color borderTint;
   final Color shadow;
   final Color shadowSoft;
+  // Structure (thème Material : fond d'écran, barres, boutons)
+  final Color scaffold;        // fond des pages
+  final Color appBar;          // barre de titre
+  final Color inputFill;       // champs de saisie
+  final Color chipBg;          // puces non sélectionnées
+  final Color navIndicator;    // pastille de l'onglet actif
+  final Color primary;         // boutons principaux
+  final Color onPrimary;       // texte sur boutons principaux
 
   static const AppColors light = AppColors(
     textStrong: Color(0xFF3F4B45),
@@ -105,6 +120,13 @@ class AppColors {
     borderTint: Color(0xFFD0DED7),
     shadow: Color(0x12000000),
     shadowSoft: Color(0x09000000),
+    scaffold: Color(0xFFEEF2EE),
+    appBar: Color(0xFFF9F5ED),
+    inputFill: Color(0xFFFFFEFA),
+    chipBg: Color(0xFFFAF8F3),
+    navIndicator: Color(0xFFCFE3D5),
+    primary: Color(0xFF456B57),
+    onPrimary: Color(0xFFFFFFFF),
   );
 
   static const AppColors night = AppColors(
@@ -138,6 +160,13 @@ class AppColors {
     borderTint: Color(0xFF3E5246),
     shadow: Color(0x66000000),
     shadowSoft: Color(0x4D000000),
+    scaffold: Color(0xFF121614),
+    appBar: Color(0xFF1A201D),
+    inputFill: Color(0xFF252D29),
+    chipBg: Color(0xFF28312C),
+    navIndicator: Color(0xFF385346),
+    primary: Color(0xFFA9C8B6),
+    onPrimary: Color(0xFF173123),
   );
 }
 

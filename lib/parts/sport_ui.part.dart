@@ -854,7 +854,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
       const SizedBox(width: 115),
       ...List.generate(7, (day) {
         final date = _weekDayDate(day);
-        return Expanded(child: Container(margin: const EdgeInsets.symmetric(horizontal: 1), padding: const EdgeInsets.symmetric(vertical: 2), decoration: BoxDecoration(color: _sameDate(date, _selectedDate) ? _colors.tintSoft : Colors.transparent, borderRadius: BorderRadius.circular(AppRadius.xs)), child: Column(mainAxisSize: MainAxisSize.min, children: [Text(labels[day], style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.textWarm)), Text('${date.day}', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: _colors.textMuted))])));
+        return Expanded(child: Container(margin: const EdgeInsets.symmetric(horizontal: 1), padding: const EdgeInsets.symmetric(vertical: 2), decoration: BoxDecoration(color: _sameDate(date, _selectedDate) ? _colors.tintSoft : Colors.transparent, borderRadius: BorderRadius.circular(AppRadius.xs)), child: Column(mainAxisSize: MainAxisSize.min, children: [Text(labels[day], style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.textWarm)), Text('${date.day}', style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textMuted))])));
       }),
     ]));
   }
@@ -962,7 +962,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                   )
                 : Text(
                     '${date.day}',
-                    style: TextStyle(fontSize: 8.5, color: _colors.textWarm),
+                    style: TextStyle(fontSize: AppType.micro, color: _colors.textWarm),
                   ),
           ),
         ),
@@ -1155,7 +1155,7 @@ class _SportCoachJournalSheet extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 22),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Journal du coach Sport', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+          Text('Journal du coach Sport', style: _sheetTitleStyle(context)),
           const SizedBox(height: 4),
           Text(sorted.isEmpty ? 'Aucune analyse Sport pour le moment.' : 'Les analyses et ajustements du coach.'),
           const SizedBox(height: 14),

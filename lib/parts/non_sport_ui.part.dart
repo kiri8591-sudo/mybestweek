@@ -289,7 +289,7 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
         final date = _dayDate(day);
         return Expanded(child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
           Text(widget.dayNames[day].substring(0, 1), style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textWarm)),
-          Text('${date.day}', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+          Text('${date.day}', style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textMuted)),
         ])));
       }),
     ]);
@@ -362,7 +362,7 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
         borderRadius: BorderRadius.circular(3),
         child: SizedBox(width: 14, height: 16, child: Center(child: done
             ? Container(width: 12, height: 12, decoration: BoxDecoration(color: _colors.accentFill, borderRadius: BorderRadius.circular(3)), child: const Icon(Icons.check, size: 8, color: Colors.white))
-            : Text('$day', style: TextStyle(fontSize: 8.5, color: _colors.textWarm)))),
+            : Text('$day', style: TextStyle(fontSize: AppType.micro, color: _colors.textWarm)))),
       );
     }
     return GestureDetector(
