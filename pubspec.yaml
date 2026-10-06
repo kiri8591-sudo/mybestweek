@@ -1,7 +1,7 @@
 name: ma_belle_semaine
 description: Coach hebdomadaire ludique pour organiser une retraite active.
 publish_to: 'none'
-version: 12.4.5+25
+version: 12.4.6+26
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -9,7 +9,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  google_fonts: ^6.3.0
   shared_preferences: ^2.5.5
   universal_html: ^2.3.0
   file_picker: ^11.0.3
@@ -21,5 +20,42 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: NunitoSans
+      fonts:
+        - asset: assets/fonts/NunitoSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NunitoSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/NunitoSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/NunitoSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/NunitoSans-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/NunitoSans-ExtraBold.ttf
+          weight: 900
+        - asset: assets/fonts/NunitoSans-Italic.ttf
+          style: italic
+        - asset: assets/fonts/NunitoSans-BoldItalic.ttf
+          weight: 700
+          style: italic
+    - family: Lora
+      fonts:
+        - asset: assets/fonts/Lora-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Lora-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Lora-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Lora-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Lora-Bold.ttf
+          weight: 800
+        - asset: assets/fonts/Lora-Italic.ttf
+          style: italic
+        - asset: assets/fonts/Lora-BoldItalic.ttf
+          weight: 700
+          style: italic
   assets:
     - assets/icons/pack/

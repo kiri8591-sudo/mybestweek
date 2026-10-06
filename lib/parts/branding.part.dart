@@ -23,28 +23,28 @@ void _installMascotBrowserIcon() {
   }
 }
 
-TextStyle _farmhouseSerif(TextStyle? base) => GoogleFonts.lora(textStyle: base);
+TextStyle _farmhouseSerif(TextStyle? base) => AppFonts.lora(textStyle: base);
 
-TextStyle _farmhouseSans(TextStyle? base) => GoogleFonts.nunitoSans(textStyle: base);
+TextStyle _farmhouseSans(TextStyle? base) => AppFonts.nunito(textStyle: base);
 
 // Signature typographique MyBestWeek : une hiérarchie courte et stable.
 // Titre détail 12,5 px · informations secondaires 11 px · paragraphe 12 px.
-TextStyle _detailTitleStyle({TextDecoration? decoration}) => GoogleFonts.nunitoSans(
+TextStyle _detailTitleStyle({TextDecoration? decoration}) => AppFonts.nunito(
       fontSize: AppType.body,
-      fontWeight: FontWeight.w800,
+      fontWeight: FontWeight.w700,
       color: _colors.textStrong,
       height: 1.18,
       decoration: decoration,
     );
 
-TextStyle _detailMetaStyle() => GoogleFonts.nunitoSans(
+TextStyle _detailMetaStyle() => AppFonts.nunito(
       fontSize: AppType.label,
       fontWeight: FontWeight.w700,
       color: _colors.accentText,
       height: 1.18,
     );
 
-TextStyle _detailParagraphStyle() => GoogleFonts.nunitoSans(
+TextStyle _detailParagraphStyle() => AppFonts.nunito(
       fontSize: AppType.body,
       fontWeight: FontWeight.w500,
       color: const Color(0xFF606A66),
@@ -53,8 +53,8 @@ TextStyle _detailParagraphStyle() => GoogleFonts.nunitoSans(
 
 TextTheme _farmhouseTextTheme() {
   final base = ThemeData.light().textTheme;
-  final sans = GoogleFonts.nunitoSansTextTheme(base);
-  final serif = GoogleFonts.loraTextTheme(base);
+  final sans = AppFonts.nunitoTextTheme(base);
+  final serif = AppFonts.loraTextTheme(base);
   return sans.copyWith(
     displayLarge: serif.displayLarge,
     displayMedium: serif.displayMedium,

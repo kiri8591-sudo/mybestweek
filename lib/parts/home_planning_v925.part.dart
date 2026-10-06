@@ -271,7 +271,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
         if (day == today)
           Padding(
             padding: EdgeInsets.only(left: 8),
-            child: Text('FOCUS DU JOUR', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.danger)),
+            child: Text('FOCUS DU JOUR', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.danger)),
           ),
       ],
     );
@@ -281,7 +281,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 92, child: Text(time, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.accentText))),
+        SizedBox(width: 92, child: Text(time, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.accentText))),
         Expanded(child: Text(title, style: TextStyle(fontSize: AppType.bodyL, color: _colors.textStrong))),
       ]),
     );
@@ -492,7 +492,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                                 ),
                                 child: Text(
                                   'MISSION',
-                                  style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, letterSpacing: .45, color: _colors.danger),
+                                  style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, letterSpacing: .45, color: _colors.danger),
                                 ),
                               ),
                               const SizedBox(width: 6),

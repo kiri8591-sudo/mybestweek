@@ -290,7 +290,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                                   child: _activityIconWidget(activity.emoji, size: 24),
                                 ),
                                 const SizedBox(width: 9),
-                                Expanded(child: Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textStrong))),
+                                Expanded(child: Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textStrong))),
                                 Icon(selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: selected ? _colors.accentIcon : _colors.textFaint, size: 22),
                               ]),
                             ),
@@ -479,8 +479,8 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
         ],
         const SizedBox(height: 9),
         Row(children: [
-          Expanded(child: Text('⭐ $_priorityBonusTotal bonus cumulés', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.accentIcon))),
-          Text('🎁 $rewardLabel', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.danger)),
+          Expanded(child: Text('⭐ $_priorityBonusTotal bonus cumulés', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentIcon))),
+          Text('🎁 $rewardLabel', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.danger)),
         ]),
       ]),
     );
@@ -515,7 +515,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
             ),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: done ? _colors.accentIcon : _colors.textStrong, decoration: done ? TextDecoration.lineThrough : null)),
+              Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: done ? _colors.accentIcon : _colors.textStrong, decoration: done ? TextDecoration.lineThrough : null)),
               const SizedBox(height: 3),
               Text(done ? 'Réalisée aujourd’hui' : '${activity.category} · ${activity.duration} min', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted)),
             ])),
@@ -545,8 +545,8 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
         Row(children: [
           const Text('🧊', style: TextStyle(fontSize: AppType.h2)),
           const SizedBox(width: 7),
-          Expanded(child: Text('Activités gelées', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textMuted))),
-          Text('${frozen.length}', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+          Expanded(child: Text('Activités gelées', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textMuted))),
+          Text('${frozen.length}', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textMuted)),
         ]),
         const SizedBox(height: 5),
         Text('Elles restent dans ta bibliothèque, mais le coach ne les propose plus. Reprends-les depuis « Activités » quand le moment sera venu.', style: TextStyle(fontSize: AppType.small, height: 1.3, color: _colors.textMuted)),
@@ -603,7 +603,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                 radius: 20,
                 padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('🌱 Commence par 1 à 5 activités', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
+                  Text('🌱 Commence par 1 à 5 activités', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.accentIcon)),
                   const SizedBox(height: 4),
                   Text('Ici, tu ne gères pas toute la semaine : tu choisis simplement ce qui compte le plus aujourd’hui.', style: TextStyle(fontSize: AppType.small, height: 1.3, color: _colors.accentIcon)),
                   const SizedBox(height: 9),

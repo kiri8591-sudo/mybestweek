@@ -47,14 +47,14 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                   child: Row(mainAxisSize: MainAxisSize.min, children: [
                     Text(label == 'Matin' ? '🌤️' : label == 'Après-midi' ? '🌿' : '🌙', style: const TextStyle(fontSize: AppType.title, height: 1)),
                     const SizedBox(width: 6),
-                    Text(label, style: GoogleFonts.nunitoSans(fontSize: AppType.title, fontWeight: FontWeight.w800, color: _colors.textStrong, letterSpacing: .05)),
+                    Text(label, style: AppFonts.nunito(fontSize: AppType.title, fontWeight: FontWeight.w800, color: _colors.textStrong, letterSpacing: .05)),
                   ]),
                 ),
                 if (highlighted) ...[
                   const SizedBox(width: 7),
                   _systemIconWidget('dragDown', fallback: '↓', size: 16),
                   const SizedBox(width: 3),
-                  Text('Déposer ici', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
+                  Text('Déposer ici', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.accentIcon)),
                 ],
               ]),
               const SizedBox(height: 4),
@@ -90,7 +90,6 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
               onChanged: (value) {
                 openPlanItem(item);
               },
-              visualDensity: VisualDensity.compact,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xs)),
             ),
             const SizedBox(width: 2),
@@ -203,7 +202,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
               Row(children: [
                 _uiIcon('coach', Icons.psychology_alt_rounded, size: 21, color: _colors.accentIcon),
                 const SizedBox(width: 8),
-                Expanded(child: Text('Pourquoi ce choix ?', style: GoogleFonts.lora(fontSize: AppType.h2, fontWeight: FontWeight.w700, color: _colors.textStrong))),
+                Expanded(child: Text('Pourquoi ce choix ?', style: AppFonts.lora(fontSize: AppType.h2, fontWeight: FontWeight.w700, color: _colors.textStrong))),
               ]),
               const SizedBox(height: 12),
               Text(item.title, style: _detailTitleStyle()),
@@ -221,7 +220,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
       width: 67,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
       decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.m)),
-      child: Text(period, textAlign: TextAlign.center, style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.accentText)),
+      child: Text(period, textAlign: TextAlign.center, style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.accentText)),
     );
   }
 

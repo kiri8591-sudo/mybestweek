@@ -859,7 +859,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Icônes suggérées', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textWarm)),
+                          Text('Icônes suggérées', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textWarm)),
                           const SizedBox(height: 6),
                           Wrap(
                             spacing: 6,
@@ -947,7 +947,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                         Row(children: [
                           const Text('🗓️', style: TextStyle(fontSize: AppType.h2)),
                           const SizedBox(width: 7),
-                          const Expanded(child: Text('Activité quotidienne sur une période', style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.body))),
+                          const Expanded(child: Text('Activité quotidienne sur une période', style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppType.body))),
                           Switch.adaptive(
                             value: dateRangeEnabled,
                             onChanged: (value) {
@@ -1138,7 +1138,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                             children: [
                               Text(
                                 activeInSportRotation ? 'Dans la rotation Sport' : 'Mise en attente · « Plus tard »',
-                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.body),
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppType.body),
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -1182,7 +1182,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                     Text(isFrozen ? '🧊' : '🌱', style: const TextStyle(fontSize: AppType.h2)),
                     const SizedBox(width: 8),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(isFrozen ? 'Activité gelée' : 'Activité active', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.body)),
+                      Text(isFrozen ? 'Activité gelée' : 'Activité active', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppType.body)),
                       const SizedBox(height: 2),
                       Text(isFrozen ? 'Elle reste dans tes activités mais ne sera plus proposée par le coach.' : 'Le coach peut de nouveau la proposer lors d’une prochaine régénération.', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
                     ])),

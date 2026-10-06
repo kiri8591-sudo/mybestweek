@@ -48,7 +48,7 @@ extension _DateRangeNavigationPart on _MaBelleSemaineAppState {
           Row(children: [
             Text('🗓️', style: TextStyle(fontSize: AppType.h2)),
             SizedBox(width: 7),
-            Expanded(child: Text('Activités sur plusieurs jours', style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textWarm))),
+            Expanded(child: Text('Activités sur plusieurs jours', style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textWarm))),
           ]),
           const SizedBox(height: 3),
           Text('Présentes pendant toute la période. Elles ne se valident pas.', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted, fontWeight: FontWeight.w600)),
@@ -73,7 +73,7 @@ extension _DateRangeNavigationPart on _MaBelleSemaineAppState {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2),
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
+                        Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong)),
                         const SizedBox(height: 2),
                         Text(activity == null ? 'Période' : _dateRangeLabel(activity), style: TextStyle(fontSize: AppType.small, color: _colors.textMuted, fontWeight: FontWeight.w700)),
                       ]),

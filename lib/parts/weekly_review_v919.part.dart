@@ -220,7 +220,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                             Expanded(child: Text('La direction pour la suite', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
                           ]),
                           const SizedBox(height: 7),
-                          Text(directionTitle, style: const TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800)),
+                          Text(directionTitle, style: const TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700)),
                           const SizedBox(height: 5),
                           Text(directionText, style: TextStyle(fontSize: AppType.label, height: 1.35, color: _colors.accentIcon)),
                         ]),
@@ -471,7 +471,7 @@ class _ReviewWeekRow extends StatelessWidget {
           SizedBox(
             width: 78,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(label, style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.accentText)),
+              Text(label, style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.accentText)),
               const SizedBox(height: 2),
               Text('${_dateLabel(summary.start)}–${_dateLabel(summary.end.subtract(const Duration(days: 1)))}', style: TextStyle(fontSize: AppType.micro, color: _colors.textMuted)),
             ]),
@@ -482,7 +482,7 @@ class _ReviewWeekRow extends StatelessWidget {
               spacing: 7,
               runSpacing: 3,
               children: [
-                Text('${summary.activeDays} j', style: const TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800)),
+                Text('${summary.activeDays} j', style: const TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700)),
                 Text('${summary.moments} moments', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
                 Text('${summary.minutes} min', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
                 if (summary.difficult > 0)

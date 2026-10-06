@@ -757,7 +757,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                     child: Row(children: [
                       _activityIconWidget(activity.emoji, size: 25),
                       const SizedBox(width: 7),
-                      Expanded(child: Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.body, color: _colors.textStrong))),
+                      Expanded(child: Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppType.body, color: _colors.textStrong))),
                       const SizedBox(width: 6),
                       DropdownButtonHideUnderline(
                         child: DropdownButton<String>(

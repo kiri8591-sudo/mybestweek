@@ -321,7 +321,7 @@ class _HistorySheetState extends State<_HistorySheet> {
           ),
           const SizedBox(width: 9),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(activity.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textStrong)),
+            Text(activity.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textStrong)),
             const SizedBox(height: 4),
             ClipRRect(
               borderRadius: BorderRadius.circular(AppRadius.xs),
@@ -375,7 +375,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                 borderRadius: BorderRadius.circular(AppRadius.m),
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Tes réglages', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+                Text('Tes réglages', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textMuted)),
                 const SizedBox(height: 4),
                 Text('${activity.frequency}×/semaine · ${activity.duration} min · priorité ${activity.priority}/5 · jours préférés : ${activity.preferredDays.isEmpty ? 'aucun' : activity.preferredDays.map((d) => d >= 0 && d < widget.dayNames.length ? widget.dayNames[d] : '').where((v) => v.isNotEmpty).join(', ')}',
                     style: const TextStyle(fontSize: AppType.label, height: 1.3)),
@@ -587,7 +587,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                 _uiIcon('insights', Icons.auto_graph_outlined, size: 18, color: _colors.accentIcon),
                 const SizedBox(width: 8),
                 Expanded(child: Text('Mémoire par activité', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
-                Text('${_memoryActivities().length}/${widget.activities.length}', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textWarm)),
+                Text('${_memoryActivities().length}/${widget.activities.length}', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textWarm)),
               ]),
               const SizedBox(height: 7),
               Text('Toutes tes activités ont une mémoire. Touche une ligne pour voir le détail sur 30 jours.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted, height: 1.3)),
@@ -596,7 +596,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                 spacing: 6,
                 runSpacing: 6,
                 children: ['Toutes', 'Réalisé', 'À surveiller', 'Bien installées', 'Jamais réalisées'].map((value) => ChoiceChip(
-                      label: Text(value, style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800)),
+                      label: Text(value, style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700)),
                       selected: _memoryFilter == value,
                       onSelected: (_) => setState(() => _memoryFilter = value),
                       visualDensity: VisualDensity.compact,
@@ -604,7 +604,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                     )).toList(),
               ),
               const SizedBox(height: 8),
-              Text('Type d’activité', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+              Text('Type d’activité', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textMuted)),
               const SizedBox(height: 5),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -614,7 +614,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                       Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: ChoiceChip(
-                          label: Text(value, style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800)),
+                          label: Text(value, style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700)),
                           selected: _memoryType == value,
                           onSelected: (_) => setState(() => _memoryType = value),
                           visualDensity: VisualDensity.compact,
@@ -627,7 +627,7 @@ class _HistorySheetState extends State<_HistorySheet> {
               const SizedBox(height: 7),
               Row(
                 children: [
-                  Text('Trier par', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+                  Text('Trier par', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textMuted)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: DropdownButtonHideUnderline(
@@ -769,7 +769,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                                 'IMPRÉVU',
                                 style: TextStyle(
                                   fontSize: AppType.caption,
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w700,
                                   color: _colors.goldText,
                                 ),
                               ),

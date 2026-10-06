@@ -163,7 +163,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
             const SizedBox(height: 16),
             Text(
               'Activité',
-              style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textMuted),
+              style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted),
             ),
             const SizedBox(height: 6),
             Container(
@@ -210,7 +210,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: AppType.body,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                         color: frozen ? _colors.textFaint : _colors.textStrong,
                       ),
                     ),
@@ -225,7 +225,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                     trailing: selected
                         ? Icon(Icons.check_circle_rounded, color: _colors.textMuted, size: 20)
                         : frozen
-                            ? Text('GELÉE', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.textMuted))
+                            ? Text('GELÉE', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.textMuted))
                             : Icon(Icons.radio_button_unchecked_rounded, color: _colors.textFaint, size: 19),
                     onTap: selectable ? () => setState(() => activityId = activity.id) : null,
                   );
@@ -691,7 +691,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: AppType.bodyL,
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w700,
                                   color: complete ? _colors.accentIcon : _colors.textStrong,
                                 ),
                               ),
@@ -740,7 +740,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     '$progress/${goal.target}',
                     style: TextStyle(
                       fontSize: AppType.label,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       color: _colors.textMuted,
                     ),
                   ),
@@ -756,7 +756,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: AppType.small,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w700,
                         color: complete ? _colors.accentIcon : _colors.textMuted,
                       ),
                     ),
@@ -766,7 +766,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     '🎁 $rewardCount',
                     style: TextStyle(
                       fontSize: AppType.small,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       color: _colors.textWarm,
                     ),
                   ),
@@ -821,7 +821,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: AppType.body,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       color: _colors.textStrong,
                     ),
                   ),
@@ -855,7 +855,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                   'record $best',
                   style: TextStyle(
                     fontSize: AppType.micro,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     color: _colors.textMuted,
                   ),
                 ),
@@ -986,7 +986,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     '${goals.length} actif${goals.length > 1 ? 's' : ''}',
                     style: TextStyle(
                       fontSize: AppType.small,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       color: _colors.textMuted,
                     ),
                   ),
@@ -1055,7 +1055,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                   'jours consécutifs',
                   style: TextStyle(
                     fontSize: AppType.caption,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     color: _colors.textMuted,
                   ),
                 ),

@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:universal_html/universal_html.dart' as html;
@@ -47,6 +46,7 @@ part 'parts/objectives_v929.part.dart';
 part 'parts/app_colors.part.dart';
 part 'parts/icon_pack.part.dart';
 part 'parts/app_tokens.part.dart';
+part 'parts/app_fonts.part.dart';
 
 void main() {
   if (kIsWeb) _installMascotBrowserIcon();
@@ -63,8 +63,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.4.5';
-  static const buildVersion = '12.4.5+25';
+  static const version = 'V12.4.6';
+  static const buildVersion = '12.4.6+26';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',

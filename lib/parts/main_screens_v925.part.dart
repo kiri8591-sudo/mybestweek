@@ -99,7 +99,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                           width: 56,
                           child: Text(
                             dateLabel(log),
-                            style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800),
+                            style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -213,7 +213,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
         children: [
           Text(
             'Semaine',
-            style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _colors.accentIcon),
+            style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.accentIcon),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -250,7 +250,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                   labels[day],
                                   style: TextStyle(
                                     fontSize: AppType.small,
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: FontWeight.w700,
                                     color: planned ? _colors.accentText : _colors.textMuted,
                                   ),
                                 ),
@@ -336,7 +336,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             Text('Ces indications seront prises en compte lors de la régénération du lundi. Rien ne change aujourd’hui.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted, height: 1.3)),
             const SizedBox(height: 12),
             Wrap(spacing: 7, runSpacing: 7, children: labels.entries.map((entry) => FilterChip(
-              label: Text(entry.value, style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800)),
+              label: Text(entry.value, style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700)),
               selected: local.contains(entry.key),
               onSelected: (selected) => setSheetState(() => selected ? local.add(entry.key) : local.remove(entry.key)),
             )).toList()),
@@ -380,7 +380,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             Row(children: [
               const Text('🔭', style: TextStyle(fontSize: AppType.h2)),
               const SizedBox(width: 7),
-              Expanded(child: Text('Aperçu de la semaine prochaine', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong))),
+              Expanded(child: Text('Aperçu de la semaine prochaine', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong))),
               TextButton.icon(onPressed: _openNextWeekCoachDirections, icon: _systemIconWidget('nextWeekDirections', fallback: '🎛️', size: 15), label: const Text('Diriger le Coach'), style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4), minimumSize: const Size(0, 30))),
             ]),
             const SizedBox(height: 4),
@@ -389,19 +389,19 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: List.generate(7, (day) {
               final items = projection[day]!;
               return Container(
-                width: 76,
+                width: 92,
                 margin: EdgeInsets.only(right: day == 6 ? 0 : 6),
                 padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
                 decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.m), border: Border.all(color: _colors.border)),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][day], style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+                  Text(['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][day], style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textMuted)),
                   const SizedBox(height: 3),
                   if (_sportProgram != null && _configuredSportBaseBudgetForDay(day) > 0)
-                    const Padding(padding: EdgeInsets.only(bottom: 2), child: Text('💪 Sport', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800))),
+                    const Padding(padding: EdgeInsets.only(bottom: 2), child: Text('💪 Sport', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700))),
                   if (items.isEmpty)
                     Text('Temps libre', style: TextStyle(fontSize: AppType.micro, color: _colors.textMuted))
                   else
-                    ...items.take(3).map((a) => Padding(padding: const EdgeInsets.only(bottom: 2), child: Text(a.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.accentIcon)))),
+                    ...items.take(3).map((a) => Padding(padding: const EdgeInsets.only(bottom: 3), child: Row(children: [_activityIconWidget(a.emoji, size: 15), const SizedBox(width: 3), Expanded(child: Text(a.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.accentIcon)))]))),
                   if (items.length > 3) Text('+${items.length - 3}', style: TextStyle(fontSize: AppType.micro, color: _colors.textMuted)),
                 ]),
               );
@@ -456,7 +456,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     'Planning mis à jour · ${_regeneratedDaysMessage()}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.accentIcon),
+                    style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentIcon),
                   ),
                 ),
                 TextButton(
@@ -470,7 +470,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     minimumSize: const Size(0, 30),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Pourquoi ?', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800)),
+                  child: const Text('Pourquoi ?', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700)),
                 ),
               ],
             ),
@@ -496,7 +496,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     'C’est lundi 🌱. Repenser la semaine à partir de ton historique ?',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.accentIcon, height: 1.2),
+                    style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentIcon, height: 1.2),
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -507,7 +507,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     minimumSize: const Size(0, 34),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Repenser', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800)),
+                  child: const Text('Repenser', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700)),
                 ),
                 IconButton(
                   tooltip: 'Pas maintenant',
@@ -561,9 +561,9 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
           mascotAvatar(size: 48),
           const SizedBox(width: 11),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontFamily: GoogleFonts.lora().fontFamily, fontWeight: FontWeight.w700, color: _colors.textStrong, letterSpacing: -0.35, fontSize: AppType.h1, height: 1.12)),
+            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontFamily: AppFonts.serif, fontWeight: FontWeight.w700, color: _colors.textStrong, letterSpacing: -0.35, fontSize: AppType.h1, height: 1.12)),
             const SizedBox(height: 4),
-            Text(subtitle, maxLines: 3, overflow: TextOverflow.ellipsis, style: GoogleFonts.nunitoSans(fontSize: AppType.body, color: _colors.textMuted, height: 1.28)),
+            Text(subtitle, maxLines: 3, overflow: TextOverflow.ellipsis, style: AppFonts.nunito(fontSize: AppType.body, color: _colors.textMuted, height: 1.28)),
           ])),
           const SizedBox(width: 4),
           IconButton(
@@ -675,7 +675,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
     Widget pill(String text, {Color bg = const Color(0xFFFFFCF7), Color fg = const Color(0xFF60786B)}) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(AppRadius.pill), border: Border.all(color: _colors.borderStrong)),
-      child: Text(text, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: fg)),
+      child: Text(text, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: fg)),
     );
 
     Widget todayPeriod(String period) {
@@ -728,10 +728,10 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     child: Row(children: [
                       _systemIconWidget(period == 'Matin' ? 'periodMorning' : period == 'Après-midi' ? 'periodAfternoon' : 'periodEvening', fallback: period == 'Matin' ? '🌤️' : period == 'Après-midi' ? '🌿' : '🌙', size: 17),
                       const SizedBox(width: 6),
-                      Text(period, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
+                      Text(period, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong)),
                       if (allDone) ...[
                         const SizedBox(width: 7),
-                        Text('✓', style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.accentIcon),),
+                        Text('✓', style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.accentIcon),),
                         const Spacer(),
                         _uiIcon(collapsed ? 'chevronDown' : 'chevronUp', collapsed ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_up_rounded, size: 18, color: _colors.textMuted),
                       ] else ...[
@@ -742,7 +742,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                         const SizedBox(width: 7),
                         _systemIconWidget('dragDown', fallback: '↓', size: 15),
                         const SizedBox(width: 3),
-                        Text('Déposer ici', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
+                        Text('Déposer ici', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentIcon)),
                       ],
                     ]),
                   ),
@@ -801,7 +801,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     '${dateText()} · ${_clockText()}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _darkMode ? const Color(0xFFB9C3BD) : const Color(0xFF756E67)),
+                                    style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _darkMode ? const Color(0xFFB9C3BD) : const Color(0xFF756E67)),
                                   ),
                                 ),
                               ],
@@ -831,7 +831,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                   _MaBelleSemaineAppState.version,
                                   maxLines: 1,
                                   softWrap: false,
-                                  style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _darkMode ? const Color(0xFFA5B2AB) : const Color(0xFF79877F), letterSpacing: .1),
+                                  style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _darkMode ? const Color(0xFFA5B2AB) : const Color(0xFF79877F), letterSpacing: .1),
                                 ),
                               ],
                             ),
@@ -893,7 +893,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                 ),
                                 child: Text(
                                   _backupMenuStatusLabel(),
-                                  style: const TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800),
+                                  style: const TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700),
                                 ),
                               ),
                             ),
@@ -912,7 +912,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               contentPadding: EdgeInsets.zero,
                               leading: Icon(_darkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded, size: 18),
                               title: const Text('Mode sombre'),
-                              trailing: Text(_darkMode ? 'Activé' : 'Désactivé', style: const TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800)),
+                              trailing: Text(_darkMode ? 'Activé' : 'Désactivé', style: const TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700)),
                             ),
                           ),
                         ],
@@ -932,7 +932,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               : '${_weatherCity.trim()}${_weatherTemperature.isEmpty ? '' : ' · ${_weatherTemperature}'}${_weatherText.isEmpty ? '' : ' · ${_weatherText.toLowerCase()}'}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.accentIcon),
+                          style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentIcon),
                         ),
                       ),
                     ],
@@ -983,7 +983,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     _todayMoodComment(summary),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(fontSize: AppType.caption, height: 1.16, fontWeight: FontWeight.w800, color: _darkMode ? const Color(0xFFB8C3BD) : const Color(0xFF6B756F)),
+                                    style: TextStyle(fontSize: AppType.caption, height: 1.16, fontWeight: FontWeight.w700, color: _darkMode ? const Color(0xFFB8C3BD) : const Color(0xFF6B756F)),
                                   ),
                                 ),
                               ],
@@ -1052,7 +1052,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                             maxLines: 2,
                             softWrap: true,
                             overflow: TextOverflow.visible,
-                            style: TextStyle(fontSize: AppType.caption, height: 1.18, fontWeight: FontWeight.w800, color: _darkMode ? const Color(0xFFC6D0CA) : const Color(0xFF6E6860)),
+                            style: TextStyle(fontSize: AppType.caption, height: 1.18, fontWeight: FontWeight.w700, color: _darkMode ? const Color(0xFFC6D0CA) : const Color(0xFF6E6860)),
                           ),
                         ),
                       ],
@@ -1116,7 +1116,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     child: Row(children: [
                       const Text('💡', style: TextStyle(fontSize: AppType.titleL)),
                       const SizedBox(width: 6),
-                      Expanded(child: Text(sportCoachSuggestion, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.accentText))),
+                      Expanded(child: Text(sportCoachSuggestion, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentText))),
                       const SizedBox(width: 5),
                       FilledButton.tonalIcon(onPressed: applySportCoachSuggestion, icon: _uiIcon('apply', Icons.bolt_rounded, size: 14, color: _colors.accentIcon), label: const Text('Appliquer'), style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap)),
                     ]),
@@ -1199,7 +1199,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(labels[day], style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+                  Text(labels[day], style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textMuted)),
                   const SizedBox(height: 2),
                   InkWell(
                     onTap: () => _toggleNonSportWeekDay(activity, day),
@@ -1364,7 +1364,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('$totalMinutes min prévues', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.bodyL)),
+                          Text('$totalMinutes min prévues', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppType.bodyL)),
                           const SizedBox(height: 2),
                           Text('$weekCompleted / ${trackable.length} moment(s) validé(s)', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted)),
                           const SizedBox(height: 7),
@@ -1425,7 +1425,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                   child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                     _uiIcon('refresh', Icons.autorenew_rounded, size: 18, color: _colors.accentIcon),
                     const SizedBox(width: 7),
-                    Expanded(child: Text('Régénération : ${_regeneratedDaysMessage()}. ${_lastPlanningWasFullWeek ? 'La semaine entière a été reconstruite après la réinitialisation.' : 'Le passé et aujourd’hui restent inchangés.'}', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.accentIcon))),
+                    Expanded(child: Text('Régénération : ${_regeneratedDaysMessage()}. ${_lastPlanningWasFullWeek ? 'La semaine entière a été reconstruite après la réinitialisation.' : 'Le passé et aujourd’hui restent inchangés.'}', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.accentIcon))),
                     TextButton(
                       onPressed: openPlanningCoachDecisions,
                       child: const Text('Pourquoi ?'),
@@ -1475,7 +1475,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                             dayNames[day].substring(0, 3),
                             style: TextStyle(
                               fontSize: AppType.small,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                               color: isSelected ? _colors.accentText : _colors.textMuted,
                             ),
                           ),
@@ -1484,7 +1484,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                             _weekDateShortLabel(day),
                             style: TextStyle(
                               fontSize: AppType.micro,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w700,
                               color: isToday ? _colors.danger : _colors.textMuted,
                             ),
                           ),
@@ -1504,7 +1504,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               'régénéré',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _colors.accentIcon),
+                              style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.accentIcon),
                             )
                           else
                             Text(
@@ -1513,7 +1513,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: AppType.micro,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w700,
                                 color: done > 0 ? _colors.accentIcon : _colors.textMuted,
                               ),
                             ),
@@ -1585,7 +1585,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                             ),
                             child: Text(
                               'AUJOURD’HUI',
-                              style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _colors.accentText),
+                              style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.accentText),
                             ),
                           ),
                         const SizedBox(width: 3),
@@ -1608,13 +1608,13 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                             selectedItems.isEmpty
                                 ? 'Journée libre'
                                 : '$selectedDone / ${selectedActionItems.length} moment(s) validé(s)',
-                            style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textMuted),
+                            style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted),
                           ),
                         ),
                         if (_sportBudgetForDay(selectedDay) > 0)
                           Text(
                             'Sport ${_sportBudgetForDay(selectedDay)} min',
-                            style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.accentIcon),
+                            style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.accentIcon),
                           ),
                       ],
                     ),
@@ -1660,12 +1660,12 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                 Row(children: [
                                   _systemIconWidget(period == 'Matin' ? 'periodMorning' : period == 'Après-midi' ? 'periodAfternoon' : 'periodEvening', fallback: period == 'Matin' ? '🌤️' : period == 'Après-midi' ? '🌿' : '🌙', size: 16),
                                   const SizedBox(width: 6),
-                                  Text(period, style: GoogleFonts.nunitoSans(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
+                                  Text(period, style: AppFonts.nunito(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong)),
                                   const SizedBox(width: 9),
                                   Expanded(child: Divider(height: 1, thickness: .8, color: _colors.borderTint)),
                                   if (highlighted) ...[
                                     const SizedBox(width: 7), _systemIconWidget('dragDown', fallback: '↓', size: 15),
-                                    const SizedBox(width: 3), Text('Déposer ici', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
+                                    const SizedBox(width: 3), Text('Déposer ici', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentIcon)),
                                   ],
                                 ]),
                                 if (periodItems.isEmpty)
@@ -1763,7 +1763,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                             Text(
                               'Mes activités',
                               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    fontFamily: GoogleFonts.lora().fontFamily,
+                                    fontFamily: AppFonts.serif,
                                     fontFamilyFallback: const ['Times New Roman', 'serif'],
                                     fontWeight: FontWeight.w700,
                                     color: _colors.textStrong,
@@ -1775,7 +1775,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               _activitySearchQuery.trim().isEmpty
                                   ? '${activities.length} activités'
                                   : '${filtered.length} résultat(s) sur ${activities.length}',
-                              style: GoogleFonts.nunitoSans(fontSize: AppType.bodyL, color: _colors.textMuted),
+                              style: AppFonts.nunito(fontSize: AppType.bodyL, color: _colors.textMuted),
                             ),
                           ],
                         ),
@@ -1823,7 +1823,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 label: Text(cats[i]),
                 selected: categoryFilter == cats[i],
                 onSelected: (_) => setState(() => categoryFilter = cats[i]),
-                labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.body),
+                labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppType.body),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
             ),
@@ -1903,7 +1903,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                         ),
                                         child: Text(
                                           frozen ? 'GELÉE' : 'PLUS TARD',
-                                          style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _colors.danger),
+                                          style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.danger),
                                         ),
                                       ),
                                   ],

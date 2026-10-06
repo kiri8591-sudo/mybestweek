@@ -5,9 +5,9 @@
 part of '../main.dart';
 
 abstract final class AppType {
-  static const double micro = 9;      // minuscules repères (lettres de jours)
-  static const double caption = 9.5;  // légendes denses
-  static const double small = 10.5;   // sous-titres, métadonnées
+  static const double micro = 10;     // minuscules repères (lettres de jours)
+  static const double caption = 10.5; // légendes denses
+  static const double small = 11;     // sous-titres, métadonnées (minimum recommandé iOS)
   static const double label = 11.5;   // libellés, chips, texte courant compact
   static const double body = 12.5;    // texte courant
   static const double bodyL = 13.5;   // texte courant confortable

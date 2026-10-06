@@ -176,7 +176,7 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
+                    Text(title, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong)),
                     const SizedBox(height: 3),
                     Text(message, style: TextStyle(fontSize: AppType.small, height: 1.28, fontWeight: FontWeight.w700, color: _colors.accentIcon)),
                   ],
@@ -190,7 +190,7 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
                     color: _colors.card.withValues(alpha: .78),
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
-                  child: Text('$todayDone/${todayActionItems.length}', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
+                  child: Text('$todayDone/${todayActionItems.length}', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.accentIcon)),
                 ),
               ],
             ],
@@ -199,10 +199,10 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
           Row(
             children: [
               Expanded(
-                child: Text(progressLabel, style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
+                child: Text(progressLabel, style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.accentIcon)),
               ),
               const SizedBox(width: 8),
-              Text('${(weekProgress * 100).round()} %', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.accentIcon)),
+              Text('${(weekProgress * 100).round()} %', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.accentIcon)),
             ],
           ),
           const SizedBox(height: 3),

@@ -25,7 +25,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      fontFamily: GoogleFonts.nunitoSans().fontFamily,
+      fontFamily: AppFonts.sans,
     ).copyWith(
       platform: TargetPlatform.iOS,
       colorScheme: scheme,
@@ -45,7 +45,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           fontSize: 18.5,
           fontWeight: FontWeight.w700,
           color: scheme.onSurface,
-          fontFamily: GoogleFonts.lora().fontFamily,
+          fontFamily: AppFonts.serif,
           fontFamilyFallback: const ['Times New Roman', 'serif'],
         ),
       ),
@@ -64,7 +64,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
         backgroundColor: const Color(0xFF202622),
         surfaceTintColor: Colors.transparent,
         titleTextStyle: TextStyle(
-          fontFamily: GoogleFonts.lora().fontFamily,
+          fontFamily: AppFonts.serif,
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: scheme.onSurface,
@@ -138,7 +138,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
       theme: ThemeData(
         useMaterial3: true,
         platform: TargetPlatform.iOS,
-        fontFamily: GoogleFonts.nunitoSans().fontFamily,
+        fontFamily: AppFonts.sans,
         textTheme: _farmhouseTextTheme(),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF7A9384),
@@ -177,7 +177,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
             fontSize: 18.5,
             fontWeight: FontWeight.w700,
             color: Color(0xFF33414A),
-            fontFamily: GoogleFonts.lora().fontFamily,
+            fontFamily: AppFonts.serif,
             fontFamilyFallback: ['Times New Roman', 'serif'],
           ),
         ),
@@ -199,7 +199,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           titleTextStyle: TextStyle(
-            fontFamily: GoogleFonts.lora().fontFamily,
+            fontFamily: AppFonts.serif,
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: const Color(0xFF33414A),
@@ -298,7 +298,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
           elevation: 0,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          labelTextStyle: WidgetStatePropertyAll(GoogleFonts.nunitoSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF52616A))),
+          labelTextStyle: WidgetStatePropertyAll(AppFonts.nunito(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF52616A))),
         ),
         chipTheme: ChipThemeData(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

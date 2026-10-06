@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Pack d'icônes MyBestWeek : dessine 52 icônes (SVG) et les exporte en PNG 192 px
-dans assets/icons/pack/. Lancer : python3 tools/build_icon_pack.py   (nécessite cairosvg)
+"""Bibliothèque du pack d'icônes MyBestWeek : helpers de dessin SVG + premier lot (52 icônes).
+Les lots suivants sont dans icons_b1.py, icons_b2.py… ; la génération se lance avec make_pack.py.
 Style : aplats doux, sans fond, lisibles en mode clair comme en mode sombre."""
 import math, os, cairosvg
 
@@ -33,7 +33,7 @@ def blob(circles, f, o=OUT):  # nuage / forme crème avec contour
     return ''.join(C(x, y, r + 2.2, o) for x, y, r in circles) + ''.join(C(x, y, r, f) for x, y, r in circles)
 
 I = {}
-def add(i, label, kw, body): I[i] = (label, kw, body)
+def add(i, label, kw, body, cat=''): I[i] = (label, kw, body, cat)
 
 add('taichi', 'Tai Chi', 'tai chi taichi qi gong qigong souplesse equilibre arts martiaux',
     ground() + S('M48 34 V58', G2, 10) + S('M48 42 Q30 40 20 54', G1, 7) + S('M48 40 Q66 34 76 20', G1, 7) + S('M48 58 L30 80', G2, 8) + S('M48 58 L68 80', G2, 8) + head(48, 22))
@@ -150,14 +150,19 @@ add('smile', 'Bonne humeur', 'humeur ressenti sourire content bien emotion plais
     C(48, 48, 38, Y1) + C(35, 40, 5, K) + C(61, 40, 5, K) + S('M30 58 Q48 76 66 58', K, 5) + E(26, 56, 6, 4, P1) + E(70, 56, 6, 4, P1))
 
 def svg(body): return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">{body}</svg>'
-if __name__ == '__main__':
-    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    out = os.path.join(root, 'assets', 'icons', 'pack'); src = os.path.join(root, 'tools', 'icon_pack_src')
-    os.makedirs(out, exist_ok=True); os.makedirs(src, exist_ok=True)
-    for i, (label, kw, body) in I.items():
-        open(os.path.join(src, i + '.svg'), 'w', encoding='utf-8').write(svg(body))
-        cairosvg.svg2png(bytestring=svg(body).encode(), write_to=os.path.join(out, i + '.png'), output_width=192, output_height=192)
-    # table Dart : id, libellé, mots-clés
-    lines = ["  _PackIcon('%s', '%s', '%s')," % (i, l.replace("'", "’"), k) for i, (l, k, _) in I.items()]
-    open(os.path.join(root, 'tools', 'icon_pack_table.txt'), 'w', encoding='utf-8').write('\n'.join(lines) + '\n')
-    print(len(I), 'icônes générées')
+
+CATS = {
+ 'Sport': 'taichi walk run yoga stretch bike swim dumbbell',
+ 'Bien-être': 'sleep leaf smile',
+ 'Maison & jardin': 'house flower watering sprout broom',
+ 'Nature & animaux': 'tree dog paw',
+ 'Repas & marché': 'basket coffee cooking cake restaurant',
+ 'Loisirs & culture': 'piano book music film camera palette yarn headphones notebook',
+ 'Social & famille': 'toast heart gift mail bear',
+ 'Voyage & sorties': 'mountain suitcase pin',
+ 'Temps & météo': 'sun moon weather',
+ 'Symboles': 'calendar star target trophy flame timer check bulb',
+}
+for _c, _ids in CATS.items():
+    for _i in _ids.split():
+        _l, _k, _b, _ = I[_i]; I[_i] = (_l, _k, _b, _c)

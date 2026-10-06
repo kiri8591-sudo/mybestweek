@@ -190,7 +190,7 @@ extension _SystemIconsPart on _MaBelleSemaineAppState {
                           alignment: Alignment.center,
                           child: _systemIconWidget(key, fallback: fallback, size: 23),
                         ),
-                        title: Text(label, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textStrong)),
+                        title: Text(label, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textStrong)),
                         subtitle: Text(_systemIconOverrides.containsKey(key) ? 'Personnalisée' : 'Par défaut', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
                         trailing: Icon(Icons.chevron_right_rounded, color: _colors.textMuted),
                         onTap: () async {

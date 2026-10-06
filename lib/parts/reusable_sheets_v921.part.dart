@@ -78,7 +78,7 @@ class _DataPageState extends State<_DataPage> {
                 title,
                 style: TextStyle(
                   fontSize: AppType.label,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w700,
                   color: _colors.textStrong,
                 ),
               ),
@@ -192,7 +192,7 @@ class _DataPageState extends State<_DataPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(eyebrow.toUpperCase(), style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, letterSpacing: .6, color: _colors.textMuted)),
+                    Text(eyebrow.toUpperCase(), style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, letterSpacing: .6, color: _colors.textMuted)),
                     const SizedBox(height: 2),
                     Text(title, style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
                     const SizedBox(height: 4),
@@ -212,7 +212,7 @@ class _DataPageState extends State<_DataPage> {
                 backgroundColor: accent,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
-                textStyle: const TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800),
+                textStyle: const TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700),
               ),
               icon: systemKey == null ? Icon(icon, size: 18) : _uiIcon(systemKey!, icon, size: 18, color: Colors.white),
               label: Text(buttonLabel),
@@ -243,7 +243,7 @@ class _DataPageState extends State<_DataPage> {
         children: [
           _uiIcon(due ? 'backupDue' : 'backupOk', due ? Icons.schedule_rounded : Icons.check_circle_outline_rounded, size: 14, color: due ? _colors.textWarm : _colors.accentIcon),
           const SizedBox(width: 5),
-          Flexible(child: Text(label, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: due ? _colors.textWarm : _colors.accentIcon))),
+          Flexible(child: Text(label, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: due ? _colors.textWarm : _colors.accentIcon))),
         ],
       ),
     );
@@ -358,7 +358,7 @@ class _DataPageState extends State<_DataPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('SAUVEGARDE', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, letterSpacing: .6, color: _colors.textMuted)),
+                        Text('SAUVEGARDE', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, letterSpacing: .6, color: _colors.textMuted)),
                         SizedBox(height: 2),
                         Text('iCloud', style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.accentText)),
                       ],
@@ -369,7 +369,7 @@ class _DataPageState extends State<_DataPage> {
                 const SizedBox(height: 9),
                 Text('Une seule sauvegarde de sécurité : enregistre le fichier dans Fichiers → iCloud Drive.', style: TextStyle(fontSize: AppType.label, height: 1.3, color: _colors.accentText)),
                 const SizedBox(height: 7),
-                Text(widget.getCloudBackupStatus(), style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+                Text(widget.getCloudBackupStatus(), style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted)),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
@@ -380,7 +380,7 @@ class _DataPageState extends State<_DataPage> {
                       backgroundColor: const Color(0xFF627A93),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
-                      textStyle: const TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800),
+                      textStyle: const TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700),
                     ),
                     icon: _uiIcon('backupUpload', Icons.cloud_upload_rounded, size: 18),
                     label: const Text('Sauvegarder dans iCloud'),
@@ -408,7 +408,7 @@ class _DataPageState extends State<_DataPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('RETROUVER', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, letterSpacing: .6, color: _colors.accentIcon)),
+                      Text('RETROUVER', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, letterSpacing: .6, color: _colors.accentIcon)),
                       const SizedBox(height: 2),
                       Text('Restaurer', style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
                       const SizedBox(height: 4),
@@ -424,7 +424,7 @@ class _DataPageState extends State<_DataPage> {
                             backgroundColor: _colors.card,
                             side: BorderSide(color: _colors.accentSoftBorder),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
-                            textStyle: const TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800),
+                            textStyle: const TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700),
                           ),
                           icon: _uiIcon('backupFolder', Icons.folder_open_rounded, size: 18),
                           label: const Text('Choisir un fichier'),
@@ -442,7 +442,7 @@ class _DataPageState extends State<_DataPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('ZONE SENSIBLE', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, letterSpacing: .6, color: _colors.warnText)),
+                Text('ZONE SENSIBLE', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, letterSpacing: .6, color: _colors.warnText)),
                 const SizedBox(height: 4),
                 Text('Réinitialisation', style: TextStyle(fontSize: AppType.title, fontWeight: FontWeight.w800, color: _colors.danger)),
                 const SizedBox(height: 3),
@@ -457,7 +457,7 @@ class _DataPageState extends State<_DataPage> {
                       foregroundColor: _colors.textWarm,
                       backgroundColor: _colors.peachBg,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
-                      textStyle: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800),
+                      textStyle: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700),
                     ),
                     icon: _uiIcon('backupReset', Icons.restart_alt_rounded, size: 17),
                     label: const Text('Réinitialiser les données'),
@@ -540,7 +540,7 @@ class _HomeMascotSheet extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Icônes et icônes personnelles',
-              style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.accentIcon),
+              style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.accentIcon),
             ),
             const SizedBox(height: 7),
             GridView.builder(
@@ -731,7 +731,7 @@ class _DailySummarySheetState extends State<_DailySummarySheet> {
               padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
               decoration: BoxDecoration(color: _colors.surfaceSunken, borderRadius: BorderRadius.circular(AppRadius.l)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(summary.summary, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textMuted, height: 1.28)),
+                Text(summary.summary, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted, height: 1.28)),
                 if (summary.activityTitles.isNotEmpty) ...[
                   const SizedBox(height: 7),
                   Wrap(
@@ -740,14 +740,14 @@ class _DailySummarySheetState extends State<_DailySummarySheet> {
                     children: summary.activityTitles.map((title) => Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.pill)),
-                      child: Text(title, style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w800, color: _colors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      child: Text(title, style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
                     )).toList(),
                   ),
                 ],
               ]),
             ),
           const SizedBox(height: 12),
-          Text('Comment as-tu vécu ta journée ?', style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textStrong)),
+          Text('Comment as-tu vécu ta journée ?', style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textStrong)),
           const SizedBox(height: 7),
           Row(children: moods.map((entry) {
             final selected = _selectedMood == entry.$1;
@@ -768,7 +768,7 @@ class _DailySummarySheetState extends State<_DailySummarySheet> {
                     child: Column(children: [
                       Text(entry.$1, style: const TextStyle(fontSize: AppType.h1)),
                       const SizedBox(height: 2),
-                      Text(entry.$2, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+                      Text(entry.$2, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textMuted)),
                     ]),
                   ),
                 ),
@@ -965,7 +965,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     const Text('Choisir dans mes activités', style: TextStyle(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 7),
-                    Text('Thème', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+                    Text('Thème', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textMuted)),
                     const SizedBox(height: 5),
                     SizedBox(
                       height: 38,
@@ -991,7 +991,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                                 }
                               }
                             }),
-                            labelStyle: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800),
+                            labelStyle: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700),
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                           );
                         },
@@ -1099,7 +1099,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                 ),
               ),
               const SizedBox(height: 14),
-              Text('Thème', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+              Text('Thème', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textMuted)),
               const SizedBox(height: 5),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -1110,7 +1110,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                       label: Text(theme),
                       selected: category == theme,
                       onSelected: (_) => setState(() => category = theme),
-                      labelStyle: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800),
+                      labelStyle: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                     ),
                   )).toList(),
