@@ -404,6 +404,18 @@ class _HistorySheetState extends State<_HistorySheet> {
               Text('Ressentis : ${veryGood > 0 ? 'Très bien $veryGood' : ''}${veryGood > 0 && difficult > 0 ? ' · ' : ''}${difficult > 0 ? 'Difficile $difficult' : ''}.', style: const TextStyle(fontSize: AppType.body)),
             ],
             const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _openActivityStats(activity);
+                },
+                icon: _uiIcon('insights', Icons.donut_large_rounded, size: 17),
+                label: const Text('Voir les statistiques'),
+              ),
+            ),
+            const SizedBox(height: AppSpace.s),
             SizedBox(width: double.infinity, child: FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Fermer'))),
           ]),
         ),
@@ -811,6 +823,22 @@ class _HistorySheetState extends State<_HistorySheet> {
     );
   }
 
+  void _openStats() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _StatsOverviewPage(logs: widget.logs, activities: widget.activities),
+      ),
+    );
+  }
+
+  void _openActivityStats(Activity activity) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _ActivityStatsPage(activity: activity, logs: widget.logs),
+      ),
+    );
+  }
+
   void _openUnderstanding() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -871,15 +899,24 @@ class _HistorySheetState extends State<_HistorySheet> {
                   ),
                 ]),
               ),
-              const SizedBox(width: 8),
-              FilledButton.tonalIcon(
-                onPressed: _openUnderstanding,
-                icon: _uiIcon('insights', Icons.auto_graph_outlined, size: 17),
-                label: const Text('Compréhension'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  minimumSize: const Size(0, 38),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ]),
+            const SizedBox(height: AppSpace.m),
+            Row(children: [
+              Expanded(
+                child: FilledButton.tonalIcon(
+                  onPressed: _openStats,
+                  icon: _uiIcon('insights', Icons.donut_large_rounded, size: 17),
+                  label: const Text('Statistiques'),
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 42), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                ),
+              ),
+              const SizedBox(width: AppSpace.s),
+              Expanded(
+                child: FilledButton.tonalIcon(
+                  onPressed: _openUnderstanding,
+                  icon: _uiIcon('insights', Icons.auto_graph_outlined, size: 17),
+                  label: const Text('Compréhension'),
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 42), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
                 ),
               ),
             ]),
