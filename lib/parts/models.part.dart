@@ -166,6 +166,7 @@ class Activity {
   int maxDailyOccurrences;
   final String? sportGroup;
   final int? sportGroupFrequency;
+  final String? sportFamily; // null = déduite du nom ; 'none' = aucune
   final bool activeInSportRotation;
   final bool isSportProgram;
   Map<int, int> sportDailyDurations;
@@ -189,6 +190,7 @@ class Activity {
     this.maxDailyOccurrences = 2,
     this.sportGroup,
     this.sportGroupFrequency,
+    this.sportFamily,
     this.activeInSportRotation = true,
     this.isSportProgram = false,
     Map<int, int>? sportDailyDurations,
@@ -216,6 +218,7 @@ class Activity {
         maxDailyOccurrences: maxDailyOccurrences,
         sportGroup: sportGroup,
         sportGroupFrequency: sportGroupFrequency,
+        sportFamily: sportFamily,
         activeInSportRotation: activeInSportRotation,
         isSportProgram: isSportProgram,
         sportDailyDurations: {...sportDailyDurations},

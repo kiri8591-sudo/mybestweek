@@ -112,6 +112,9 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
       _showFeedback('Le maximum quotidien de cette activité est atteint.');
       return;
     }
+    if (targetActivity != null && _isSportActivity(targetActivity) && target != item.day) {
+      if (!await _confirmSportFamilyClash(targetActivity, target, excludeItemId: item.id)) return;
+    }
     final fromDay = item.day;
     final fromPeriod = item.period == 'Midi' ? 'Après-midi' : item.period;
     final activity = findActivity(item.activityId!);
@@ -579,6 +582,10 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
         }
         acceptedBudgetOverride = true;
       }
+    }
+
+    if (isSport && linkedActivity != null && !result.createActivity) {
+      if (!await _confirmSportFamilyClash(linkedActivity!, day)) return;
     }
 
     final itemsToAdd = <PlanItem>[];

@@ -438,147 +438,50 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     final plannedMinutes = planned.fold<int>(0, (s, p) => s + p.duration);
     final doneMinutes = done.fold<int>(0, (s, p) => s + p.duration);
     final rate = plannedMinutes == 0 ? 0 : (doneMinutes * 100 / plannedMinutes).round();
-
-    Widget stat(String value, String label, String iconKey, IconData icon) => Container(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-      decoration: BoxDecoration(
-        color: _colors.card,
-        borderRadius: BorderRadius.circular(AppRadius.l),
-        border: Border.all(color: _colors.border),
-      ),
-      child: Column(children: [
-        _uiIcon(iconKey, icon, size: 18, color: _colors.accentIcon),
-        const SizedBox(height: 4),
-        Text(value, style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.titleL, color: _colors.textStrong)),
-        const SizedBox(height: 2),
-        Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: AppType.caption, color: _colors.textMuted)),
-      ]),
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 520;
-        final stats = [
-          stat('${active.length}', 'actives', 'sportActive', Icons.directions_run_outlined),
-          stat('$doneMinutes / $plannedMinutes', 'min réalisées / prévues', 'sportMinutes', Icons.timelapse_outlined),
-          stat('$rate %', 'taux de réalisation', 'sportRate', Icons.check_circle_outline),
-          stat('$missing', 'non prises en compte', 'sportMissing', Icons.warning_amber_rounded),
-        ];
-        if (wide) {
-          return Row(children: [
-            Expanded(child: stats[0]), const SizedBox(width: 7),
-            Expanded(child: stats[1]), const SizedBox(width: 7),
-            Expanded(child: stats[2]), const SizedBox(width: 7),
-            Expanded(child: stats[3]),
-          ]);
-        }
-        final itemWidth = max(0.0, (constraints.maxWidth - 7) / 2);
-        return Wrap(
-          spacing: 7,
-          runSpacing: 7,
-          children: stats.map((item) => SizedBox(width: itemWidth, child: item)).toList(),
-        );
-      },
+    final now = DateTime.now();
+    final monday = _addDays(DateTime(now.year, now.month, now.day), -(now.weekday - 1));
+    return _WeekHero(
+      title: 'Cette semaine',
+      iconKey: 'sportWeek',
+      fallbackIcon: Icons.view_week_outlined,
+      rangeLabel: '${_dateLabel(monday)} – ${_dateLabel(_addDays(monday, 6))}',
+      ratePercent: rate.clamp(0, 100).toInt(),
+      caption: plannedMinutes == 0 ? 'Aucune séance prévue' : '${_minutesLabel(doneMinutes)} sur ${_minutesLabel(plannedMinutes)}',
+      tiles: [
+        _StatTile(label: 'actives', value: '${active.length}', iconKey: 'sportActive', icon: Icons.directions_run_outlined),
+        _StatTile(label: 'séances faites', value: '${done.length}/${planned.length}', iconKey: 'sportMinutes', icon: Icons.timelapse_outlined),
+        _StatTile(label: 'non prises en compte', value: '$missing', iconKey: 'sportMissing', icon: Icons.warning_amber_rounded),
+      ],
     );
   }
 
   Widget _filters() {
     final names = _allSportActivities().map((a) => a.name).toList()..sort();
-    final selected = _activityFilter == 'Toutes' || names.contains(_activityFilter)
-        ? _activityFilter
-        : 'Toutes';
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      decoration: BoxDecoration(
-        color: _colors.surfaceSunken,
-        borderRadius: BorderRadius.circular(AppRadius.l),
-        border: Border.all(color: _colors.border),
+    return _WeekFilterBar(
+      activityNames: names,
+      activityFilter: _activityFilter,
+      stateFilter: _stateFilter,
+      sort: _sort,
+      sortOptions: const {'Nom': 'Nom', 'Réalisées': 'Réalisées', 'À faire': 'À faire', 'Cible': 'Cible / semaine'},
+      view: _view,
+      onActivity: (v) => setState(() => _activityFilter = v),
+      onState: (v) => setState(() => _stateFilter = v),
+      onSort: (v) => setState(() => _sort = v),
+      onView: (v) => setState(() => _view = v),
+      onReset: () => setState(() {
+        _activityFilter = 'Toutes';
+        _stateFilter = 'Tous';
+        _sort = 'Nom';
+        _view = 'Semaine';
+      }),
+      onHelp: () => showDialog<void>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Non prise en compte'),
+          content: const Text('Cela signifie qu’une activité Sport active dans la rotation n’a actuellement aucune occurrence prévue dans cette semaine. Elle n’est donc ni réalisée ni simplement « à faire » : elle n’est pas encore intégrée au planning de la semaine.'),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Compris'))],
+        ),
       ),
-      child: Column(children: [
-        Row(children: [
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              value: selected,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Activité', isDense: true),
-              items: ['Toutes', ...names].map((v) => DropdownMenuItem(value: v, child: Text(v, overflow: TextOverflow.ellipsis))).toList(),
-              onChanged: (v) => setState(() => _activityFilter = v ?? 'Toutes'),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              value: _stateFilter,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'État', isDense: true),
-              items: const [
-                DropdownMenuItem(value: 'Tous', child: Text('Tous')),
-                DropdownMenuItem(value: 'Réalisées', child: Text('Réalisées')),
-                DropdownMenuItem(value: 'À faire', child: Text('À faire')),
-                DropdownMenuItem(value: 'Non prises en compte', child: Text('Non prises en compte')),
-              ],
-              onChanged: (v) => setState(() => _stateFilter = v ?? 'Tous'),
-            ),
-          ),
-          const SizedBox(width: 2),
-          IconButton(
-            tooltip: 'Que signifie « non prise en compte » ?',
-            onPressed: () => showDialog<void>(
-              context: context,
-              builder: (_) => AlertDialog(
-                title: const Text('Non prise en compte'),
-                content: const Text('Cela signifie qu’une activité Sport active dans la rotation n’a actuellement aucune occurrence prévue dans cette semaine. Elle n’est donc ni réalisée ni simplement « à faire » : elle n’a pas trouvé de place dans le planning de la semaine.'),
-                actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Compris'))],
-              ),
-            ),
-            icon: _uiIcon('help', Icons.info_outline, size: 18),
-          ),
-          const SizedBox(width: 2),
-          IconButton(
-            tooltip: 'Réinitialiser les filtres',
-            onPressed: () => setState(() {
-              _activityFilter = 'Toutes';
-              _stateFilter = 'Tous';
-              _sort = 'Nom';
-              _view = 'Semaine';
-            }),
-            icon: _uiIcon('sportFilter', Icons.filter_alt_off_outlined, size: 18),
-          ),
-        ]),
-        const SizedBox(height: 8),
-        Row(children: [
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              value: _sort,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Trier par', isDense: true),
-              items: const [
-                DropdownMenuItem(value: 'Nom', child: Text('Nom')),
-                DropdownMenuItem(value: 'Réalisées', child: Text('Réalisées')),
-                DropdownMenuItem(value: 'À faire', child: Text('À faire')),
-                DropdownMenuItem(value: 'Cible', child: Text('Cible / semaine')),
-              ],
-              onChanged: (v) => setState(() => _sort = v ?? 'Nom'),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'Semaine', label: Text('7 jours')),
-                  ButtonSegment(value: 'Mois', label: Text('1 mois')),
-                ],
-                selected: {_view},
-                onSelectionChanged: (value) => setState(() => _view = value.first),
-                style: ButtonStyle(
-                  visualDensity: VisualDensity.compact,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 8)),
-                ),
-              ),
-          ),
-        ]),
-      ]),
     );
   }
 
@@ -881,16 +784,16 @@ class _SportWeekPageState extends State<_SportWeekPage> {
             onTap: () => widget.onToggleDate(activity, date),
             borderRadius: BorderRadius.circular(AppRadius.xs),
             child: Container(
-              width: 19,
-              height: 19,
+              width: 25,
+              height: 25,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: background,
                 borderRadius: BorderRadius.circular(AppRadius.xs),
                 border: Border.all(color: selected ? _colors.accentFill : border, width: selected ? 1.1 : .8),
               ),
-              child: done ? const Icon(Icons.check, size: 10, color: Colors.white)
-                  : planned ? Text('•', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentText))
+              child: done ? Icon(Icons.check_rounded, size: 14, color: _colors.card)
+                  : planned ? Text('•', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.accentText))
                   : null,
             ),
           ),
@@ -1053,23 +956,12 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 30),
         children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            decoration: BoxDecoration(color: _colors.tintStrong, borderRadius: BorderRadius.circular(AppRadius.xl), border: Border.all(color: _colors.borderTint)),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [mascotAvatarInline(size: 40), const SizedBox(width: 10), Expanded(child: Text('Bilan Sport', style: TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800, color: _colors.textStrong)))]),
-              const SizedBox(height: 8),
-              Text('Une vue synthétique de la semaine, avec filtre par activité, état, tri et historique mensuel.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted, height: 1.35)),
-              const SizedBox(height: 12),
-              _summary(),
-            ]),
-          ),
-          const SizedBox(height: 12),
+          _summary(),
+          const SizedBox(height: AppSpace.m),
           _filters(),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.xl), border: Border.all(color: _colors.border)),
+          const SizedBox(height: AppSpace.m),
+          _AppCard(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
             child: _view == 'Semaine'
                 ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     _dailyDateNavigator(),
@@ -1104,6 +996,17 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                             Row(children: [
                               IconButton(padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 30, minHeight: 30), onPressed: () => _shiftWeek(-1), icon: _uiIcon('sportBack', Icons.chevron_left_rounded, size: 19)),
                               Expanded(child: Text('Semaine · ${_dateLabel(_weekStart)} – ${_dateLabel(_addDays(_weekStart, 6))}', textAlign: TextAlign.center, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.textStrong))),
+                              if (!_isCurrentWeek())
+                                TextButton(
+                                  style: TextButton.styleFrom(minimumSize: const Size(0, 30), padding: const EdgeInsets.symmetric(horizontal: 6)),
+                                  onPressed: () => setState(() {
+                                    final now = DateTime.now();
+                                    _selectedDate = DateTime(now.year, now.month, now.day);
+                                    _dateStripStart = _addDays(_selectedDate, -(_selectedDate.weekday - 1));
+                                    _weekStart = _dateStripStart;
+                                  }),
+                                  child: const Text('Aujourd’hui'),
+                                ),
                               IconButton(padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 30, minHeight: 30), onPressed: () => _shiftWeek(1), icon: _uiIcon('sportNext', Icons.chevron_right_rounded, size: 19)),
                             ]),
                             _weekDayHeader(),
@@ -1117,23 +1020,24 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           ),
           if (inactive.isNotEmpty) ...[
             const SizedBox(height: 12),
-            Text('MISES EN ATTENTE', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, letterSpacing: .7, color: _colors.textWarm)),
+            Text('Mises en attente', style: _sectionTitleStyle(context)),
             const SizedBox(height: 7),
-            ...inactive.map((activity) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
+            ...inactive.map((activity) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _AppCard(
+              tone: _CardTone.soft,
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-              decoration: BoxDecoration(color: _colors.surfaceSunken, borderRadius: BorderRadius.circular(AppRadius.l), border: Border.all(color: _colors.border)),
               child: Row(children: [
                 _activityIconWidget(activity.emoji, size: 28),
                 const SizedBox(width: 9),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(activity.name, style: TextStyle(fontWeight: FontWeight.w800, color: _colors.textWarm)),
                   const SizedBox(height: 2),
-                  Text('${activity.duration} min · ⏸ PLUS TARD', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.warnText)),
+                  Text('${activity.duration} min · en pause', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.warnText)),
                 ])),
                 OutlinedButton.icon(onPressed: () { widget.onReactivate(activity); Navigator.pop(context); }, icon: _uiIcon('sportReactivate', Icons.refresh_rounded, size: 16), label: const Text('Réactiver')),
               ]),
-            )),
+            ))),
           ],
         ],
         ),

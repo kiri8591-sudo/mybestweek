@@ -173,28 +173,7 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
     return visible;
   }
 
-  Widget _metric(String label, String value, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: _colors.surfaceSunken, borderRadius: BorderRadius.circular(AppRadius.l)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _uiIcon('review', icon, size: 18, color: _colors.accentIcon),
-          const SizedBox(height: 5),
-          Text(value, style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
-          const SizedBox(height: 1),
-          Text(label, style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
-        ]),
-      ),
-    );
-  }
-
-  String _duration(int minutes) {
-    if (minutes < 60) return '$minutes min';
-    final h = minutes ~/ 60;
-    final m = minutes % 60;
-    return m == 0 ? '$h h' : '$h h ${m.toString().padLeft(2, '0')}';
-  }
+  String _duration(int minutes) => _minutesLabel(minutes);
 
   Widget _summary() {
     final start7 = _startOfCurrentWeek();
@@ -205,81 +184,46 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
     final logs7 = _logsForRange(start7, end7).where(_isNonSportLog).toList();
     final logs30 = _logsForRange(start30, end30).where(_isNonSportLog).toList();
     final activeDays = logs7.map((l) => '${l.date.year}-${l.date.month}-${l.date.day}').toSet().length;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        _metric('moments · 7 j', '${logs7.length}', Icons.check_circle_outline),
-        const SizedBox(width: 7),
-        _metric('temps · 7 j', _duration(logs7.fold<int>(0, (s, l) => s + l.realisedMinutes)), Icons.timer_outlined),
-        const SizedBox(width: 7),
-        _metric('jours actifs · 7 j', '$activeDays/7', Icons.calendar_month_outlined),
-      ]),
-      const SizedBox(height: 7),
-      Text('Sur 30 jours : ${logs30.length} moments · ${_duration(logs30.fold<int>(0, (s, l) => s + l.realisedMinutes))}.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted)),
-    ]);
+    final plan = widget.getPlan().where((p) => p.activityId != null && _allActivities().any((a) => a.id == p.activityId)).toList();
+    final planDone = plan.where((p) => p.done).length;
+    final rate = plan.isEmpty ? 0 : (planDone * 100 / plan.length).round();
+    return _WeekHero(
+      title: 'Cette semaine',
+      iconKey: 'sportWeek',
+      fallbackIcon: Icons.view_week_outlined,
+      rangeLabel: '${_dateShort(start7)} – ${_dateShort(_addDays(start7, 6))}',
+      ratePercent: rate,
+      caption: plan.isEmpty ? 'Aucun moment prévu' : '$planDone sur ${plan.length} moments réalisés',
+      tiles: [
+        _StatTile(label: 'moments · 7 j', value: '${logs7.length}', iconKey: 'review', icon: Icons.check_circle_outline),
+        _StatTile(label: 'temps · 7 j', value: _duration(logs7.fold<int>(0, (s, l) => s + l.realisedMinutes)), iconKey: 'review', icon: Icons.timer_outlined),
+        _StatTile(label: 'jours actifs', value: '$activeDays/7', iconKey: 'review', icon: Icons.calendar_month_outlined),
+      ],
+      footnote: 'Sur 30 jours : ${logs30.length} moments · ${_duration(logs30.fold<int>(0, (s, l) => s + l.realisedMinutes))}.',
+    );
   }
+
+  String _dateShort(DateTime d) => '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
 
   Widget _filters() {
     final names = _allActivities().map((a) => a.name).toSet().toList()..sort();
-    return Column(children: [
-      Row(children: [
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            initialValue: _activityFilter,
-            isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Activité', isDense: true),
-            items: ['Toutes', ...names].map((v) => DropdownMenuItem(value: v, child: Text(v, overflow: TextOverflow.ellipsis))).toList(),
-            onChanged: (v) => setState(() => _activityFilter = v ?? 'Toutes'),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            initialValue: _stateFilter,
-            isExpanded: true,
-            decoration: const InputDecoration(labelText: 'État', isDense: true),
-            items: const [
-              DropdownMenuItem(value: 'Tous', child: Text('Tous')),
-              DropdownMenuItem(value: 'Réalisées', child: Text('Réalisées')),
-              DropdownMenuItem(value: 'À faire', child: Text('À faire')),
-              DropdownMenuItem(value: 'Non prises en compte', child: Text('Non prises en compte')),
-            ],
-            onChanged: (v) => setState(() => _stateFilter = v ?? 'Tous'),
-          ),
-        ),
-      ]),
-      const SizedBox(height: 8),
-      Row(children: [
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            initialValue: _sort,
-            isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Trier par', isDense: true),
-            items: const [
-              DropdownMenuItem(value: 'Nom', child: Text('Nom')),
-              DropdownMenuItem(value: 'Réalisées', child: Text('Réalisées')),
-              DropdownMenuItem(value: 'À faire', child: Text('À faire')),
-            ],
-            onChanged: (v) => setState(() => _sort = v ?? 'Nom'),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'Semaine', label: Text('7 jours')),
-              ButtonSegment(value: 'Mois', label: Text('1 mois')),
-            ],
-            selected: {_view},
-            onSelectionChanged: (value) => setState(() => _view = value.first),
-            style: const ButtonStyle(
-              visualDensity: VisualDensity.compact,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 8)),
-            ),
-          ),
-        ),
-      ]),
-    ]);
+    return _WeekFilterBar(
+      activityNames: names,
+      activityFilter: _activityFilter,
+      stateFilter: _stateFilter,
+      sort: _sort,
+      sortOptions: const {'Nom': 'Nom', 'Réalisées': 'Réalisées', 'À faire': 'À faire'},
+      view: _view,
+      onActivity: (v) => setState(() => _activityFilter = v),
+      onState: (v) => setState(() => _stateFilter = v),
+      onSort: (v) => setState(() => _sort = v),
+      onView: (v) => setState(() => _view = v),
+      onReset: () => setState(() {
+        _activityFilter = 'Toutes';
+        _stateFilter = 'Tous';
+        _sort = 'Nom';
+      }),
+    );
   }
 
   Widget _dayHeader() {
@@ -306,15 +250,15 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
       onTap: () => widget.onToggleDate(activity, date),
       borderRadius: BorderRadius.circular(AppRadius.xs),
       child: Container(
-        width: 19,
-        height: 19,
+        width: 26,
+        height: 26,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: done ? _colors.accentFill : planned ? _colors.tintStrong : _colors.surfaceSoft,
           borderRadius: BorderRadius.circular(AppRadius.xs),
           border: Border.all(color: done ? _colors.accentFillBorder : planned ? _colors.accentSoftBorder : _colors.border, width: .8),
         ),
-        child: done ? const Icon(Icons.check, size: 10, color: Colors.white) : planned ? Text('•', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.accentText)) : null,
+        child: done ? Icon(Icons.check_rounded, size: 15, color: _colors.card) : planned ? Text('•', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.accentText)) : null,
       ),
     )));
   }
@@ -423,7 +367,16 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           IconButton(visualDensity: VisualDensity.compact, tooltip: 'Semaine précédente', onPressed: () => _shiftWeek(-1), icon: _uiIcon('sportBack', Icons.chevron_left_rounded, size: 20)),
-          Expanded(child: Text('Semaine du $_weekLabel()', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.bodyL, color: _colors.textStrong))),
+          Expanded(child: Text('Semaine du ${_weekLabel()}', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppType.bodyL, color: _colors.textStrong))),
+          if (!_isCurrentWeek())
+            TextButton(
+              style: TextButton.styleFrom(minimumSize: const Size(0, 34), padding: const EdgeInsets.symmetric(horizontal: 8)),
+              onPressed: () => setState(() {
+                _weekStart = _startOfCurrentWeek();
+                _selectedDay = null;
+              }),
+              child: const Text('Aujourd’hui'),
+            ),
           IconButton(visualDensity: VisualDensity.compact, tooltip: 'Semaine suivante', onPressed: () => _shiftWeek(1), icon: _uiIcon('sportNext', Icons.chevron_right_rounded, size: 20)),
         ]),
         const SizedBox(height: 6),
@@ -467,17 +420,11 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
         actions: [IconButton(tooltip: 'Accueil', onPressed: () => Navigator.pop(context), icon: _uiIcon('navHome', Icons.home_outlined, size: 20))],
       ),
       body: SafeArea(child: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 30), children: [
-        Container(padding: const EdgeInsets.fromLTRB(16, 14, 16, 14), decoration: BoxDecoration(color: _colors.tintStrong, borderRadius: BorderRadius.circular(AppRadius.xl), border: Border.all(color: _colors.borderTint)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [mascotAvatarInline(size: 40), const SizedBox(width: 10), Expanded(child: Text('Bilan Activités', style: TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800, color: _colors.textStrong)))]),
-          const SizedBox(height: 8),
-          Text('Même logique que Semaine Sport, pour toutes les activités non-Sport : suivi des 7 jours, réalisations historiques et vue mensuelle.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted, height: 1.35)),
-          const SizedBox(height: 12),
-          _summary(),
-        ])),
-        const SizedBox(height: 12),
+        _summary(),
+        const SizedBox(height: AppSpace.m),
         _filters(),
-        const SizedBox(height: 14),
-        Container(padding: const EdgeInsets.fromLTRB(14, 12, 14, 12), decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.xl), border: Border.all(color: _colors.border)), child: _view == 'Semaine' ? _weekView() : _monthView()),
+        const SizedBox(height: AppSpace.m),
+        _AppCard(padding: const EdgeInsets.fromLTRB(12, 12, 12, 12), child: _view == 'Semaine' ? _weekView() : _monthView()),
         const SizedBox(height: 14),
         if (visible.isEmpty) Text('Aucune activité ne correspond aux filtres.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted)),
       ])),

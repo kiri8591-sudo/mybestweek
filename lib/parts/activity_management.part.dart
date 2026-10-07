@@ -590,6 +590,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
         a.allowMultiplePerDay != b.allowMultiplePerDay ||
         a.maxDailyOccurrences != b.maxDailyOccurrences ||
         a.sportGroup != b.sportGroup ||
+        a.sportFamily != b.sportFamily ||
         a.sportGroupFrequency != b.sportGroupFrequency ||
         a.activeInSportRotation != b.activeInSportRotation ||
         a.isSportProgram != b.isSportProgram ||
@@ -748,6 +749,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
     var frequency = draft.frequency;
     var priority = draft.priority;
     var sportWeight = draft.sportWeight;
+    var sportFamily = draft.sportFamily;
     var allowMultiplePerDay = draft.allowMultiplePerDay;
     var maxDailyOccurrences = draft.maxDailyOccurrences.clamp(2, 3).toInt();
     var preferred = Set<int>.from(draft.preferredDays);
@@ -1067,6 +1069,25 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                     Expanded(child: _StepperLine(label: 'Poids dans la rotation sport', value: sportWeight, min: 1, max: 10, onChanged: (v) => setDialogState(() => sportWeight = v))),
                     IconButton(icon: _uiIcon('help', Icons.info_outline, size: 18), tooltip: 'Expliquer le poids', onPressed: () => showSportHelp('Poids dans la rotation', 'Le poids est un réglage plus fin du choix automatique. Un poids élevé donne davantage de préférence à cette activité, sans imposer qu’elle soit choisie à chaque fois.')),
                   ]),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: DropdownButtonFormField<String>(
+                      key: ValueKey('family_${sportFamily ?? 'auto'}'),
+                      initialValue: sportFamily == null ? 'auto' : (sportFamily == kSportFamilyNone || kSportFamilies.contains(sportFamily)) ? sportFamily : 'auto',
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: 'Famille',
+                        helperText: 'Deux activités de même famille ne sont pas proposées le même jour.',
+                        helperMaxLines: 2,
+                      ),
+                      items: [
+                        DropdownMenuItem(value: 'auto', child: Text('Automatique · ${_guessSportFamily(name.text) ?? 'aucune'}')),
+                        for (final f in kSportFamilies) DropdownMenuItem(value: f, child: Text(kSportFamiliesCombinable.contains(f) ? '$f (combinable)' : f)),
+                        const DropdownMenuItem(value: kSportFamilyNone, child: Text('Aucune')),
+                      ],
+                      onChanged: (v) => setDialogState(() => sportFamily = (v == null || v == 'auto') ? null : v),
+                    ),
+                  ),
                   Container(
                     margin: const EdgeInsets.only(top: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1257,6 +1278,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   maxDailyOccurrences: !dateRangeEnabled ? maxDailyOccurrences : 2,
                   sportGroup: sportGroup,
                   sportGroupFrequency: sportGroupFrequency,
+                  sportFamily: category == 'Sport' ? sportFamily : null,
                   activeInSportRotation: activeInSportRotation,
                   isSportProgram: draft.isSportProgram,
                   isFrozen: isFrozen,

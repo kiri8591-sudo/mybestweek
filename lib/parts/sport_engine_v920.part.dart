@@ -217,6 +217,26 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
     // Évite de remettre deux jours de suite exactement la même activité.
     if (_generationAlternateActivities && selectedToday.contains(activity.id)) score -= 100.0;
 
+    // Famille : récupération (pas de renforcement deux jours de suite) et variété sur la semaine.
+    final family = _sportFamilyOf(activity);
+    if (family != null && !_isCombinableFamily(family)) {
+      var sameFamilyYesterday = false;
+      for (final id in selectedToday) {
+        final other = findActivity(id);
+        if (other != null && other.id != activity.id && _sportFamilyOf(other) == family) {
+          sameFamilyYesterday = true;
+          break;
+        }
+      }
+      if (sameFamilyYesterday) score -= family == 'Renforcement' ? 14.0 : 3.0;
+      var weekCount = 0;
+      generatedCount.forEach((id, n) {
+        final other = findActivity(id);
+        if (other != null && _sportFamilyOf(other) == family) weekCount += n;
+      });
+      score -= weekCount * 1.2;
+    }
+
     // Respecte aussi la fréquence propre de l’activité dans la semaine.
     score -= (generatedCount[activity.id] ?? 0) * 2.5;
     return score;
@@ -271,6 +291,7 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
 
       final fillerCandidates = available.where((a) {
         if (_sportRotationKey(a) == repeatKey) return false;
+        if (_sportFamilyClash(a, [repeated])) return false;
         return (tempRemaining[_sportRotationKey(a)] ?? 0) > 0 &&
             usedMinutes + _sportGenerationDuration(a) <= budget;
       }).toList();
@@ -287,6 +308,7 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
         final key = _sportRotationKey(activity);
         final remainingForKey = tempRemaining[key] ?? 0;
         if (remainingForKey <= 0 || usedMinutes + _sportGenerationDuration(activity) > budget) continue;
+        if (_sportFamilyClash(activity, selected)) continue;
         selected.add(activity);
         usedMinutes += _sportGenerationDuration(activity);
         tempRemaining[key] = remainingForKey - 1;
@@ -333,6 +355,7 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
               sameActivityCount < dailyLimit;
           if (!canRepeat) continue;
         }
+        if (_sportFamilyClash(activity, entry.value.activities)) continue;
         final choice = _SportChoice(
           minutes: newMinutes,
           score: entry.value.score + activityScore,

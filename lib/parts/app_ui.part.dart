@@ -279,3 +279,193 @@ Color _feelingColor(String feeling) {
 DateTime _addDays(DateTime d, int days) => d.isUtc
     ? DateTime.utc(d.year, d.month, d.day + days, d.hour, d.minute, d.second, d.millisecond)
     : DateTime(d.year, d.month, d.day + days, d.hour, d.minute, d.second, d.millisecond);
+
+// ---------------------------------------------------------------------------
+// Écrans « Semaine » (Sport et Activités) : composants partagés
+// ---------------------------------------------------------------------------
+
+/// En-tête de semaine : titre + dates, pourcentage, barre et tuiles chiffrées.
+class _WeekHero extends StatelessWidget {
+  final String title;
+  final String iconKey;
+  final IconData fallbackIcon;
+  final String rangeLabel;
+  final int ratePercent;
+  final String caption;
+  final List<Widget> tiles;
+  final String? footnote;
+
+  const _WeekHero({
+    required this.title,
+    required this.iconKey,
+    required this.fallbackIcon,
+    required this.rangeLabel,
+    required this.ratePercent,
+    required this.caption,
+    required this.tiles,
+    this.footnote,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return _AppCard(
+      tone: _CardTone.tint,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _SectionHeader(
+          iconKey: iconKey,
+          fallbackIcon: fallbackIcon,
+          title: title,
+          trailing: _Pill(rangeLabel, background: _colors.card, foreground: _colors.textMuted),
+        ),
+        const SizedBox(height: AppSpace.l),
+        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text('$ratePercent %', style: TextStyle(fontFamily: AppFonts.serif, fontSize: AppType.hero, fontWeight: FontWeight.w700, color: _colors.textStrong, height: 1)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Text(caption, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+            ),
+          ),
+        ]),
+        const SizedBox(height: AppSpace.m),
+        _MeterBar(value: ratePercent / 100.0, height: 10),
+        const SizedBox(height: AppSpace.l),
+        _statTiles(tiles),
+        if (footnote != null) ...[
+          const SizedBox(height: AppSpace.m),
+          Text(footnote!, style: _hintStyle()),
+        ],
+      ]),
+    );
+  }
+}
+
+/// Barre de filtres commune : vue 7 jours / 1 mois, état en puces, filtres avancés repliables.
+class _WeekFilterBar extends StatefulWidget {
+  final List<String> activityNames;
+  final String activityFilter;
+  final String stateFilter;
+  final String sort;
+  final Map<String, String> sortOptions; // valeur -> libellé
+  final String view;
+  final ValueChanged<String> onActivity;
+  final ValueChanged<String> onState;
+  final ValueChanged<String> onSort;
+  final ValueChanged<String> onView;
+  final VoidCallback onReset;
+  final VoidCallback? onHelp;
+
+  const _WeekFilterBar({
+    required this.activityNames,
+    required this.activityFilter,
+    required this.stateFilter,
+    required this.sort,
+    required this.sortOptions,
+    required this.view,
+    required this.onActivity,
+    required this.onState,
+    required this.onSort,
+    required this.onView,
+    required this.onReset,
+    this.onHelp,
+  });
+
+  @override
+  State<_WeekFilterBar> createState() => _WeekFilterBarState();
+}
+
+class _WeekFilterBarState extends State<_WeekFilterBar> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final advancedActive = widget.activityFilter != 'Toutes' || widget.sort != 'Nom';
+    final anyActive = advancedActive || widget.stateFilter != 'Tous';
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<String>(
+          segments: const [
+            ButtonSegment<String>(value: 'Semaine', label: Text('7 jours')),
+            ButtonSegment<String>(value: 'Mois', label: Text('1 mois')),
+          ],
+          selected: <String>{widget.view},
+          onSelectionChanged: (s) {
+            if (s.isNotEmpty) widget.onView(s.first);
+          },
+        ),
+      ),
+      const SizedBox(height: AppSpace.s),
+      Row(children: [
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: [
+              for (final value in const ['Tous', 'À faire', 'Réalisées', 'Non prises en compte'])
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                    label: Text(value, style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700)),
+                    selected: widget.stateFilter == value,
+                    onSelected: (_) => widget.onState(value),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+            ]),
+          ),
+        ),
+        if (widget.onHelp != null)
+          IconButton(
+            tooltip: 'Que signifie « non prise en compte » ?',
+            visualDensity: VisualDensity.compact,
+            onPressed: widget.onHelp,
+            icon: _uiIcon('help', Icons.info_outline, size: 18),
+          ),
+      ]),
+      Row(children: [
+        TextButton.icon(
+          style: TextButton.styleFrom(minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 6)),
+          onPressed: () => setState(() => _open = !_open),
+          icon: Icon(_open ? Icons.expand_less_rounded : Icons.tune_rounded, size: 18),
+          label: Text(advancedActive ? 'Filtres · actifs' : 'Filtres et tri'),
+        ),
+        const Spacer(),
+        if (anyActive)
+          TextButton.icon(
+            style: TextButton.styleFrom(minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 6)),
+            onPressed: widget.onReset,
+            icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+            label: const Text('Réinitialiser'),
+          ),
+      ]),
+      if (_open)
+        Padding(
+          padding: const EdgeInsets.only(top: AppSpace.xs),
+          child: Row(children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                key: ValueKey('act_${widget.activityFilter}'),
+                initialValue: widget.activityNames.contains(widget.activityFilter) ? widget.activityFilter : 'Toutes',
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Activité', isDense: true),
+                items: ['Toutes', ...widget.activityNames].map((v) => DropdownMenuItem(value: v, child: Text(v, overflow: TextOverflow.ellipsis))).toList(),
+                onChanged: (v) => widget.onActivity(v ?? 'Toutes'),
+              ),
+            ),
+            const SizedBox(width: AppSpace.s),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                key: ValueKey('sort_${widget.sort}'),
+                initialValue: widget.sortOptions.containsKey(widget.sort) ? widget.sort : 'Nom',
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Trier par', isDense: true),
+                items: widget.sortOptions.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, overflow: TextOverflow.ellipsis))).toList(),
+                onChanged: (v) => widget.onSort(v ?? 'Nom'),
+              ),
+            ),
+          ]),
+        ),
+    ]);
+  }
+}

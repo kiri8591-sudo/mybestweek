@@ -286,6 +286,27 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
     );
   }
 
+  /// Demande confirmation si une activité de la même famille est déjà prévue ce jour-là.
+  /// Retourne true pour continuer (aucun conflit, ou l'utilisateur confirme).
+  Future<bool> _confirmSportFamilyClash(Activity activity, int day, {String? excludeItemId}) async {
+    final items = _sportItemsForDay(day).where((p) => p.id != excludeItemId).toList();
+    final sameFamily = _sameFamilyNames(activity, items, activities);
+    if (sameFamily.isEmpty) return true;
+    final family = _sportFamilyOf(activity) ?? '';
+    final proceed = await showDialog<bool>(
+      context: _navigatorKey.currentContext!,
+      builder: (context) => AlertDialog(
+        title: const Text('Même famille le même jour'),
+        content: Text('Déjà prévu ${dayNames[day].toLowerCase()} : ${sameFamily.join(', ')} (${family.toLowerCase()}). Ajouter « ${activity.name} » quand même ?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Continuer')),
+        ],
+      ),
+    );
+    return proceed == true && mounted;
+  }
+
   Future<void> _addSportActivityToDay(int day) async {
     final budget = _sportBudgetForDay(day);
     if (budget <= 0) {
@@ -343,7 +364,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                       child: Tooltip(message: 'Modifier l’icône', child: _activityIconWidget(activity.emoji, size: 28)),
                     ),
                     title: Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w800, color: _colors.textStrong)),
-                    subtitle: Text('${activity.duration} min · ${count >= maxDaily ? 'maximum quotidien atteint' : exceedsBudget ? 'budget atteint · confirmation nécessaire' : 'ajouter 1 occurrence'}'),
+                    subtitle: Text('${activity.duration} min · ${_familyHint(activity, items, activities)}${count >= maxDaily ? 'maximum quotidien atteint' : exceedsBudget ? 'budget atteint · confirmation nécessaire' : 'ajouter 1 occurrence'}'),
                     trailing: Wrap(
                       spacing: 2,
                       children: [
@@ -366,6 +387,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
       ),
     );
     if (selected == null || !mounted) return;
+    if (!await _confirmSportFamilyClash(selected, day)) return;
     _prepareUndoSnapshot();
     final newItem = PlanItem(
       id: 'sport_manual_plan_${selected.id}_${day}_${DateTime.now().microsecondsSinceEpoch}',
