@@ -35,10 +35,10 @@ extension _DateRangeNavigationPart on _MaBelleSemaineAppState {
   Widget _multiDaySection(List<PlanItem> items, {required int day}) {
     if (items.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(11, 9, 9, 8),
+        padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
         decoration: BoxDecoration(
           color: _colors.border,
           borderRadius: BorderRadius.circular(AppRadius.l),

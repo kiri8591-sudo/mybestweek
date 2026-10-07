@@ -358,7 +358,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
 
   int _currentWeekRealisedCount(Activity activity) {
     final start = _startOfCurrentWeek();
-    final end = start.add(const Duration(days: 7));
+    final end = _addDays(start, 7);
     return logs.where((log) =>
         !log.date.isBefore(start) &&
         log.date.isBefore(end) &&
@@ -366,7 +366,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
   }
   int _currentWeekRealisedDaysCount(Activity activity) {
     final start = _startOfCurrentWeek();
-    final end = start.add(const Duration(days: 7));
+    final end = _addDays(start, 7);
     final keys = <String>{};
     for (final log in logs) {
       if (log.date.isBefore(start) || !log.date.isBefore(end) || !_logMatchesActivity(log, activity)) continue;
@@ -748,7 +748,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
                   final options = const <String>['normal', 'prioritize', 'avoid', 'less', 'more'];
                   return Container(
                     margin: const EdgeInsets.only(bottom: 6),
-                    padding: const EdgeInsets.fromLTRB(9, 7, 7, 7),
+                    padding: const EdgeInsets.fromLTRB(8, 7, 7, 7),
                     decoration: BoxDecoration(
                       color: _colors.card,
                       borderRadius: BorderRadius.circular(AppRadius.m),

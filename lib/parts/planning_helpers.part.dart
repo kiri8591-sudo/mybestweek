@@ -94,7 +94,7 @@ extension _PlanningHelpersPart on _MaBelleSemaineAppState {
     final monday = _startOfCurrentWeek();
     final result = <int>[];
     for (var day = 0; day < 7; day++) {
-      final date = monday.add(Duration(days: day));
+      final date = _addDays(monday, day);
       if (!date.isBefore(start) && !date.isAfter(end)) result.add(day);
     }
     return result;

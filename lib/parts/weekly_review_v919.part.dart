@@ -60,7 +60,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
-          padding: const EdgeInsets.only(top: 6, right: 9),
+          padding: const EdgeInsets.only(top: 6, right: 8),
           child: Container(width: 6, height: 6, decoration: BoxDecoration(color: _colors.accentIcon, shape: BoxShape.circle)),
         ),
         Expanded(child: Text(text, style: TextStyle(fontSize: AppType.body, color: _colors.textStrong, height: 1.35))),
@@ -98,8 +98,8 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
     final realisedMinutes = trackedPlan.where((item) => item.done).fold<int>(0, (sum, item) => sum + (item.realisedMinutes ?? item.duration));
     final remainingMinutes = max(0, plannedMinutes - realisedMinutes);
     final currentWeekStart = widget.referenceNow;
-    final monday = DateTime(currentWeekStart.year, currentWeekStart.month, currentWeekStart.day).subtract(Duration(days: currentWeekStart.weekday - 1));
-    final nextMonday = monday.add(const Duration(days: 7));
+    final monday = _mondayOf(currentWeekStart);
+    final nextMonday = DateTime(monday.year, monday.month, monday.day + 7);
     final weekMoves = widget.moveLogs.where((m) => !m.date.isBefore(monday) && m.date.isBefore(nextMonday)).toList()..sort((a,b) => b.date.compareTo(a.date));
     final weekLogs = widget.logs.where((log) => !log.date.isBefore(monday) && log.date.isBefore(nextMonday) && log.realisedMinutes > 0).toList();
     final validatedMinutes = weekLogs.fold<int>(0, (sum, log) => sum + log.realisedMinutes);
@@ -117,8 +117,8 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
 
     // Rythme sur 4 semaines calendaires (index 0 = semaine en cours).
     final fourWeekRows = List.generate(4, (index) {
-      final start = monday.subtract(Duration(days: index * 7));
-      final end = start.add(const Duration(days: 7));
+      final start = DateTime(monday.year, monday.month, monday.day - index * 7);
+      final end = DateTime(start.year, start.month, start.day + 7);
       final rowLogs = widget.logs.where((log) => !log.date.isBefore(start) && log.date.isBefore(end) && log.realisedMinutes > 0).toList();
       final minutes = rowLogs.fold<int>(0, (sum, log) => sum + max(0, log.realisedMinutes));
       final activeDays = rowLogs
@@ -140,7 +140,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
     final totalFourWeeksDifficult = fourWeekRows.fold<int>(0, (sum, row) => sum + row.difficult);
     final maxWeekMinutes = fourWeekRows.fold<int>(0, (m, row) => max(m, row.minutes));
     final totalActiveDays = widget.logs
-        .where((log) => !log.date.isBefore(monday.subtract(const Duration(days: 21))) && log.date.isBefore(nextMonday) && log.realisedMinutes > 0)
+        .where((log) => !log.date.isBefore(DateTime(monday.year, monday.month, monday.day - 21)) && log.date.isBefore(nextMonday) && log.realisedMinutes > 0)
         .map((log) => DateTime(log.date.year, log.date.month, log.date.day))
         .toSet()
         .length;
@@ -188,7 +188,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                   iconKey: 'reviewMoments',
                   fallbackIcon: Icons.check_circle_outline,
                   title: 'Cette semaine',
-                  trailing: _Pill('${_dm(monday)} – ${_dm(nextMonday.subtract(const Duration(days: 1)))}', background: _colors.card, foreground: _colors.textMuted),
+                  trailing: _Pill('${_dm(monday)} – ${_dm(DateTime(nextMonday.year, nextMonday.month, nextMonday.day - 1))}', background: _colors.card, foreground: _colors.textMuted),
                 ),
                 const SizedBox(height: AppSpace.l),
                 Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -514,7 +514,7 @@ class _ReviewWeekRow extends StatelessWidget {
       Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
         Text(label, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: current ? _colors.accentStrongText : _colors.textStrong)),
         const SizedBox(width: 8),
-        Expanded(child: Text('${_dateLabel(summary.start)} – ${_dateLabel(summary.end.subtract(const Duration(days: 1)))}', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted))),
+        Expanded(child: Text('${_dateLabel(summary.start)} – ${_dateLabel(DateTime(summary.end.year, summary.end.month, summary.end.day - 1))}', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted))),
         Text(_minutesLabel(summary.minutes), style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
       ]),
       const SizedBox(height: 6),

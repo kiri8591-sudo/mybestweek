@@ -377,7 +377,7 @@ class _HistorySheetState extends State<_HistorySheet> {
             Text('Réalisée ${last30.length} fois · prévue environ ${ (activity.frequency.clamp(1, 7) * 30 / 7.0).round()} fois.', style: const TextStyle(fontSize: AppType.body)),
             const SizedBox(height: 9),
             Container(
-              padding: const EdgeInsets.fromLTRB(11, 9, 11, 9),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               decoration: BoxDecoration(
                 color: _colors.surfaceSunken,
                 borderRadius: BorderRadius.circular(AppRadius.m),
@@ -779,7 +779,7 @@ class _HistorySheetState extends State<_HistorySheet> {
           },
           borderRadius: BorderRadius.circular(AppRadius.m),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
             child: Row(
               children: [
                 CircleAvatar(
@@ -884,7 +884,7 @@ class _HistorySheetState extends State<_HistorySheet> {
       builder: (_, controller) => SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpace.l, 4, AppSpace.l, 18),
+          padding: const EdgeInsets.fromLTRB(AppSpace.l, 4, AppSpace.l, 16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Expanded(
@@ -1224,7 +1224,7 @@ class _ActivityUnderstandingPageState extends State<_ActivityUnderstandingPage> 
             const SizedBox(height: 10),
             _AppCard(
               tone: _CardTone.tint,
-              padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
               child: Row(
                 children: [
                   _uiIcon('insights', Icons.auto_graph_outlined, size: 20, color: _colors.accentIcon),

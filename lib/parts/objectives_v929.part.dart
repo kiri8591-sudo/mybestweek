@@ -197,10 +197,10 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                       children: [
                         _activityIconWidget(activity.emoji, size: 26),
                         if (frozen)
-                          const Positioned(
+                          Positioned(
                             right: -7,
                             bottom: -4,
-                            child: Text('🧊', style: TextStyle(fontSize: AppType.body)),
+                            child: _activityIconWidget('pack://water', size: 18),
                           ),
                       ],
                     ),
@@ -284,7 +284,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                 borderRadius: BorderRadius.circular(AppRadius.l),
                 border: Border.all(color: _colors.borderTint),
               ),
-              padding: const EdgeInsets.all(11),
+              padding: const EdgeInsets.all(12),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -331,7 +331,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
 
   DateTime _goalWeekStart(DateTime d) {
     final day = _goalDateOnly(d);
-    return day.subtract(Duration(days: day.weekday - 1));
+    return _addDays(day, -(day.weekday - 1));
   }
 
   DateTime _goalPeriodStart(RealizationGoal goal, DateTime reference) {
@@ -350,12 +350,12 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     final start = _goalPeriodStart(goal, reference);
     switch (goal.cadence) {
       case 'jour':
-        return start.add(const Duration(days: 1));
+        return _addDays(start, 1);
       case 'mois':
         return DateTime(start.year, start.month + 1, 1);
       case 'semaine':
       default:
-        return start.add(const Duration(days: 7));
+        return _addDays(start, 7);
     }
   }
 
@@ -603,14 +603,14 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     final todayKey = '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     var cursor = keys.contains(todayKey)
         ? today
-        : today.subtract(const Duration(days: 1));
+        : _addDays(today, -1);
     var streak = 0;
 
     while (true) {
       final key = '${cursor.year.toString().padLeft(4, '0')}-${cursor.month.toString().padLeft(2, '0')}-${cursor.day.toString().padLeft(2, '0')}';
       if (!keys.contains(key)) break;
       streak++;
-      cursor = cursor.subtract(const Duration(days: 1));
+      cursor = _addDays(cursor, -1);
     }
     return streak;
   }
@@ -649,12 +649,12 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     final rewardCount = _goalRewardCount(goal);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.xl),
         onTap: () => _addOrEditGoal(existing: goal),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 11, 11, 10),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
           decoration: BoxDecoration(
             color: complete ? _colors.tintStrong : _colors.card,
             borderRadius: BorderRadius.circular(AppRadius.xl),
@@ -730,7 +730,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                         minHeight: 7,
                         backgroundColor: _colors.border,
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          complete ? const Color(0xFF76A581) : const Color(0xFF8097AE),
+                          complete ? _colors.accentFill : _colors.accentOutline,
                         ),
                       ),
                     ),
@@ -790,7 +790,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 11, 10),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         decoration: BoxDecoration(
           color: streak > 0 ? _colors.tintStrong : _colors.card,
           borderRadius: BorderRadius.circular(AppRadius.xl),
@@ -920,7 +920,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
               color: _colors.tintStrong,
               borderColor: _colors.borderTint,
               radius: 23,
-              padding: const EdgeInsets.fromLTRB(13, 13, 13, 12),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
               child: Row(
                 children: [
                   Container(
@@ -968,7 +968,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 13, 16, 7),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 7),
             child: Row(
               children: [
                 Expanded(
@@ -1002,7 +1002,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                 color: _colors.card,
                 borderColor: _colors.border,
                 radius: 19,
-                padding: const EdgeInsets.fromLTRB(13, 13, 13, 12),
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1071,7 +1071,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                 color: _colors.card,
                 borderColor: _colors.border,
                 radius: 19,
-                padding: const EdgeInsets.all(13),
+                padding: const EdgeInsets.all(12),
                 child: Text(
                   'Ajoute ou réactive une activité Sport pour suivre une série.',
                   style: TextStyle(

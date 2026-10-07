@@ -241,7 +241,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
         return StatefulBuilder(
           builder: (context, setSheetState) => SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,7 +275,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                               });
                             },
                             child: Container(
-                              padding: const EdgeInsets.fromLTRB(11, 9, 8, 9),
+                              padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
                               decoration: BoxDecoration(
                                 color: selected ? _colors.tintStrong : _colors.surfaceSoft,
                                 borderRadius: BorderRadius.circular(AppRadius.l),
@@ -441,7 +441,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
       color: allDone ? _colors.tintStrong : _colors.peachBg,
       borderColor: allDone ? _colors.borderTint : _colors.goldBorder,
       radius: 25,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 13),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(
@@ -473,7 +473,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
               value: progress,
               minHeight: 7,
               backgroundColor: _colors.border,
-              valueColor: AlwaysStoppedAnimation<Color>(allDone ? const Color(0xFF79A989) : const Color(0xFFD7A564)),
+              valueColor: AlwaysStoppedAnimation<Color>(allDone ? _colors.accentFill : _colors.goldBorder),
             ),
           ),
         ],
@@ -489,13 +489,13 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
   Widget _priorityActivityCard(Activity activity) {
     final done = _priorityActivityDoneToday(activity);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.xl),
         onTap: () => _togglePriorityToday(activity),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.fromLTRB(12, 11, 11, 11),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           decoration: BoxDecoration(
             color: done ? _colors.tintStrong : _colors.card,
             borderRadius: BorderRadius.circular(AppRadius.xl),
@@ -540,10 +540,10 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
       color: _colors.surfaceSunken,
       borderColor: _colors.borderStrong,
       radius: 20,
-      padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Text('🧊', style: TextStyle(fontSize: AppType.h2)),
+          _activityIconWidget('pack://water', size: 24),
           const SizedBox(width: 7),
           Expanded(child: Text('Activités gelées', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textMuted))),
           Text('${frozen.length}', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textMuted)),

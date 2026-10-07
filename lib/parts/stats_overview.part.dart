@@ -92,6 +92,7 @@ class _StatsOverviewPage extends StatefulWidget {
 
 class _StatsOverviewPageState extends State<_StatsOverviewPage> {
   String _period = 'Tout';
+  DateTime _calMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
   List<Color> get _palette => [
         _colors.accentFill,
@@ -111,21 +112,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
     return widget.logs.where((l) => l.realisedMinutes > 0 && (cutoff == null || !l.date.isBefore(cutoff))).toList();
   }
 
-  Activity _activityFor(ActivityLog log) {
-    for (final a in widget.activities) {
-      if (_logMatchesActivity(log, a)) return a;
-    }
-    return Activity(
-      id: 'stats_${log.title.trim().toLowerCase().hashCode}',
-      name: log.title,
-      emoji: log.emoji,
-      category: log.category,
-      period: log.period,
-      duration: log.plannedMinutes,
-      frequency: 1,
-      priority: 1,
-    );
-  }
+  Activity _activityFor(ActivityLog log) => _resolveActivity(log, widget.activities);
 
   List<_ActivityTotal> _activityTotals(List<ActivityLog> logs) {
     final minutes = <String, int>{};
@@ -186,6 +173,40 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
     );
   }
 
+  Widget _calendarCard(Map<int, int> perDay) {
+    var monthMinutes = 0;
+    perDay.forEach((key, value) {
+      if (key ~/ 100 == _calMonth.year * 100 + _calMonth.month) monthMinutes += value;
+    });
+    return _AppCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          IconButton(
+            tooltip: 'Mois précédent',
+            visualDensity: VisualDensity.compact,
+            onPressed: () => setState(() => _calMonth = DateTime(_calMonth.year, _calMonth.month - 1)),
+            icon: const Icon(Icons.chevron_left_rounded),
+          ),
+          Expanded(
+            child: Column(children: [
+              Text('${_frMonthsLong[_calMonth.month - 1]} ${_calMonth.year}', style: _sectionTitleStyle(context)),
+              const SizedBox(height: 2),
+              Text(monthMinutes == 0 ? 'Aucune réalisation' : '${_minutesLabel(monthMinutes)} vécues, toutes activités', style: _hintStyle()),
+            ]),
+          ),
+          IconButton(
+            tooltip: 'Mois suivant',
+            visualDensity: VisualDensity.compact,
+            onPressed: () => setState(() => _calMonth = DateTime(_calMonth.year, _calMonth.month + 1)),
+            icon: const Icon(Icons.chevron_right_rounded),
+          ),
+        ]),
+        const SizedBox(height: AppSpace.s),
+        _monthCalendarGrid(_calMonth, perDay),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final logs = _periodLogs();
@@ -216,7 +237,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
     final today = DateTime.now();
     final dayNumber = first == null
         ? 0
-        : DateTime(today.year, today.month, today.day).difference(DateTime(first.year, first.month, first.day)).inDays + 1;
+        : _daysBetween(first, today) + 1;
 
     final totals = _activityTotals(logs);
 
@@ -240,6 +261,30 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
                   )),
                 ),
               ),
+            Row(children: [
+              Expanded(
+                child: FilledButton.tonalIcon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => _AchievementReportPage(logs: widget.logs, activities: widget.activities)),
+                  ),
+                  icon: const Icon(Icons.emoji_events_outlined, size: 18),
+                  label: const Text('Mes réalisations'),
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 42), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                ),
+              ),
+              const SizedBox(width: AppSpace.s),
+              Expanded(
+                child: FilledButton.tonalIcon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => _WeeksReviewPage(logs: widget.logs, activities: widget.activities)),
+                  ),
+                  icon: const Icon(Icons.grid_view_rounded, size: 18),
+                  label: const Text('Revue des semaines'),
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 42), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
+                ),
+              ),
+            ]),
+            const SizedBox(height: AppSpace.m),
             _AppCard(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Center(
@@ -289,6 +334,8 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
                     _legendRow(slices[i].key, slices[i].value, totalMinutes, _palette[i % _palette.length]),
               ]),
             ),
+            const SizedBox(height: AppSpace.m),
+            _calendarCard(_minutesPerDay(widget.logs.where((l) => l.realisedMinutes > 0))),
             if (totals.isNotEmpty) ...[
               const SizedBox(height: AppSpace.m),
               _AppCard(
@@ -347,81 +394,9 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
     );
   }
 
-  Widget _heatRow(DateTime month, Map<int, int> perDay) {
-    final days = DateTime(month.year, month.month + 1, 0).day;
-    return Padding(
-      padding: const EdgeInsets.only(top: 7),
-      child: Row(children: [
-        SizedBox(width: 44, child: Text(_frMonthsShort[month.month - 1], style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted))),
-        Expanded(
-          child: LayoutBuilder(builder: (context, c) {
-            final size = max(4.0, min(14.0, (c.maxWidth - 31 * 2) / 31));
-            return Row(children: [
-              for (var d = 1; d <= days; d++)
-                Container(
-                  width: size,
-                  height: size,
-                  margin: const EdgeInsets.only(right: 2),
-                  decoration: BoxDecoration(
-                    color: (perDay[_dayKey(DateTime(month.year, month.month, d))] ?? 0) > 0 ? _colors.accentFill : _colors.border,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-            ]);
-          }),
-        ),
-      ]),
-    );
-  }
+  Widget _heatRow(DateTime month, Map<int, int> perDay) => _heatMonthRow(month, perDay);
 
-  String _cellMinutes(int minutes) => minutes < 60 ? '${minutes}m' : '${_hoursLabel(minutes)}h';
-
-  Widget _calendar(Map<int, int> perDay) {
-    final first = DateTime(_month.year, _month.month, 1);
-    final days = DateTime(_month.year, _month.month + 1, 0).day;
-    final lead = first.weekday - 1;
-    final today = DateTime.now();
-    final cells = <Widget>[
-      for (var i = 0; i < lead; i++) const SizedBox.shrink(),
-      for (var d = 1; d <= days; d++) _dayCell(d, perDay[_dayKey(DateTime(_month.year, _month.month, d))] ?? 0, _dayKey(today) == _dayKey(DateTime(_month.year, _month.month, d))),
-    ];
-    while (cells.length % 7 != 0) {
-      cells.add(const SizedBox.shrink());
-    }
-    return Column(children: [
-      Row(children: [
-        for (final l in const ['L', 'M', 'M', 'J', 'V', 'S', 'D'])
-          Expanded(child: Center(child: Text(l, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted)))),
-      ]),
-      const SizedBox(height: 4),
-      for (var r = 0; r < cells.length ~/ 7; r++)
-        Row(children: [for (var c = 0; c < 7; c++) Expanded(child: cells[r * 7 + c])]),
-    ]);
-  }
-
-  Widget _dayCell(int day, int minutes, bool isToday) {
-    final active = minutes > 0;
-    return AspectRatio(
-      aspectRatio: .95,
-      child: Container(
-        margin: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          color: active ? _colors.accentFill : _colors.surfaceSunken,
-          borderRadius: BorderRadius.circular(AppRadius.xs),
-          border: isToday ? Border.all(color: _colors.accentText, width: 1.5) : null,
-        ),
-        child: Center(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text('$day', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: active ? _colors.card : _colors.textMuted, height: 1.1)),
-              if (active) Text(_cellMinutes(minutes), style: TextStyle(fontSize: AppType.micro, color: _colors.card, height: 1.1)),
-            ]),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _calendar(Map<int, int> perDay) => _monthCalendarGrid(_month, perDay);
 
   @override
   Widget build(BuildContext context) {
@@ -432,9 +407,9 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
     final now = DateTime.now();
     final todayDate = DateTime(now.year, now.month, now.day);
     final firstDate = logs.isEmpty ? null : logs.last.date;
-    final days = firstDate == null ? 0 : todayDate.difference(DateTime(firstDate.year, firstDate.month, firstDate.day)).inDays + 1;
+    final days = firstDate == null ? 0 : _daysBetween(firstDate, todayDate) + 1;
     final perWeek = days <= 0 ? 0 : (total / max(1.0, days / 7.0)).round();
-    final last7 = logs.where((l) => !l.date.isBefore(todayDate.subtract(const Duration(days: 6)))).fold<int>(0, (s, l) => s + l.realisedMinutes);
+    final last7 = logs.where((l) => !l.date.isBefore(_addDays(todayDate, -6))).fold<int>(0, (s, l) => s + l.realisedMinutes);
     final nextMilestone = _nextMilestoneMinutes(total);
     final toMilestone = nextMilestone == null ? 0 : nextMilestone - total;
 

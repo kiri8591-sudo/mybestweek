@@ -47,7 +47,7 @@ TextStyle _detailMetaStyle() => AppFonts.nunito(
 TextStyle _detailParagraphStyle() => AppFonts.nunito(
       fontSize: AppType.body,
       fontWeight: FontWeight.w500,
-      color: const Color(0xFF606A66),
+      color: _colors.textMuted,
       height: 1.30,
     );
 

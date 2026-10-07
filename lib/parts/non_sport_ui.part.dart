@@ -20,7 +20,7 @@ extension _NonSportWeekNavigationPart on _MaBelleSemaineAppState {
     if (_isSportActivity(activity)) return;
     final day = date.weekday - 1;
     final monday = _startOfCurrentWeek();
-    final currentWeek = _sameDateOnlyNonSport(date, monday.add(Duration(days: day)));
+    final currentWeek = _sameDateOnlyNonSport(date, _addDays(monday, day));
     if (currentWeek) {
       final items = plan.where((p) => p.activityId == activity.id && p.day == day).toList();
       if (items.isNotEmpty) {
@@ -93,10 +93,10 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
   DateTime _startOfCurrentWeek() {
     final now = DateTime.now();
     final day = DateTime(now.year, now.month, now.day);
-    return day.subtract(Duration(days: day.weekday - 1));
+    return _addDays(day, -(day.weekday - 1));
   }
 
-  DateTime _dayDate(int day) => _weekStart.add(Duration(days: day));
+  DateTime _dayDate(int day) => _addDays(_weekStart, day);
 
   @override
   void initState() {
@@ -110,7 +110,7 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
   }
 
   void _shiftWeek(int delta) {
-    setState(() => _weekStart = _weekStart.add(Duration(days: 7 * delta)));
+    setState(() => _weekStart = _addDays(_weekStart, 7 * delta));
   }
 
   void _shiftMonth(int delta) {
@@ -198,10 +198,10 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
 
   Widget _summary() {
     final start7 = _startOfCurrentWeek();
-    final end7 = start7.add(const Duration(days: 7));
+    final end7 = _addDays(start7, 7);
     final now = DateTime.now();
-    final start30 = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 29));
-    final end30 = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    final start30 = _addDays(DateTime(now.year, now.month, now.day), -29);
+    final end30 = _addDays(DateTime(now.year, now.month, now.day), 1);
     final logs7 = _logsForRange(start7, end7).where(_isNonSportLog).toList();
     final logs30 = _logsForRange(start30, end30).where(_isNonSportLog).toList();
     final activeDays = logs7.map((l) => '${l.date.year}-${l.date.month}-${l.date.day}').toSet().length;
@@ -324,7 +324,7 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
     final planned = currentWeek ? _plannedCount(activity) : 0;
     final done = currentWeek
         ? _doneCount(activity)
-        : widget.getLogs().where((log) => !log.date.isBefore(_weekStart) && log.date.isBefore(_weekStart.add(const Duration(days: 7))) && (log.activityId == activity.id || (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase()))).length;
+        : widget.getLogs().where((log) => !log.date.isBefore(_weekStart) && log.date.isBefore(_addDays(_weekStart, 7)) && (log.activityId == activity.id || (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase()))).length;
     return Container(
       margin: const EdgeInsets.only(top: 3),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -403,7 +403,7 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
   }
 
   String _weekLabel() {
-    final end = _weekStart.add(const Duration(days: 6));
+    final end = _addDays(_weekStart, 6);
     String f(DateTime d) => '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
     return '${f(_weekStart)} – ${f(end)}';
   }
@@ -436,7 +436,7 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
           return Expanded(child: Padding(padding: EdgeInsets.only(right: day == 6 ? 0 : 5), child: GestureDetector(onTap: () => setState(() => _selectedDay = day), child: AnimatedContainer(duration: const Duration(milliseconds: 140), width: 42, padding: const EdgeInsets.symmetric(vertical: 3), decoration: BoxDecoration(color: active ? _colors.tintStrong : _colors.surfaceSoft, borderRadius: BorderRadius.circular(AppRadius.m), border: Border.all(color: active ? _colors.accentFill : _colors.border)), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(widget.dayNames[day].substring(0,3).toUpperCase(), style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textMuted)), Text('${date.day}', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: active ? _colors.accentText : _colors.textStrong)), Text(count == 0 ? '·' : '$count', style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textWarm))])))));
         }))),
         const SizedBox(height: 8),
-        Container(padding: const EdgeInsets.fromLTRB(10, 9, 10, 9), decoration: BoxDecoration(color: _colors.tintSoft, borderRadius: BorderRadius.circular(AppRadius.l), border: Border.all(color: _colors.borderTint)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(padding: const EdgeInsets.fromLTRB(10, 8, 10, 8), decoration: BoxDecoration(color: _colors.tintSoft, borderRadius: BorderRadius.circular(AppRadius.l), border: Border.all(color: _colors.borderTint)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [_uiIcon('calendar', Icons.calendar_today_outlined, size: 18, color: _colors.accentIcon), const SizedBox(width: 6), Expanded(child: Text('Activités du ${widget.dayNames[selected]} · ${selectedDate.day}/${selectedDate.month}', style: TextStyle(fontWeight: FontWeight.w800, color: _colors.textStrong)))]),
           const SizedBox(height: 5),
           if (!_isCurrentWeek())
@@ -466,8 +466,8 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
         title: const Text('Semaine Activités'),
         actions: [IconButton(tooltip: 'Accueil', onPressed: () => Navigator.pop(context), icon: _uiIcon('navHome', Icons.home_outlined, size: 20))],
       ),
-      body: SafeArea(child: ListView(padding: const EdgeInsets.fromLTRB(18, 12, 18, 30), children: [
-        Container(padding: const EdgeInsets.fromLTRB(15, 14, 15, 14), decoration: BoxDecoration(color: _colors.tintStrong, borderRadius: BorderRadius.circular(AppRadius.xl), border: Border.all(color: _colors.borderTint)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      body: SafeArea(child: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 30), children: [
+        Container(padding: const EdgeInsets.fromLTRB(16, 14, 16, 14), decoration: BoxDecoration(color: _colors.tintStrong, borderRadius: BorderRadius.circular(AppRadius.xl), border: Border.all(color: _colors.borderTint)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [mascotAvatarInline(size: 40), const SizedBox(width: 10), Expanded(child: Text('Bilan Activités', style: TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800, color: _colors.textStrong)))]),
           const SizedBox(height: 8),
           Text('Même logique que Semaine Sport, pour toutes les activités non-Sport : suivi des 7 jours, réalisations historiques et vue mensuelle.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted, height: 1.35)),

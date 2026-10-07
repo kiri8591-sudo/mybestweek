@@ -22,7 +22,7 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
 
   int _currentWeekSportKeyRealisedCount(String key, List<Activity> source) {
     final start = _startOfCurrentWeek();
-    final end = start.add(const Duration(days: 7));
+    final end = _addDays(start, 7);
     final ids = source.where((a) => _sportRotationKey(a) == key).map((a) => a.id).toSet();
     return logs.where((log) =>
         !log.date.isBefore(start) &&

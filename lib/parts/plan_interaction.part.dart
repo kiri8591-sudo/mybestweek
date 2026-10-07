@@ -624,7 +624,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
 
   DateTime _startOfCurrentWeek() {
     final now = DateTime.now();
-    final monday = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+    final monday = _addDays(DateTime(now.year, now.month, now.day), -(now.weekday - 1));
     return monday;
   }
 

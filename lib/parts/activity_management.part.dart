@@ -933,7 +933,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                 if (category != 'Sport' && !draft.isSportProgram) ...[
                   const SizedBox(height: 9),
                   Container(
-                    padding: const EdgeInsets.fromLTRB(11, 9, 11, 10),
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
                     decoration: BoxDecoration(
                       color: dateRangeEnabled ? _colors.tintStrong : _colors.surfaceSoft,
                       borderRadius: BorderRadius.circular(AppRadius.l),
@@ -1166,13 +1166,13 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       activeInSportRotation
                           ? 'Rotation : ${sportGroup!} · cible ${sportGroupFrequency ?? frequency}×/semaine'
                           : 'Rotation : ${sportGroup!} · mise en attente (« plus tard »)',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: _hintStyle(),
                     ),
                   ),
                 ],
                 const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.fromLTRB(11, 9, 11, 9),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                   decoration: BoxDecoration(
                     color: isFrozen ? _colors.surfaceSunken : _colors.tintStrong,
                     borderRadius: BorderRadius.circular(AppRadius.l),
@@ -1193,7 +1193,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   const SizedBox(height: 4),
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text('Jours préférés', style: Theme.of(context).textTheme.labelLarge),
+                    child: Text('Jours préférés', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong)),
                   ),
                 const SizedBox(height: 4),
                   Wrap(

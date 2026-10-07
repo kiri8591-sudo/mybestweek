@@ -176,6 +176,23 @@ extension _AppShellPart on _MaBelleSemaineAppState {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         labelStyle: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: c.textStrong),
       ),
+      dividerTheme: DividerThemeData(color: c.border, thickness: 1),
+      progressIndicatorTheme: ProgressIndicatorThemeData(color: c.accentFill, linearTrackColor: c.border),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: dark ? c.chipBg : c.textStrong,
+        contentTextStyle: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w600, color: dark ? c.textStrong : c.card),
+        actionTextColor: dark ? c.accentStrongText : c.accentSoftBorder,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          textStyle: const WidgetStatePropertyAll(TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700)),
+          side: WidgetStatePropertyAll(BorderSide(color: c.borderStrong)),
+          backgroundColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? c.tintStrong : c.card),
+          foregroundColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? c.accentStrongText : c.textMuted),
+        ),
+      ),
       checkboxTheme: CheckboxThemeData(
         materialTapTargetSize: MaterialTapTargetSize.padded,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xs)),

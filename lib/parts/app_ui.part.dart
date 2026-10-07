@@ -273,3 +273,9 @@ Color _feelingColor(String feeling) {
       return _colors.border;
   }
 }
+
+/// Ajoute des jours calendaires en gardant l'heure affichée : contrairement à
+/// `add(Duration(days: n))`, ne dérive pas d'une heure lors du changement d'heure.
+DateTime _addDays(DateTime d, int days) => d.isUtc
+    ? DateTime.utc(d.year, d.month, d.day + days, d.hour, d.minute, d.second, d.millisecond)
+    : DateTime(d.year, d.month, d.day + days, d.hour, d.minute, d.second, d.millisecond);

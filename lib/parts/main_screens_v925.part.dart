@@ -45,7 +45,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       backgroundColor: _colors.card,
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -375,10 +375,10 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
           color: _colors.surfaceSoft,
           borderColor: _colors.borderTint,
           radius: 20,
-          padding: const EdgeInsets.fromLTRB(11, 9, 11, 10),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              const Text('🔭', style: TextStyle(fontSize: AppType.h2)),
+              _uiIcon('insights', Icons.travel_explore_outlined, size: 24, color: _colors.accentIcon),
               const SizedBox(width: 7),
               Expanded(child: Text('Aperçu de la semaine prochaine', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong))),
               TextButton.icon(onPressed: _openNextWeekCoachDirections, icon: _systemIconWidget('nextWeekDirections', fallback: '🎛️', size: 15), label: const Text('Diriger le Coach'), style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4), minimumSize: const Size(0, 30))),
@@ -446,7 +446,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             color: _colors.tintStrong,
             borderColor: _colors.borderTint,
             radius: 16,
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             child: Row(
               children: [
                 _uiIcon('refresh', Icons.autorenew_rounded, size: 16, color: _colors.accentIcon),
@@ -503,7 +503,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 FilledButton.tonal(
                   onPressed: openGenerationCriteria,
                   style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     minimumSize: const Size(0, 34),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -674,10 +674,10 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     ? const Color(0xFFD3E5DB)
                     : const Color(0xFFDED8EA);
 
-    Widget pill(String text, {Color bg = const Color(0xFFFFFCF7), Color fg = const Color(0xFF60786B)}) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(AppRadius.pill), border: Border.all(color: _colors.borderStrong)),
-      child: Text(text, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: fg)),
+    Widget pill(String text, {Color? bg, Color? fg}) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(color: bg ?? _colors.card, borderRadius: BorderRadius.circular(AppRadius.pill), border: Border.all(color: _colors.borderStrong)),
+      child: Text(text, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: fg ?? _colors.accentStrongText)),
     );
 
     Widget todayPeriod(String period) {
@@ -752,7 +752,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 if (!collapsed) ...[
                   if (periodItems.isEmpty)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(9, 7, 9, 3),
+                      padding: const EdgeInsets.fromLTRB(8, 7, 8, 3),
                       child: Text(
                         highlighted ? 'Déposer l’activité ici' : 'Temps libre',
                         style: TextStyle(fontSize: AppType.body, color: highlighted ? _colors.accentIcon : _colors.textMuted, fontWeight: highlighted ? FontWeight.w700 : FontWeight.normal),
@@ -778,12 +778,12 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 9, 14, 5),
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 5),
             child: softCard(
               color: headerColor,
               borderColor: headerBorderColor,
               radius: 26,
-              padding: const EdgeInsets.fromLTRB(12, 9, 10, 9),
+              padding: const EdgeInsets.fromLTRB(12, 8, 10, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -803,7 +803,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     '${dateText()} · ${_clockText()}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _darkMode ? const Color(0xFFB9C3BD) : const Color(0xFF756E67)),
+                                    style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.textWarm),
                                   ),
                                 ),
                               ],
@@ -817,7 +817,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                   '${_greetingLabel()} 👋',
                                   maxLines: 1,
                                   softWrap: false,
-                                  style: TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800, color: _darkMode ? const Color(0xFFE2E9E4) : const Color(0xFF3F4B45), letterSpacing: -0.25),
+                                  style: TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800, color: _colors.textStrong, letterSpacing: -0.25),
                                 ),
                                 if (_userName.trim().isNotEmpty) ...[
                                   const SizedBox(height: 1),
@@ -825,7 +825,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     _userName.trim(),
                                     softWrap: true,
                                     overflow: TextOverflow.visible,
-                                    style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _darkMode ? const Color(0xFFE2E9E4) : const Color(0xFF3F4B45), letterSpacing: -0.2, height: 1.05),
+                                    style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.textStrong, letterSpacing: -0.2, height: 1.05),
                                   ),
                                 ],
                                 const SizedBox(height: 3),
@@ -833,7 +833,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                   _MaBelleSemaineAppState.version,
                                   maxLines: 1,
                                   softWrap: false,
-                                  style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _darkMode ? const Color(0xFFA5B2AB) : const Color(0xFF79877F), letterSpacing: .1),
+                                  style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textMuted, letterSpacing: .1),
                                 ),
                               ],
                             ),
@@ -951,7 +951,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                           maxLines: 2,
                           softWrap: true,
                           overflow: TextOverflow.visible,
-                          style: TextStyle(fontSize: AppType.small, height: 1.16, fontStyle: FontStyle.italic, color: _darkMode ? const Color(0xFFD0D8D3) : const Color(0xFF5D554B)),
+                          style: TextStyle(fontSize: AppType.small, height: 1.16, fontStyle: FontStyle.italic, color: _colors.textWarm),
                         ),
                       ),
                       const SizedBox(width: 3),
@@ -985,7 +985,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                     _todayMoodComment(summary),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(fontSize: AppType.caption, height: 1.16, fontWeight: FontWeight.w700, color: _darkMode ? const Color(0xFFB8C3BD) : const Color(0xFF6B756F)),
+                                    style: TextStyle(fontSize: AppType.caption, height: 1.16, fontWeight: FontWeight.w700, color: _colors.textMuted),
                                   ),
                                 ),
                               ],
@@ -1005,8 +1005,8 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 1, 16, 8),
             child: softCard(
-              color: _darkMode ? const Color(0xFF202B25) : const Color(0xFFF0F7F3),
-              borderColor: _darkMode ? const Color(0xFF3B4D43) : const Color(0xFFD7E6DE),
+              color: _colors.tintSoft,
+              borderColor: _colors.borderTint,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -1054,7 +1054,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                             maxLines: 2,
                             softWrap: true,
                             overflow: TextOverflow.visible,
-                            style: TextStyle(fontSize: AppType.caption, height: 1.18, fontWeight: FontWeight.w700, color: _darkMode ? const Color(0xFFC6D0CA) : const Color(0xFF6E6860)),
+                            style: TextStyle(fontSize: AppType.caption, height: 1.18, fontWeight: FontWeight.w700, color: _colors.textWarm),
                           ),
                         ),
                       ],
@@ -1349,7 +1349,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Card(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                 child: Row(
                   children: [
                     Container(
@@ -1376,7 +1376,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               value: weekProgress,
                               minHeight: 4,
                               backgroundColor: _colors.tintStrong,
-                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF88AE98)),
+                              valueColor: AlwaysStoppedAnimation<Color>(_colors.accentOutline),
                             ),
                           ),
                         ],
@@ -1387,7 +1387,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                       icon: _uiIcon('insights', Icons.insights_outlined, size: 17),
                       label: const Text('Bilan'),
                       style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         minimumSize: const Size(0, 42),
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
@@ -1423,7 +1423,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
               child: Card(
                 color: _colors.tintStrong,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                   child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
                     _uiIcon('refresh', Icons.autorenew_rounded, size: 18, color: _colors.accentIcon),
                     const SizedBox(width: 7),
@@ -1534,7 +1534,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             child: Card(
               color: _colors.tintStrong,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(15, 14, 15, 12),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1566,7 +1566,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             child: Card(
               color: _colors.tintStrong,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(15, 14, 15, 12),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1672,7 +1672,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                 ]),
                                 if (periodItems.isEmpty)
                                   Padding(
-                                    padding: const EdgeInsets.fromLTRB(9, 7, 9, 3),
+                                    padding: const EdgeInsets.fromLTRB(8, 7, 8, 3),
                                     child: Text(highlighted ? 'Déposer l’activité ici' : 'Temps libre', style: TextStyle(fontSize: AppType.body, color: highlighted ? _colors.accentIcon : _colors.textMuted, fontWeight: highlighted ? FontWeight.w700 : FontWeight.normal)),
                                   )
                                 else ...[
@@ -1705,7 +1705,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             ),
           ),
         ),
-        const SliverPadding(padding: EdgeInsets.only(bottom: 18)),
+        const SliverPadding(padding: EdgeInsets.only(bottom: 16)),
       ],
     );
   }
@@ -1725,7 +1725,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 10),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
             child: Row(
               children: [
                 Expanded(
@@ -1823,7 +1823,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
           child: SizedBox(
             height: 48,
             child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(18, 1, 18, 7),
+              padding: const EdgeInsets.fromLTRB(16, 1, 16, 7),
               scrollDirection: Axis.horizontal,
               itemCount: cats.length,
               separatorBuilder: (_, __) => const SizedBox(width: 7),
@@ -1860,7 +1860,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                   child: InkWell(
                     onTap: () => addOrEditActivity(original: a),
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(13, 12, 9, 12),
+                      padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [

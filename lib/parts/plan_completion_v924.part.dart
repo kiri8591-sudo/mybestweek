@@ -153,7 +153,7 @@ extension _PlanCompletionPart on _MaBelleSemaineAppState {
 
   DateTime _historyDateForPlanItem(PlanItem item, DateTime now) {
     final monday = _startOfCurrentWeek();
-    final target = DateTime(monday.year, monday.month, monday.day).add(Duration(days: item.day));
+    final target = _addDays(DateTime(monday.year, monday.month, monday.day), item.day);
     // Conserve l'heure réelle du geste, mais rattache la réalisation au bon jour.
     return DateTime(target.year, target.month, target.day, now.hour, now.minute, now.second, now.millisecond, now.microsecond);
   }

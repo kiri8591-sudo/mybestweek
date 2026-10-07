@@ -106,7 +106,7 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
                 child: OutlinedButton(
                   onPressed: _closing ? null : () => _close(value),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 11),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.m)),
                     side: BorderSide(color: value == planned ? _colors.accentOutline : _colors.border),
                   ),
@@ -213,7 +213,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     budgets = {...widget.getSportBudgets()};
     final now = DateTime.now();
     _selectedDate = DateTime(now.year, now.month, now.day);
-    _dateStripStart = _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
+    _dateStripStart = _addDays(_selectedDate, -(_selectedDate.weekday - 1));
     _weekStart = _dateStripStart;
   }
 
@@ -488,7 +488,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         ? _activityFilter
         : 'Toutes';
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
         color: _colors.surfaceSunken,
         borderRadius: BorderRadius.circular(AppRadius.l),
@@ -591,15 +591,15 @@ class _SportWeekPageState extends State<_SportWeekPage> {
 
   bool _isCurrentWeek() {
     final now = DateTime.now();
-    final current = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+    final current = _addDays(DateTime(now.year, now.month, now.day), -(now.weekday - 1));
     return _sameDate(_weekStart, current);
   }
 
-  DateTime _weekDayDate(int day) => _weekStart.add(Duration(days: day));
+  DateTime _weekDayDate(int day) => _addDays(_weekStart, day);
 
   void _shiftWeek(int delta) {
     setState(() {
-      _weekStart = _weekStart.add(Duration(days: 7 * delta));
+      _weekStart = _addDays(_weekStart, 7 * delta);
       _dateStripStart = _weekStart;
       _selectedDate = _weekStart;
     });
@@ -619,8 +619,8 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           visualDensity: VisualDensity.compact,
           tooltip: '7 jours précédents',
           onPressed: () => setState(() {
-            _dateStripStart = _dateStripStart.subtract(const Duration(days: 7));
-            _selectedDate = _selectedDate.subtract(const Duration(days: 7));
+            _dateStripStart = _addDays(_dateStripStart, -7);
+            _selectedDate = _addDays(_selectedDate, -7);
           }),
           icon: _activityIconWidget(_uiIconValue('sportBack', ''), size: 20),
         ),
@@ -635,8 +635,8 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           visualDensity: VisualDensity.compact,
           tooltip: '7 jours suivants',
           onPressed: () => setState(() {
-            _dateStripStart = _dateStripStart.add(const Duration(days: 7));
-            _selectedDate = _selectedDate.add(const Duration(days: 7));
+            _dateStripStart = _addDays(_dateStripStart, 7);
+            _selectedDate = _addDays(_selectedDate, 7);
           }),
           icon: _activityIconWidget(_uiIconValue('sportNext', ''), size: 20),
         ),
@@ -652,7 +652,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                 itemCount: 7,
                 separatorBuilder: (_, __) => const SizedBox(width: 5),
                 itemBuilder: (_, i) {
-                  final d = _dateStripStart.add(Duration(days: i));
+                  final d = _addDays(_dateStripStart, i);
                   final selected = _sameDate(d, _selectedDate);
                   final dayIndex = _planDayIndex(d);
                   final items = _itemsForDayForDate(dayIndex, d);
@@ -723,7 +723,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     final planned = items.fold<int>(0, (s, p) => s + p.duration);
     final done = items.where((p) => p.done).fold<int>(0, (s, p) => s + (p.realisedMinutes ?? p.duration));
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       decoration: BoxDecoration(color: _colors.tintSoft, borderRadius: BorderRadius.circular(AppRadius.l), border: Border.all(color: _colors.borderTint)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -904,7 +904,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     final planned = currentWeek ? _plannedCount(activity) : 0;
     final done = currentWeek
         ? _doneCount(activity)
-        : widget.getLogs().where((log) => !log.date.isBefore(_weekStart) && log.date.isBefore(_weekStart.add(const Duration(days: 7))) && (log.activityId == activity.id || (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase()))).length;
+        : widget.getLogs().where((log) => !log.date.isBefore(_weekStart) && log.date.isBefore(_addDays(_weekStart, 7)) && (log.activityId == activity.id || (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase()))).length;
     return Container(
       margin: const EdgeInsets.only(bottom: 3),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -1051,10 +1051,10 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         bottom: true,
         minimum: const EdgeInsets.only(bottom: 16),
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 30),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 30),
         children: [
           Container(
-            padding: const EdgeInsets.fromLTRB(15, 14, 15, 14),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
             decoration: BoxDecoration(color: _colors.tintStrong, borderRadius: BorderRadius.circular(AppRadius.xl), border: Border.all(color: _colors.borderTint)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [mascotAvatarInline(size: 40), const SizedBox(width: 10), Expanded(child: Text('Bilan Sport', style: TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800, color: _colors.textStrong)))]),
@@ -1077,7 +1077,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                     _selectedDaySportDetail(),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+                      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
                       decoration: BoxDecoration(
                         color: _colors.tintSoft,
                         borderRadius: BorderRadius.circular(AppRadius.l),
@@ -1103,7 +1103,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Row(children: [
                               IconButton(padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 30, minHeight: 30), onPressed: () => _shiftWeek(-1), icon: _uiIcon('sportBack', Icons.chevron_left_rounded, size: 19)),
-                              Expanded(child: Text('Semaine · ${_dateLabel(_weekStart)} – ${_dateLabel(_weekStart.add(const Duration(days: 6)))}', textAlign: TextAlign.center, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.textStrong))),
+                              Expanded(child: Text('Semaine · ${_dateLabel(_weekStart)} – ${_dateLabel(_addDays(_weekStart, 6))}', textAlign: TextAlign.center, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.textStrong))),
                               IconButton(padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 30, minHeight: 30), onPressed: () => _shiftWeek(1), icon: _uiIcon('sportNext', Icons.chevron_right_rounded, size: 19)),
                             ]),
                             _weekDayHeader(),
@@ -1121,7 +1121,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
             const SizedBox(height: 7),
             ...inactive.map((activity) => Container(
               margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.fromLTRB(13, 10, 13, 10),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
               decoration: BoxDecoration(color: _colors.surfaceSunken, borderRadius: BorderRadius.circular(AppRadius.l), border: Border.all(color: _colors.border)),
               child: Row(children: [
                 _activityIconWidget(activity.emoji, size: 28),
@@ -1171,7 +1171,7 @@ class _SportCoachJournalSheet extends StatelessWidget {
                       final d = log.date.toLocal();
                       final dateLabel = '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')} · ${d.hour.toString().padLeft(2, '0')}h${d.minute.toString().padLeft(2, '0')}';
                       return Container(
-                        padding: const EdgeInsets.all(13),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(color: _colors.surfaceSunken, borderRadius: BorderRadius.circular(AppRadius.l), border: Border.all(color: _colors.border)),
                         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           mascotAvatarInline(size: 34),
@@ -1249,7 +1249,7 @@ class _SportDailySlider extends StatelessWidget {
         Row(children: [
           Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(color: _colors.tintStrong, borderRadius: BorderRadius.circular(AppRadius.m)),
             child: Text('$safe min', style: TextStyle(fontWeight: FontWeight.w800, color: _colors.accentText)),
           ),

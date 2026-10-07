@@ -6,7 +6,7 @@ part of '../main.dart';
 extension _DailyCoachSummaryPart on _MaBelleSemaineAppState {
   List<ActivityLog> _currentWeekLogs() {
     final start = _startOfCurrentWeek();
-    final end = start.add(const Duration(days: 7));
+    final end = _addDays(start, 7);
     return logs.where((log) => !log.date.isBefore(start) && log.date.isBefore(end)).toList();
   }
 
@@ -126,7 +126,7 @@ extension _DailyCoachSummaryPart on _MaBelleSemaineAppState {
     final veryGood = weekLogs.where((l) => _normalizeFeeling(l.feeling) == 'Très bien').length;
     final moves = activityMoveLogs.where((m) {
       final start = _startOfCurrentWeek();
-      return !m.date.isBefore(start) && m.date.isBefore(start.add(const Duration(days: 7)));
+      return !m.date.isBefore(start) && m.date.isBefore(_addDays(start, 7));
     }).length;
     final manualAdded = plan.where((p) => p.userAdded && p.manualPlacement && p.activityId != null && p.day >= today).length;
     final manualRemoved = _manualDayRemovals.values.fold<int>(0, (sum, days) => sum + days.values.fold<int>(0, (s, c) => s + c));
@@ -176,7 +176,7 @@ extension _DailyCoachSummaryPart on _MaBelleSemaineAppState {
     final veryGood = weekLogs.where((l) => _normalizeFeeling(l.feeling) == 'Très bien').length;
     final movedThisWeek = activityMoveLogs.where((m) {
       final start = _startOfCurrentWeek();
-      return !m.date.isBefore(start) && m.date.isBefore(start.add(const Duration(days: 7)));
+      return !m.date.isBefore(start) && m.date.isBefore(_addDays(start, 7));
     }).length;
 
     final activeProfiles = activities

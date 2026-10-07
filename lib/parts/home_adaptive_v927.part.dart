@@ -154,7 +154,7 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
       color: background,
       borderColor: border,
       radius: 22,
-      padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -212,7 +212,7 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
               value: weekProgress,
               minHeight: 4,
               backgroundColor: _colors.tintStrong,
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF88AE98)),
+              valueColor: AlwaysStoppedAnimation<Color>(_colors.accentOutline),
             ),
           ),
         ],

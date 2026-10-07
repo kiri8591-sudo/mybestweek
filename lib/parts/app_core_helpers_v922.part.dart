@@ -160,7 +160,7 @@ extension _AppCoreHelpersPart on _MaBelleSemaineAppState {
 
   String _currentWeekKey() {
     final now = DateTime.now();
-    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final monday = _addDays(now, -(now.weekday - 1));
     final d = DateTime(monday.year, monday.month, monday.day);
     return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }

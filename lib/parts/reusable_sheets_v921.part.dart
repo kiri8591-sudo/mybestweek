@@ -107,7 +107,7 @@ class _DataPageState extends State<_DataPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
         content: Text(ok ? 'Sauvegarde restaurée avec succès.' : 'Aucune sauvegarde valide restaurée.'),
       ),
@@ -179,7 +179,7 @@ class _DataPageState extends State<_DataPage> {
           ),
         ],
       ),
-      padding: const EdgeInsets.fromLTRB(15, 15, 15, 14),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -232,7 +232,7 @@ class _DataPageState extends State<_DataPage> {
     final label = cloudDone ? 'À jour' : 'À faire';
     final due = !cloudDone;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: due ? _colors.goldBg : _colors.tintStrong,
         borderRadius: BorderRadius.circular(AppRadius.m),
@@ -269,7 +269,7 @@ class _DataPageState extends State<_DataPage> {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
         children: [
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 15, 16, 14),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -314,7 +314,7 @@ class _DataPageState extends State<_DataPage> {
               borderRadius: BorderRadius.circular(AppRadius.xl),
               border: Border.all(color: _colors.borderTint),
             ),
-            padding: const EdgeInsets.fromLTRB(13, 12, 13, 12),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -347,7 +347,7 @@ class _DataPageState extends State<_DataPage> {
               borderRadius: BorderRadius.circular(AppRadius.xxl),
               border: Border.all(color: _colors.borderTint),
             ),
-            padding: const EdgeInsets.fromLTRB(15, 15, 15, 14),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -377,8 +377,8 @@ class _DataPageState extends State<_DataPage> {
                   child: FilledButton.icon(
                     onPressed: () async { await widget.onICloudExport(); if (mounted) setState(() {}); },
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF627A93),
-                      foregroundColor: Colors.white,
+                      backgroundColor: _colors.primary,
+                      foregroundColor: _colors.onPrimary,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.l)),
                       textStyle: const TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700),
                     ),
@@ -393,7 +393,7 @@ class _DataPageState extends State<_DataPage> {
           ),
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.fromLTRB(15, 15, 15, 14),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
             decoration: BoxDecoration(
               color: _colors.tintStrong,
               borderRadius: BorderRadius.circular(AppRadius.xxl),
@@ -507,7 +507,7 @@ class _HomeMascotSheet extends StatelessWidget {
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 20),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -525,7 +525,7 @@ class _HomeMascotSheet extends StatelessWidget {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () => Navigator.pop(context, const _HomeMascotChoice(kind: 'ourson', emoji: '🧸')),
-                icon: const Text('🧸', style: TextStyle(fontSize: AppType.h1)),
+                icon: _activityIconWidget('🧸', size: 28),
                 label: const Align(alignment: Alignment.centerLeft, child: Text('Ourson MyBestWeek')),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -714,7 +714,7 @@ class _DailySummarySheetState extends State<_DailySummarySheet> {
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 20),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             _activityIconWidget('pack://star', size: 24),
@@ -728,7 +728,7 @@ class _DailySummarySheetState extends State<_DailySummarySheet> {
           if (summary != null)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
               decoration: BoxDecoration(color: _colors.surfaceSunken, borderRadius: BorderRadius.circular(AppRadius.l)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(summary.summary, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted, height: 1.28)),
@@ -961,7 +961,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
               Card(
                 color: _colors.card,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(13, 12, 13, 10),
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     const Text('Choisir dans mes activités', style: TextStyle(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 7),
@@ -1000,11 +1000,11 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                     const SizedBox(height: 8),
                     if (availableActivities.isEmpty)
                       const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 18),
+                        padding: EdgeInsets.symmetric(vertical: 16),
                         child: Text('Aucune activité enregistrée. Passe sur « Créer ».'))
                     else if (filteredAvailableActivities.isEmpty)
                       const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 18),
+                        padding: EdgeInsets.symmetric(vertical: 16),
                         child: Text('Aucune activité dans ce thème.'))
                     else
                       ...filteredAvailableActivities.map((a) {
@@ -1079,7 +1079,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
               Card(
                 color: _colors.card,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(13, 12, 13, 10),
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     _uiIcon('add', Icons.add_task_rounded, size: 18, color: _colors.accentIcon),
                     SizedBox(width: 10),

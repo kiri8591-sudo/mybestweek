@@ -38,7 +38,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     color: _colors.tintStrong,
                     borderRadius: BorderRadius.circular(AppRadius.m),
@@ -81,7 +81,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
     final card = Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(8, 9, 6, 9),
+        padding: const EdgeInsets.fromLTRB(8, 8, 6, 8),
         decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(AppRadius.l), boxShadow: [BoxShadow(color: _colors.shadowSoft, blurRadius: 5, offset: Offset(0, 2))]),
         child: Row(
           children: [

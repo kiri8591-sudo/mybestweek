@@ -318,7 +318,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
       showDragHandle: true,
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Ajouter au planning Sport · ${dayNames[day]}', style: const TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
@@ -399,7 +399,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
     if (!_isSportActivity(activity)) return;
     final day = date.weekday - 1;
     final monday = _startOfCurrentWeek();
-    final currentWeek = _sameDateOnlySport(date, monday.add(Duration(days: day)));
+    final currentWeek = _sameDateOnlySport(date, _addDays(monday, day));
     if (currentWeek) {
       final items = plan.where((p) => p.activityId == activity.id && p.day == day).toList();
       if (items.isNotEmpty) {
@@ -570,7 +570,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
   }
 
   DateTime _weekDateForDay(int day) {
-    return _startOfCurrentWeek().add(Duration(days: day));
+    return _addDays(_startOfCurrentWeek(), day);
   }
 
   String _weekDateShortLabel(int day) {
