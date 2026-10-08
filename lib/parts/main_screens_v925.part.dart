@@ -1775,18 +1775,16 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                       const SizedBox(width: 6),
                       ActionChip(
                         avatar: _uiIcon('sportWeek', Icons.view_week_outlined, size: 17),
-                        label: const Text('Semaine Sport'),
+                        label: const Text('Sport'),
                         onPressed: openSportWeekOverview,
                       ),
                     ],
-                    if (activities.any((a) => !_isSportActivity(a) && !a.isSportProgram)) ...[
-                      const SizedBox(width: 6),
-                      ActionChip(
-                        avatar: _uiIcon('calendar', Icons.calendar_month_outlined, size: 17),
-                        label: const Text('Semaine Activités'),
-                        onPressed: openNonSportWeekOverview,
-                      ),
-                    ],
+                    const SizedBox(width: 6),
+                    ActionChip(
+                      avatar: _uiIcon('calendar', Icons.calendar_month_outlined, size: 17),
+                      label: const Text('Activité'),
+                      onPressed: openNonSportWeekOverview,
+                    ),
                   ]),
                 ),
               ),

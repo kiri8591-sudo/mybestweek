@@ -103,7 +103,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                             if (value == 'week') openSportWeekOverview();
                           },
                           itemBuilder: (context) => const [
-                            PopupMenuItem<String>(value: 'week', child: Text('Semaine Sport')),
+                            PopupMenuItem<String>(value: 'week', child: Text('Sport')),
                             PopupMenuItem<String>(value: 'journal', child: Text('Journal du coach Sport')),
                           ],
                         ),
@@ -132,7 +132,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
-                      tooltip: 'Semaine Sport',
+                      tooltip: 'Sport',
                       onPressed: openSportWeekOverview,
                       icon: _uiIcon('sportWeek', Icons.calendar_view_week_outlined, size: 17),
                     ),

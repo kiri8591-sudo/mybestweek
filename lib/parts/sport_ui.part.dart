@@ -72,7 +72,7 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
                   height: 38,
                   decoration: BoxDecoration(
                     color: _colors.tintSoft,
-                    borderRadius: BorderRadius.circular(AppRadius.m),
+                    borderRadius: BorderRadius.circular(AppRadius.s),
                   ),
                   alignment: Alignment.center,
                   child: _activityIconWidget(_uiIconValue('sportTimer', ''), size: 21),
@@ -553,11 +553,11 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         children: [
           Expanded(
             child: SizedBox(
-              height: 48,
+              height: 42,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: 7,
-                separatorBuilder: (_, __) => const SizedBox(width: 5),
+                separatorBuilder: (_, __) => const SizedBox(width: 3),
                 itemBuilder: (_, i) {
                   final d = _addDays(_dateStripStart, i);
                   final selected = _sameDate(d, _selectedDate);
@@ -570,8 +570,8 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                               }),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 160),
-                      width: 39,
-                      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
+                      width: 34,
+                      padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
                       decoration: BoxDecoration(
                         color: selected ? _colors.tintStrong : _colors.surfaceSoft,
                         borderRadius: BorderRadius.circular(AppRadius.m),
