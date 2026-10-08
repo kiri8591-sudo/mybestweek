@@ -650,19 +650,11 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.xl),
+      child: _AppCard(
         onTap: () => _addOrEditGoal(existing: goal),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-          decoration: BoxDecoration(
-            color: complete ? _colors.tintStrong : _colors.card,
-            borderRadius: BorderRadius.circular(AppRadius.xl),
-            border: Border.all(
-              color: complete ? _colors.borderTint : _colors.border,
-            ),
-          ),
-          child: Column(
+        tone: complete ? _CardTone.tint : _CardTone.plain,
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+        child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -723,17 +715,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
               Row(
                 children: [
                   Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                      child: LinearProgressIndicator(
-                        value: ratio,
-                        minHeight: 7,
-                        backgroundColor: _colors.border,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          complete ? _colors.accentFill : _colors.accentOutline,
-                        ),
-                      ),
-                    ),
+                    child: _MeterBar(value: ratio, color: complete ? _colors.accentFill : _colors.accentOutline),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -774,7 +756,6 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
               ),
             ],
           ),
-        ),
       ),
     );
   }
@@ -789,15 +770,9 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
+      child: _AppCard(
+        tone: streak > 0 ? _CardTone.tint : _CardTone.plain,
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        decoration: BoxDecoration(
-          color: streak > 0 ? _colors.tintStrong : _colors.card,
-          borderRadius: BorderRadius.circular(AppRadius.xl),
-          border: Border.all(
-            color: streak > 0 ? _colors.borderTint : _colors.border,
-          ),
-        ),
         child: Row(
           children: [
             Container(
@@ -896,31 +871,12 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
 
     return CustomScrollView(
       slivers: [
-        SliverAppBar(
-          pinned: true,
-          backgroundColor: _colors.surfaceSoft,
-          surfaceTintColor: Colors.transparent,
-          title: Row(children: [
-            _activityIconWidget(_uiIconValue('objective', ''), size: 22),
-            const SizedBox(width: 8),
-            const Text('Objectifs'),
-          ]),
-          actions: [
-            IconButton(
-              tooltip: 'Nouvel objectif',
-              onPressed: () => _addOrEditGoal(),
-              icon: _systemIconWidget('add', fallback: '➕', size: 22),
-            ),
-          ],
-        ),
+        SliverToBoxAdapter(child: pageTitle('Objectifs', goals.isEmpty ? 'Une habitude concrète, une cible simple.' : '$completedGoals sur ${goals.length} atteint${goals.length > 1 ? 's' : ''} sur la période.')),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-            child: softCard(
-              color: _colors.tintStrong,
-              borderColor: _colors.borderTint,
-              radius: 23,
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+            child: _AppCard(
+              tone: _CardTone.tint,
               child: Row(
                 children: [
                   Container(
@@ -931,7 +887,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                       borderRadius: BorderRadius.circular(AppRadius.l),
                     ),
                     alignment: Alignment.center,
-                    child: const Text('🎯', style: TextStyle(fontSize: AppType.hero)),
+                    child: _activityIconWidget('pack://target', size: 32),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -940,11 +896,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                       children: [
                         Text(
                           'Mes objectifs de réalisation',
-                          style: TextStyle(
-                            fontSize: AppType.title,
-                            fontWeight: FontWeight.w800,
-                            color: _colors.accentText,
-                          ),
+                          style: _sectionTitleStyle(context),
                         ),
                         const SizedBox(height: 3),
                         Text(
@@ -973,23 +925,15 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
               children: [
                 Expanded(
                   child: Text(
-                    'Objectifs',
-                    style: TextStyle(
-                      fontSize: AppType.title,
-                      fontWeight: FontWeight.w800,
-                      color: _colors.textStrong,
-                    ),
+                    goals.isEmpty ? 'Objectifs' : 'Objectifs · ${goals.length} actif${goals.length > 1 ? 's' : ''}',
+                    style: _sectionTitleStyle(context),
                   ),
                 ),
-                if (goals.isNotEmpty)
-                  Text(
-                    '${goals.length} actif${goals.length > 1 ? 's' : ''}',
-                    style: TextStyle(
-                      fontSize: AppType.small,
-                      fontWeight: FontWeight.w700,
-                      color: _colors.textMuted,
-                    ),
-                  ),
+                TextButton.icon(
+                  onPressed: () => _addOrEditGoal(),
+                  icon: _uiIcon('add', Icons.add_circle_outline, size: 18),
+                  label: const Text('Nouvel objectif'),
+                ),
               ],
             ),
           ),
@@ -998,11 +942,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: softCard(
-                color: _colors.card,
-                borderColor: _colors.border,
-                radius: 19,
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+              child: _AppCard(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1044,11 +984,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                 Expanded(
                   child: Text(
                     'Streak Sport par activité',
-                    style: TextStyle(
-                      fontSize: AppType.title,
-                      fontWeight: FontWeight.w800,
-                      color: _colors.textStrong,
-                    ),
+                    style: _sectionTitleStyle(context),
                   ),
                 ),
                 Text(
@@ -1067,11 +1003,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: softCard(
-                color: _colors.card,
-                borderColor: _colors.border,
-                radius: 19,
-                padding: const EdgeInsets.all(12),
+              child: _AppCard(
                 child: Text(
                   'Ajoute ou réactive une activité Sport pour suivre une série.',
                   style: TextStyle(

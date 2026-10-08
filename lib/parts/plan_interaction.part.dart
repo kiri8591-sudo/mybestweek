@@ -284,7 +284,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                       style: _sheetTitleStyle(context),
                     ),
                   ),
-                  if (item.activityId == null || (findActivity(item.activityId!)?.category == 'Sport')) Text('${item.duration} min', style: _detailMetaStyle()),
+                  Text(item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min', style: _detailMetaStyle()),
                 ],
               ),
               const SizedBox(height: 6),
@@ -326,6 +326,18 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                   ),
                 ),
               ],
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(sheetContext);
+                    editItemRealisedMinutes(item);
+                  },
+                  icon: _uiIcon('duration', Icons.timer_outlined, size: 18),
+                  label: Text(item.done ? 'Modifier le temps réalisé' : 'Valider avec un temps précis'),
+                ),
+              ),
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,

@@ -8,12 +8,16 @@ class _HistorySheet extends StatefulWidget {
   final List<Activity> activities;
   final List<String> dayNames;
   final VoidCallback onOpenGenerationCriteria;
+  final Future<void> Function(ActivityLog log) onEditLog;
+  final Future<void> Function() onAddLog;
 
   const _HistorySheet({
     required this.logs,
     required this.activities,
     required this.dayNames,
     required this.onOpenGenerationCriteria,
+    required this.onEditLog,
+    required this.onAddLog,
   });
 
   @override
@@ -810,10 +814,24 @@ class _HistorySheetState extends State<_HistorySheet> {
                       child: Container(width: 9, height: 9, decoration: BoxDecoration(color: _feelingColor(feeling), shape: BoxShape.circle)),
                     ),
                   ),
-                Text(
-                  dateLabel,
-                  maxLines: 1,
-                  style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted),
+                InkWell(
+                  onTap: () async {
+                    await widget.onEditLog(log);
+                    if (mounted) setState(() {});
+                  },
+                  borderRadius: BorderRadius.circular(AppRadius.s),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Text(
+                        dateLabel,
+                        maxLines: 1,
+                        style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted),
+                      ),
+                      const SizedBox(width: 3),
+                      Icon(Icons.edit_outlined, size: 13, color: _colors.textFaint),
+                    ]),
+                  ),
                 ),
               ],
             ),
@@ -929,7 +947,18 @@ class _HistorySheetState extends State<_HistorySheet> {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       _analysisCard(),
                       const SizedBox(height: AppSpace.l),
-                      Text('Journal des activités', style: _sectionTitleStyle(context)),
+                      Row(children: [
+                        Expanded(child: Text('Journal des activités', style: _sectionTitleStyle(context))),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 8)),
+                          onPressed: () async {
+                            await widget.onAddLog();
+                            if (mounted) setState(() {});
+                          },
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: const Text('Ajouter'),
+                        ),
+                      ]),
                       const SizedBox(height: AppSpace.s),
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,

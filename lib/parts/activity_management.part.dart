@@ -80,7 +80,11 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
     // activité met à jour leur nom et leur durée, mais ne les supprime pas au
     // seul motif que la fréquence a changé.
     for (final item in linked) {
-      if (_isSportActivity(activity) || activity.isSportProgram) item.duration = activity.duration;
+      if (_isSportActivity(activity) || activity.isSportProgram) {
+        item.duration = activity.duration;
+      } else if (!item.done && previous != null && previous.duration != activity.duration) {
+        item.duration = activity.duration; // nouveau temps habituel, uniquement s'il a été changé
+      }
       if (!_isSportActivity(activity) && !activity.isSportProgram && !item.manualPlacement) item.period = _periodForActivity(activity, item.day);
       if (previous != null && item.title.contains(previous.name)) {
         item.title = item.title.replaceFirst(previous.name, activity.name);
@@ -916,14 +920,30 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                     ]),
                   ),
                 ),
-                const SizedBox(height: 10),                if (category == 'Sport' || draft.isSportProgram) ...[
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: duration,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Durée de référence (min)'),
+                const SizedBox(height: 10),                const SizedBox(height: 10),
+                TextField(
+                  controller: duration,
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => setDialogState(() {}),
+                  decoration: InputDecoration(
+                    labelText: category == 'Sport' || draft.isSportProgram ? 'Durée de référence (min)' : 'Temps habituel (min)',
+                    helperText: category == 'Sport' || draft.isSportProgram
+                        ? null
+                        : 'Proposé pour chaque moment ; ajustable à chaque validation (chrono).',
+                    helperMaxLines: 2,
                   ),
-                ] else ...[
+                ),
+                const SizedBox(height: 6),
+                Wrap(spacing: 6, runSpacing: 0, children: [
+                  for (final v in const [5, 10, 15, 20, 30, 45, 60, 90])
+                    ChoiceChip(
+                      label: Text('$v min', style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700)),
+                      selected: duration.text.trim() == '$v',
+                      visualDensity: VisualDensity.compact,
+                      onSelected: (_) => setDialogState(() => duration.text = '$v'),
+                    ),
+                ]),
+                if (!(category == 'Sport' || draft.isSportProgram)) ...[
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
                     value: period,
@@ -1266,7 +1286,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   emoji: emoji,
                   category: category,
                   period: category == 'Sport' || draft.isSportProgram ? draft.period : period,
-                  duration: category == 'Sport' || draft.isSportProgram ? (int.tryParse(duration.text) ?? 30) : draft.duration,
+                  duration: (int.tryParse(duration.text.trim()) ?? (category == 'Sport' || draft.isSportProgram ? 30 : draft.duration)).clamp(1, 600).toInt(),
                   frequency: frequency,
                   priority: priority,
                   preferredDays: preferred.toList()..sort(),

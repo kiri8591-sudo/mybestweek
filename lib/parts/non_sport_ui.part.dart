@@ -12,6 +12,8 @@ extension _NonSportWeekNavigationPart on _MaBelleSemaineAppState {
           getLogs: () => List<ActivityLog>.from(logs),
           onOpenActivity: (activity) => addOrEditActivity(original: activity),
           onToggleDate: toggleNonSportActivityOnDate,
+          onEditMinutes: editNonSportMinutesOnDate,
+          onEditLog: editHistoryLogMinutes,
         ),
       ),
     );
@@ -53,6 +55,50 @@ extension _NonSportWeekNavigationPart on _MaBelleSemaineAppState {
     _queueLocalStatePersist();
   }
 
+  /// Semaine Activités : saisir ou corriger le temps vécu d'une activité un jour donné.
+  Future<void> editNonSportMinutesOnDate(Activity activity, DateTime date) async {
+    if (_isSportActivity(activity) || !mounted) return;
+    final day = date.weekday - 1;
+    final currentWeek = _sameDateOnlyNonSport(date, _addDays(_startOfCurrentWeek(), day));
+    if (currentWeek) {
+      final items = plan.where((p) => p.activityId == activity.id && p.day == day).toList();
+      if (items.isNotEmpty) {
+        await editItemRealisedMinutes(items.first);
+        return;
+      }
+    }
+    final index = logs.indexWhere((log) =>
+        _sameDateOnlyNonSport(log.date, date) &&
+        (log.activityId == activity.id || (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase())));
+    if (index >= 0) {
+      await editHistoryLogMinutes(logs[index]);
+      return;
+    }
+    // Aucune réalisation ce jour-là : on en crée une avec le temps saisi.
+    final minutes = await _askMinutes(name: activity.name, planned: activity.duration);
+    if (minutes == null || !mounted) return;
+    final actual = max(1, minutes);
+    _prepareUndoSnapshot();
+    setState(() {
+      logs.add(ActivityLog(
+        date: DateTime(date.year, date.month, date.day, 12),
+        title: activity.name,
+        emoji: activity.emoji,
+        category: activity.category,
+        period: _periodForActivity(activity, day),
+        day: day,
+        plannedMinutes: activity.duration,
+        realisedMinutes: actual,
+        feeling: 'Bien',
+        unplanned: true,
+        activityId: activity.id,
+      ));
+    });
+    _queueLocalStatePersist();
+    _refreshGoalsAfterRealization();
+    _showFeedback('✓ ${activity.name} : $actual min enregistrées.');
+  }
+
   bool _sameDateOnlyNonSport(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
 
 }
@@ -64,6 +110,8 @@ class _NonSportWeekPage extends StatefulWidget {
   final List<ActivityLog> Function() getLogs;
   final ValueChanged<Activity> onOpenActivity;
   final void Function(Activity activity, DateTime date) onToggleDate;
+  final Future<void> Function(Activity activity, DateTime date) onEditMinutes;
+  final Future<void> Function(ActivityLog log) onEditLog;
 
   const _NonSportWeekPage({
     required this.dayNames,
@@ -72,6 +120,8 @@ class _NonSportWeekPage extends StatefulWidget {
     required this.getLogs,
     required this.onOpenActivity,
     required this.onToggleDate,
+    required this.onEditMinutes,
+    required this.onEditLog,
   });
 
   @override
@@ -248,6 +298,10 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
     final planned = currentWeek && items.isNotEmpty;
     return Expanded(child: Center(child: InkWell(
       onTap: () => widget.onToggleDate(activity, date),
+      onLongPress: () async {
+        await widget.onEditMinutes(activity, date);
+        if (mounted) setState(() {});
+      },
       borderRadius: BorderRadius.circular(AppRadius.xs),
       child: Container(
         width: 26,
@@ -359,6 +413,37 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
     final selectedItems = _isCurrentWeek()
         ? widget.getPlan().where((p) => p.day == selected && p.activityId != null && _allActivities().any((a) => a.id == p.activityId)).toList()
         : <PlanItem>[];
+    final selectedLogs = _isCurrentWeek()
+        ? <ActivityLog>[]
+        : widget.getLogs().where((l) => _sameDate(l.date, selectedDate) && _isNonSportLog(l)).toList();
+    final historyRows = <Widget>[
+      if (selectedLogs.isEmpty)
+        Text('Aucune réalisation ce jour. Toucher une case pour en ajouter une, appui long pour saisir un temps.', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
+      for (final log in selectedLogs)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Row(children: [
+            _activityIconWidget(log.emoji, size: 19),
+            const SizedBox(width: 5),
+            Expanded(child: Text(log.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textStrong))),
+            InkWell(
+              onTap: () async {
+                await widget.onEditLog(log);
+                if (mounted) setState(() {});
+              },
+              borderRadius: BorderRadius.circular(AppRadius.s),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.timer_outlined, size: 15, color: _colors.textMuted),
+                  const SizedBox(width: 3),
+                  Text('${log.realisedMinutes} min', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentText)),
+                ]),
+              ),
+            ),
+          ]),
+        ),
+    ];
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         final v = details.primaryVelocity ?? 0;
@@ -392,14 +477,28 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
         Container(padding: const EdgeInsets.fromLTRB(10, 8, 10, 8), decoration: BoxDecoration(color: _colors.tintSoft, borderRadius: BorderRadius.circular(AppRadius.l), border: Border.all(color: _colors.borderTint)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [_uiIcon('calendar', Icons.calendar_today_outlined, size: 18, color: _colors.accentIcon), const SizedBox(width: 6), Expanded(child: Text('Activités du ${widget.dayNames[selected]} · ${selectedDate.day}/${selectedDate.month}', style: TextStyle(fontWeight: FontWeight.w800, color: _colors.textStrong)))]),
           const SizedBox(height: 5),
-          if (!_isCurrentWeek())
-            Text('Les réalisations historiques sont cochables directement dans la grille ci-dessous.', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted))
+          if (!_isCurrentWeek()) ...historyRows
           else if (selectedItems.isEmpty)
             Text('Aucune activité non-Sport prévue ce jour.', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted))
           else
             ...selectedItems.map((item) => Padding(padding: const EdgeInsets.only(bottom: 4), child: Row(children: [
               _activityIconWidget(_activityEmojiForItem(item), size: 19), const SizedBox(width: 5), Expanded(child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w700, color: _colors.textStrong))),
-              Text(item.done ? '✓ ${item.realisedMinutes ?? item.duration} min' : '${item.duration} min', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: item.done ? _colors.accentText : _colors.textWarm)),
+              InkWell(
+                onTap: () async {
+                  final activity = _allActivities().firstWhere((a) => a.id == item.activityId);
+                  await widget.onEditMinutes(activity, selectedDate);
+                  if (mounted) setState(() {});
+                },
+                borderRadius: BorderRadius.circular(AppRadius.s),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.timer_outlined, size: 15, color: _colors.textMuted),
+                    const SizedBox(width: 3),
+                    Text(item.done ? '✓ ${item.realisedMinutes ?? item.duration} min' : '${item.duration} min', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: item.done ? _colors.accentText : _colors.textWarm)),
+                  ]),
+                ),
+              ),
               const SizedBox(width: 5),
               InkWell(onTap: () => widget.onToggleDate(_allActivities().firstWhere((a) => a.id == item.activityId), selectedDate), borderRadius: BorderRadius.circular(AppRadius.s), child: Container(width: 23, height: 23, alignment: Alignment.center, decoration: BoxDecoration(color: item.done ? _colors.accentFill : _colors.surfaceSoft, borderRadius: BorderRadius.circular(AppRadius.s), border: Border.all(color: item.done ? _colors.accentFillBorder : _colors.borderStrong)), child: item.done ? const Icon(Icons.check, size: 14, color: Colors.white) : null)),
             ]))),
@@ -407,6 +506,11 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
         const SizedBox(height: 8),
         _dayHeader(),
         ...visible.map(_activityRow),
+        if (visible.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text('Toucher une case pour cocher · appui long pour saisir le temps passé.', style: _hintStyle()),
+          ),
       ]),
     );
   }

@@ -6,10 +6,12 @@ part of '../main.dart';
 class _SportRealisedMinutesSheet extends StatefulWidget {
   final String activityName;
   final int plannedMinutes;
+  final int? currentMinutes; // durée déjà enregistrée (modification)
 
   const _SportRealisedMinutesSheet({
     required this.activityName,
     required this.plannedMinutes,
+    this.currentMinutes,
   });
 
   @override
@@ -33,8 +35,10 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
       planned + 5,
       planned + 10,
     };
+    final current = widget.currentMinutes;
+    if (current != null && current > 0) nearby.add(current);
     quickValues = nearby.where((v) => v > 0).toList()..sort();
-    controller = TextEditingController(text: '$planned');
+    controller = TextEditingController(text: '${(current != null && current > 0) ? current : planned}');
   }
 
   @override

@@ -545,13 +545,13 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                   ),
                 ),
               ),
-              if (isSport)
+              if (isSport || !_isDateRangePlanItem(item))
                 IconButton(
                   tooltip: 'Modifier le temps réalisé',
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-                  onPressed: () => _editSportRealisedMinutes(item, activity!),
+                  onPressed: () => isSport ? _editSportRealisedMinutes(item, activity!) : editItemRealisedMinutes(item),
                   icon: _uiIcon('duration', Icons.timer_outlined, size: 18, color: _colors.textMuted),
                 ),
               PopupMenuButton<String>(

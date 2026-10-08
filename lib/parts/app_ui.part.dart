@@ -56,12 +56,16 @@ class _AppCard extends StatelessWidget {
   final _CardTone tone;
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
+  final Color? fill; // fond personnalisé (ex. teinte par catégorie)
+  final Color? borderColor;
 
   const _AppCard({
     required this.child,
     this.tone = _CardTone.plain,
     this.padding = const EdgeInsets.all(AppSpace.l),
     this.onTap,
+    this.fill,
+    this.borderColor,
   });
 
   @override
@@ -71,10 +75,10 @@ class _AppCard extends StatelessWidget {
       _CardTone.soft => _colors.surfaceSunken,
       _CardTone.tint => _colors.tintStrong,
     };
-    final line = tone == _CardTone.tint ? _colors.borderTint : _colors.border;
+    final line = borderColor ?? (tone == _CardTone.tint ? _colors.borderTint : _colors.border);
     final radius = BorderRadius.circular(AppRadius.xl);
     return Material(
-      color: fill,
+      color: this.fill ?? fill,
       shape: RoundedRectangleBorder(borderRadius: radius, side: BorderSide(color: line, width: 1)),
       clipBehavior: Clip.antiAlias,
       child: onTap == null

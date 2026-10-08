@@ -20,15 +20,20 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
     final over = planned > target;
     final completedHome = compactHome && items.isNotEmpty && items.every((item) => item.done);
     final collapsedHome = completedHome && !_homeSportExpanded;
+    // Écran Semaine : section « Sport » à plat (comme Matin / Après-midi / Soir),
+    // sans carte dans la carte ; l'accueil garde sa carte teintée.
+    final flat = !compactHome;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 7, 12, 8),
-      decoration: BoxDecoration(
-        color: _colors.tintStrong,
-        borderRadius: BorderRadius.circular(AppRadius.l),
-        border: Border.all(color: over ? _colors.danger : _colors.borderTint),
-      ),
+      padding: flat ? const EdgeInsets.fromLTRB(0, 2, 0, 2) : const EdgeInsets.fromLTRB(12, 7, 12, 8),
+      decoration: flat && !over
+          ? null
+          : BoxDecoration(
+              color: flat ? null : _colors.tintStrong,
+              borderRadius: BorderRadius.circular(AppRadius.l),
+              border: Border.all(color: over ? _colors.danger : _colors.borderTint),
+            ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -64,57 +69,83 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Habitudes quotidiennes · Sport',
+                        flat ? 'Sport' : 'Habitudes quotidiennes · Sport',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.accentText),
+                        style: flat
+                            ? TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong)
+                            : TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.accentText),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '$validated / $target min',
+                        over ? '$validated / $target min · au-dessus de l’objectif' : '$validated / $target min',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted),
+                        style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: over ? _colors.danger : _colors.textMuted),
                       ),
                     ],
                   ),
                 ),
+                ...(flat
+                    ? <Widget>[
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          tooltip: 'Ajouter une activité Sport',
+                          onPressed: () => _addSportActivityToDay(day),
+                          icon: _uiIcon('add', Icons.add_circle_outline, size: 20, color: _colors.accentText),
+                        ),
+                        PopupMenuButton<String>(
+                          tooltip: 'Autres actions Sport',
+                          padding: EdgeInsets.zero,
+                          icon: _uiIcon('settings', Icons.more_horiz_rounded, size: 19, color: _colors.textMuted),
+                          onSelected: (value) {
+                            if (value == 'journal') openSportCoachJournal();
+                            if (value == 'week') openSportWeekOverview();
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem<String>(value: 'week', child: Text('Semaine Sport')),
+                            PopupMenuItem<String>(value: 'journal', child: Text('Journal du coach Sport')),
+                          ],
+                        ),
+                      ]
+                    : <Widget>[
                 const SizedBox(width: 4),
-                TextButton.icon(
-                  onPressed: () => _addSportActivityToDay(day),
-                  icon: _uiIcon('add', Icons.add_circle_outline, size: 16),
-                  label: const Text('Ajouter', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700)),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                    minimumSize: const Size(0, 26),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
-                  tooltip: 'Journal du coach Sport',
-                  onPressed: openSportCoachJournal,
-                  icon: _uiIcon('history', Icons.menu_book_rounded, size: 17),
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
-                  tooltip: 'Semaine Sport',
-                  onPressed: openSportWeekOverview,
-                  icon: _uiIcon('sportWeek', Icons.calendar_view_week_outlined, size: 17),
-                ),
-                if (completedHome)
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
-                    tooltip: 'Replier Habitudes Sport',
-                    onPressed: () => setState(() => _homeSportExpanded = false),
-                    icon: _uiIcon('chevronUp', Icons.keyboard_arrow_up_rounded, size: 18, color: _colors.textMuted),
-                  ),
+                    TextButton.icon(
+                      onPressed: () => _addSportActivityToDay(day),
+                      icon: _uiIcon('add', Icons.add_circle_outline, size: 16),
+                      label: const Text('Ajouter', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700)),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                        minimumSize: const Size(0, 26),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
+                      tooltip: 'Journal du coach Sport',
+                      onPressed: openSportCoachJournal,
+                      icon: _uiIcon('history', Icons.menu_book_rounded, size: 17),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
+                      tooltip: 'Semaine Sport',
+                      onPressed: openSportWeekOverview,
+                      icon: _uiIcon('sportWeek', Icons.calendar_view_week_outlined, size: 17),
+                    ),
+                    if (completedHome)
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 27, minHeight: 27),
+                        tooltip: 'Replier Habitudes Sport',
+                        onPressed: () => setState(() => _homeSportExpanded = false),
+                        icon: _uiIcon('chevronUp', Icons.keyboard_arrow_up_rounded, size: 18, color: _colors.textMuted),
+                      ),
+                      ]),
               ],
             ),
           ],

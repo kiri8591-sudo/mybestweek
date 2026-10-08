@@ -164,7 +164,7 @@ extension _DateRangeNavigationPart on _MaBelleSemaineAppState {
       context: _navigatorKey.currentContext!,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (sheetContext) => _HistorySheet(logs: logs, activities: activities, dayNames: dayNames, onOpenGenerationCriteria: openGenerationCriteria),
+      builder: (sheetContext) => _HistorySheet(logs: logs, activities: activities, dayNames: dayNames, onOpenGenerationCriteria: openGenerationCriteria, onEditLog: editHistoryLogMinutes, onAddLog: addHistoryLog),
     );
   }
 

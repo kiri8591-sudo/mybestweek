@@ -1247,12 +1247,23 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
-                    child: Text(
-                      item.title,
-                      maxLines: 2,
-                      softWrap: true,
-                      overflow: TextOverflow.ellipsis,
-                      style: _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          item.title,
+                          maxLines: 2,
+                          softWrap: true,
+                          overflow: TextOverflow.ellipsis,
+                          style: _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null),
+                        ),
+                        if (!_isDateRangePlanItem(item))
+                          Text(
+                            item.done ? '${item.realisedMinutes ?? item.duration} min réalisées' : '${item.duration} min',
+                            style: TextStyle(fontSize: AppType.small, color: _colors.textMuted),
+                          ),
+                      ],
                     ),
                   ),
                   _frozenActivityMarker(activity),
@@ -1278,6 +1289,15 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 _activityIconWidget(_planItemIconValue(item, activities), size: 28),
                 const SizedBox(width: 7),
                 title,
+                if (!_isDateRangePlanItem(item))
+                  IconButton(
+                    tooltip: 'Modifier le temps réalisé',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                    onPressed: () => editItemRealisedMinutes(item),
+                    icon: _uiIcon('duration', Icons.timer_outlined, size: 18, color: _colors.textMuted),
+                  ),
                 PopupMenuButton<String>(
                   tooltip: 'Autres actions',
                   padding: EdgeInsets.zero,
@@ -1368,7 +1388,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                         children: [
                           Text('$totalMinutes min prévues', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppType.bodyL)),
                           const SizedBox(height: 2),
-                          Text('$weekCompleted / ${trackable.length} moment(s) validé(s)', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted)),
+                          Text('$weekCompleted / ${trackable.length} moment(s) validé(s) · ${(weekProgress * 100).round()} %', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted)),
                           const SizedBox(height: 7),
                           ClipRRect(
                             borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -1398,24 +1418,6 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             ),
           ),
         ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: _adaptiveHomeContextCard(
-              todayActionItems: plan
-                  .where((item) => item.day == today && !_isDateRangePlanItem(item))
-                  .toList(),
-              todayDone: plan
-                  .where((item) => item.day == today && !_isDateRangePlanItem(item) && item.done)
-                  .length,
-              todayCompleted: plan.any((item) => item.day == today && !_isDateRangePlanItem(item)) &&
-                  plan.where((item) => item.day == today && !_isDateRangePlanItem(item)).every((item) => item.done),
-              weekProgress: weekProgress,
-              weekCompleted: weekCompleted,
-              weekTotal: trackable.length,
-            ),
-          ),
-        ),
         if (_lastPlanningRegeneratedWeekKey == _currentWeekKey() && _lastPlanningRegeneratedDays.isNotEmpty)
           SliverToBoxAdapter(
             child: Padding(
@@ -1441,7 +1443,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: SizedBox(
-              height: 86,
+              height: 96,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 1),
@@ -1456,7 +1458,8 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     onTap: () => setState(() => _weekSelectedDay = day),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 160),
-                      width: 58,
+                      // 58 px minimum (défilement sur iPhone), puis les 7 jours se partagent la largeur.
+                      width: max(58.0, (MediaQuery.of(context).size.width - 32 - 2 - 6 * 7) / 7),
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
                       decoration: BoxDecoration(
                         color: isSelected
@@ -1535,38 +1538,6 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
               color: _colors.tintStrong,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      selectedDay == today && _weatherText.isNotEmpty
-                          ? (_weatherText.toLowerCase().contains('pluie') || _weatherText.toLowerCase().contains('averse') || _weatherText.toLowerCase().contains('orage') || _weatherText.toLowerCase().contains('neige')
-                              ? Icons.umbrella_outlined
-                              : Icons.self_improvement_outlined)
-                          : Icons.self_improvement_outlined,
-                      color: _colors.accentIcon,
-                      size: 21,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _weeklyPlanningMessage(selectedDay),
-                        style: const TextStyle(fontSize: AppType.body, height: 1.35, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Card(
-              color: _colors.tintStrong,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1600,7 +1571,29 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     ),
                     if (selectedItems.where(_isDateRangePlanItem).isNotEmpty)
                       _multiDaySection(selectedItems.where(_isDateRangePlanItem).toList(), day: selectedDay),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 8),
+                    Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      selectedDay == today && _weatherText.isNotEmpty
+                          ? (_weatherText.toLowerCase().contains('pluie') || _weatherText.toLowerCase().contains('averse') || _weatherText.toLowerCase().contains('orage') || _weatherText.toLowerCase().contains('neige')
+                              ? Icons.umbrella_outlined
+                              : Icons.self_improvement_outlined)
+                          : Icons.self_improvement_outlined,
+                      color: _colors.accentIcon,
+                      size: 21,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _weeklyPlanningMessage(selectedDay),
+                        style: const TextStyle(fontSize: AppType.body, height: 1.35, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                    const SizedBox(height: 8),
                     _dayMood(selectedDay),
                     const SizedBox(height: 9),
                     Row(
@@ -1629,8 +1622,8 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
-                          '↕ Glisser-déposer : une occurrence peut être déplacée dans un créneau qui contient déjà une autre occurrence.',
-                          style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentIcon),
+                          '↕ Glisse un moment pour le déplacer.',
+                          style: _hintStyle(),
                         ),
                       ),
                     ...periods.map((period) {
@@ -1723,14 +1716,11 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
     return CustomScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _showActivitySearch
-                      ? TextField(
+        if (_showActivitySearch)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+              child: TextField(
                           autofocus: true,
                           onChanged: _updateActivitySearch,
                           textInputAction: TextInputAction.search,
@@ -1758,65 +1748,51 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               borderSide: BorderSide(color: _colors.accentSoftBorder),
                             ),
                           ),
-                        )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Mes activités',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    fontFamily: AppFonts.serif,
-                                    fontFamilyFallback: const ['Times New Roman', 'serif'],
-                                    fontWeight: FontWeight.w700,
-                                    color: _colors.textStrong,
-                                    letterSpacing: -0.2,
-                                  ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              _activitySearchQuery.trim().isEmpty
-                                  ? '${activities.length} activités'
-                                  : '${filtered.length} résultat(s) sur ${activities.length}',
-                              style: AppFonts.nunito(fontSize: AppType.bodyL, color: _colors.textMuted),
-                            ),
-                          ],
                         ),
-                ),
-                IconButton(
-                  tooltip: 'Rechercher',
-                  onPressed: _openActivitySearch,
-                  icon: _systemIconWidget('search', fallback: '🔎', size: 21),
-                ),
-                IconButton(
-                  onPressed: openHistory,
-                  tooltip: 'Historique',
-                  icon: _systemIconWidget('history', fallback: '📖', size: 21),
-                ),
-                if (activities.any(_isSportActivity))
-                  IconButton(
-                    onPressed: openSportWeekOverview,
-                    tooltip: 'Semaine Sport',
-                    icon: _systemIconWidget('sportWeek', fallback: '🗓️', size: 21),
-                  ),
-                if (activities.any((a) => !_isSportActivity(a) && !a.isSportProgram))
-                  IconButton(
-                    onPressed: openNonSportWeekOverview,
-                    tooltip: 'Semaine Activités',
-                    icon: _systemIconWidget('calendar', fallback: '🗓️', size: 21),
-                  ),
-                IconButton(
-                  tooltip: 'Ajouter une activité',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () => addOrEditActivity(),
-                  icon: _systemIconWidget('add', fallback: '➕', size: 22),
-                ),
-                IconButton(
-                  tooltip: 'Système · personnaliser',
-                  onPressed: _openSystemMenu,
-                  icon: _systemIconWidget('system', fallback: '⚙️', size: 21),
-                ),
-              ],
             ),
+          )
+        else
+          SliverToBoxAdapter(
+            child: pageTitle(
+              'Mes activités',
+              _activitySearchQuery.trim().isEmpty ? '${activities.length} activités' : '${filtered.length} résultat(s) sur ${activities.length}',
+            ),
+          ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 8, 4),
+            child: Row(children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: [
+                    ActionChip(
+                      avatar: _uiIcon('history', Icons.history_outlined, size: 17),
+                      label: const Text('Historique'),
+                      onPressed: openHistory,
+                    ),
+                    if (activities.any(_isSportActivity)) ...[
+                      const SizedBox(width: 6),
+                      ActionChip(
+                        avatar: _uiIcon('sportWeek', Icons.view_week_outlined, size: 17),
+                        label: const Text('Semaine Sport'),
+                        onPressed: openSportWeekOverview,
+                      ),
+                    ],
+                    if (activities.any((a) => !_isSportActivity(a) && !a.isSportProgram)) ...[
+                      const SizedBox(width: 6),
+                      ActionChip(
+                        avatar: _uiIcon('calendar', Icons.calendar_month_outlined, size: 17),
+                        label: const Text('Semaine Activités'),
+                        onPressed: openNonSportWeekOverview,
+                      ),
+                    ],
+                  ]),
+                ),
+              ),
+              IconButton(tooltip: 'Rechercher', onPressed: _openActivitySearch, icon: _uiIcon('search', Icons.search_rounded, size: 21)),
+              IconButton(tooltip: 'Ajouter une activité', onPressed: () => addOrEditActivity(), icon: _uiIcon('add', Icons.add_circle_outline, size: 24, color: _colors.accentText)),
+            ]),
           ),
         ),
         SliverToBoxAdapter(
@@ -1847,21 +1823,12 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
               final sportWaiting = a.category == 'Sport' && !a.isSportProgram && !a.activeInSportRotation;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Card(
-                  clipBehavior: Clip.antiAlias,
-                  color: this._pastelFor(a.category),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.xl),
-                    side: a.category == 'Sport'
-                        ? BorderSide(color: _colors.borderTint, width: 1)
-                        : BorderSide(color: _colors.border, width: 0.45),
-                  ),
-                  child: InkWell(
-                    onTap: () => addOrEditActivity(original: a),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
-                      child: Column(
+                child: _AppCard(
+                  fill: this._pastelFor(a.category),
+                  borderColor: a.category == 'Sport' ? _colors.borderTint : _colors.border,
+                  onTap: () => addOrEditActivity(original: a),
+                  padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+                  child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Row(
@@ -1902,23 +1869,14 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                         ),
                                       ),
                                     if (frozen || sportWaiting)
-                                      Container(
-                                        margin: const EdgeInsets.only(left: 6),
-                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: _colors.surfaceSunken,
-                                          borderRadius: BorderRadius.circular(AppRadius.s),
-                                        ),
-                                        child: Text(
-                                          frozen ? 'GELÉE' : 'PLUS TARD',
-                                          style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.danger),
-                                        ),
+                                      Padding(
+                                        padding: const EdgeInsets.only(left: 6),
+                                        child: _Pill(frozen ? 'Gelée' : 'Plus tard', background: _colors.surfaceSunken, foreground: _colors.danger),
                                       ),
                                   ],
                                 ),
                                 const SizedBox(height: 3),
-                                if (a.isSportProgram || a.isDateRange || a.category == 'Sport')
-                                  Text(
+                                Text(
                                     a.isSportProgram
                                         ? 'Programme Sport · ${a.sportDailyDurations.values.where((v) => v > 0).fold<int>(0, (s, v) => s + v)} min/sem.'
                                         : a.isDateRange
@@ -1956,8 +1914,6 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                             _nonSportWeeklyIndicator(a),
                         ],
                       ),
-                    ),
-                  ),
                 ),
               );
             },

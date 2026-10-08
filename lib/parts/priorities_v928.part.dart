@@ -436,51 +436,38 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
     final rewardLabel = _priorityBonusTotal > 0 && _priorityBonusTotal % 5 == 0
         ? 'Palier atteint · prochaine récompense dans 5 bonus'
         : 'Encore $remainingForReward bonus pour la prochaine récompense';
+    final message = selected.isEmpty
+        ? 'Choisis jusqu’à 5 activités importantes pour donner un petit fil conducteur à la journée.'
+        : _priorityBonusWonToday
+            ? 'Bravo : toutes tes priorités ont été réalisées aujourd’hui. Le bonus est gagné.'
+            : '$doneCount sur ${selected.length} réalisées aujourd’hui${allDone ? ' · bonus prêt' : ''}.';
 
-    return softCard(
-      color: allDone ? _colors.tintStrong : _colors.peachBg,
-      borderColor: allDone ? _colors.borderTint : _colors.goldBorder,
-      radius: 25,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+    return _AppCard(
+      tone: allDone ? _CardTone.tint : _CardTone.soft,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.l)),
-            alignment: Alignment.center,
-            child: Text(allDone ? '🎉' : '⭐', style: const TextStyle(fontSize: AppType.hero)),
-          ),
-          const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Mes priorités du jour', style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
-            const SizedBox(height: 3),
-            Text(
-              selected.isEmpty
-                  ? 'Choisis jusqu’à 5 activités importantes pour donner un petit fil conducteur à la journée.'
-                  : _priorityBonusWonToday
-                      ? 'Bravo : toutes tes priorités ont été réalisées aujourd’hui. Le bonus est gagné. ⭐'
-                      : '$doneCount/${selected.length} réalisées aujourd’hui${allDone ? ' · bonus prêt' : ''}.',
-              style: TextStyle(fontSize: AppType.label, height: 1.32, color: _colors.accentIcon, fontWeight: FontWeight.w700),
-            ),
-          ])),
-        ]),
+        _SectionHeader(
+          iconKey: 'priority',
+          fallbackIcon: Icons.star_rounded,
+          title: 'Mes priorités du jour',
+          trailing: allDone ? const _Pill('Bonus prêt') : null,
+        ),
+        const SizedBox(height: AppSpace.m),
+        if (selected.isNotEmpty)
+          Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text('$doneCount/${selected.length}', style: TextStyle(fontFamily: AppFonts.serif, fontSize: AppType.hero, fontWeight: FontWeight.w700, color: _colors.textStrong, height: 1)),
+            const SizedBox(width: 10),
+            Expanded(child: Padding(padding: const EdgeInsets.only(bottom: 2), child: Text(message, style: TextStyle(fontSize: AppType.body, height: 1.3, fontWeight: FontWeight.w700, color: _colors.textMuted)))),
+          ])
+        else
+          Text(message, style: TextStyle(fontSize: AppType.body, height: 1.35, color: _colors.textMuted)),
         if (selected.isNotEmpty) ...[
-          const SizedBox(height: 11),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 7,
-              backgroundColor: _colors.border,
-              valueColor: AlwaysStoppedAnimation<Color>(allDone ? _colors.accentFill : _colors.goldBorder),
-            ),
-          ),
+          const SizedBox(height: AppSpace.m),
+          _MeterBar(value: progress, height: 10, color: allDone ? _colors.accentFill : _colors.goldBorder),
         ],
-        const SizedBox(height: 9),
-        Row(children: [
-          Expanded(child: Text('⭐ $_priorityBonusTotal bonus cumulés', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentIcon))),
-          Text('🎁 $rewardLabel', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.danger)),
+        const SizedBox(height: AppSpace.m),
+        Wrap(spacing: AppSpace.s, runSpacing: 6, children: [
+          _Pill('$_priorityBonusTotal bonus cumulés'),
+          _Pill(rewardLabel, background: _colors.peachBg, foreground: _colors.goldText),
         ]),
       ]),
     );
@@ -490,19 +477,11 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
     final done = _priorityActivityDoneToday(activity);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.xl),
+      child: _AppCard(
         onTap: () => _togglePriorityToday(activity),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-          decoration: BoxDecoration(
-            color: done ? _colors.tintStrong : _colors.card,
-            borderRadius: BorderRadius.circular(AppRadius.xl),
-            border: Border.all(color: done ? _colors.borderTint : _colors.border),
-            boxShadow: [BoxShadow(color: _colors.shadowSoft, blurRadius: 7, offset: Offset(0, 2))],
-          ),
-          child: Row(children: [
+        tone: done ? _CardTone.tint : _CardTone.plain,
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+        child: Row(children: [
             Container(
               width: 46,
               height: 46,
@@ -528,7 +507,6 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
               child: Icon(done ? Icons.check_rounded : Icons.circle_outlined, size: 25, color: done ? _colors.accentIcon : _colors.textFaint),
             ),
           ]),
-        ),
       ),
     );
   }
@@ -536,11 +514,8 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
   Widget _frozenInfoCard() {
     final frozen = activities.where((a) => a.isFrozen).toList();
     if (frozen.isEmpty) return const SizedBox.shrink();
-    return softCard(
-      color: _colors.surfaceSunken,
-      borderColor: _colors.borderStrong,
-      radius: 20,
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+    return _AppCard(
+      tone: _CardTone.soft,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           _activityIconWidget('pack://water', size: 24),
@@ -563,23 +538,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-          sliver: SliverToBoxAdapter(
-            child: Row(children: [
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Priorités', style: TextStyle(fontSize: AppType.display, fontWeight: FontWeight.w800, color: _colors.textStrong)),
-                const SizedBox(height: 2),
-                Text(dayNames[today], style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textMuted)),
-              ])),
-              IconButton(
-                tooltip: 'Choisir mes priorités',
-                onPressed: _editDailyPriorities,
-                icon: _uiIcon('insights', Icons.tune_rounded, size: 19),
-              ),
-            ]),
-          ),
-        ),
+        SliverToBoxAdapter(child: pageTitle('Priorités', '${dayNames[today]} · ce qui compte le plus aujourd’hui.')),
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           sliver: SliverToBoxAdapter(child: _priorityHeroCard(selected)),
@@ -588,7 +547,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
           padding: const EdgeInsets.fromLTRB(16, 7, 16, 4),
           sliver: SliverToBoxAdapter(
             child: Row(children: [
-              Expanded(child: Text('Ton petit défi', style: TextStyle(fontSize: AppType.title, fontWeight: FontWeight.w800, color: _colors.textStrong))),
+              Expanded(child: Text('Ton petit défi', style: _sectionTitleStyle(context))),
               TextButton.icon(onPressed: _editDailyPriorities, icon: _uiIcon('edit', Icons.edit_rounded, size: 15), label: const Text('Choisir')),
             ]),
           ),
@@ -597,13 +556,14 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
             sliver: SliverToBoxAdapter(
-              child: softCard(
-                color: _colors.tintStrong,
-                borderColor: _colors.borderTint,
-                radius: 20,
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+              child: _AppCard(
+                tone: _CardTone.tint,
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('🌱 Commence par 1 à 5 activités', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.accentIcon)),
+                  Row(children: [
+                    _activityIconWidget('pack://sprout', size: 22),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('Commence par 1 à 5 activités', style: _sectionTitleStyle(context))),
+                  ]),
                   const SizedBox(height: 4),
                   Text('Ici, tu ne gères pas toute la semaine : tu choisis simplement ce qui compte le plus aujourd’hui.', style: TextStyle(fontSize: AppType.small, height: 1.3, color: _colors.accentIcon)),
                   const SizedBox(height: 9),
