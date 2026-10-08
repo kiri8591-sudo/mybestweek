@@ -100,18 +100,30 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
         logs.removeAt(index);
         final planId = log.planItemId;
         if (planId != null) {
-          for (final p in plan) {
-            if (p.id == planId && p.done) {
-              p.done = false;
-              p.realisedMinutes = null;
-              p.feeling = null;
+          // Une réalisation ajoutée depuis l’Historique peut avoir créé une
+          // occurrence dédiée dans le jour (id "history_..."). À 0 min,
+          // cette occurrence ne doit pas rester affichée comme « non réalisée » :
+          // elle doit disparaître complètement du planning du jour.
+          final linked = plan.where((p) => p.id == planId).toList();
+          if (linked.isNotEmpty) {
+            final item = linked.first;
+            final wasAddedFromHistory = item.id.startsWith('history_') &&
+                item.userAdded && item.manualPlacement;
+            if (wasAddedFromHistory) {
+              plan.removeWhere((p) => p.id == planId);
+            } else if (item.done) {
+              // Pour une occurrence planifiée existante, on conserve le
+              // créneau mais on annule uniquement sa réalisation.
+              item.done = false;
+              item.realisedMinutes = null;
+              item.feeling = null;
             }
           }
         }
       });
       _queueLocalStatePersist();
       _refreshGoalsAfterRealization();
-      _showFeedback('« ${log.title} » supprimée de l’historique.');
+      _showFeedback('« ${log.title} » supprimée de l’historique et du jour.');
       return;
     }
 
@@ -184,24 +196,72 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
     final minutes = await _askMinutes(name: picked.name, planned: picked.duration);
     if (minutes == null || !mounted) return;
     final actual = max(1, minutes);
+    final selectedDay = date.weekday - 1;
+    String? linkedPlanItemId;
+
     setState(() {
+      // L'ajout depuis l'Historique doit aussi mettre à jour le jour choisi.
+      // Le planning est hebdomadaire : on rattache donc la réalisation au
+      // créneau correspondant (jour de semaine + activité).
+      final candidatesForDay = plan
+          .where((item) => item.day == selectedDay && item.activityId == picked.id)
+          .toList();
+
+      PlanItem? item;
+      for (final candidate in candidatesForDay) {
+        if (!candidate.done) {
+          item = candidate;
+          break;
+        }
+      }
+      item ??= candidatesForDay.isNotEmpty ? candidatesForDay.first : null;
+
+      if (item == null) {
+        item = PlanItem(
+          id: 'history_${picked.id}_${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}_${DateTime.now().microsecondsSinceEpoch}',
+          day: selectedDay,
+          period: picked.period,
+          title: picked.name,
+          duration: picked.duration,
+          activityId: picked.id,
+          userAdded: true,
+          manualPlacement: true,
+          done: true,
+          realisedMinutes: actual,
+          feeling: 'Bien',
+        );
+        plan.add(item);
+      } else {
+        item.done = true;
+        item.realisedMinutes = actual;
+        item.feeling = 'Bien';
+      }
+      linkedPlanItemId = item.id;
+
+      // Évite une double réalisation pour le même item : l'entrée ajoutée
+      // depuis l'Historique devient la trace de référence.
+      logs.removeWhere((log) => log.planItemId == linkedPlanItemId);
       logs.add(ActivityLog(
         date: DateTime(date.year, date.month, date.day, 12),
         title: picked.name,
         emoji: picked.emoji,
         category: picked.category,
-        period: picked.period,
-        day: date.weekday - 1,
-        plannedMinutes: picked.duration,
+        period: item.period,
+        day: selectedDay,
+        plannedMinutes: item.duration,
         realisedMinutes: actual,
         feeling: 'Bien',
-        unplanned: true,
-        planItemId: null,
+        unplanned: false,
+        planItemId: linkedPlanItemId,
         activityId: picked.id,
       ));
+      _sortPlan();
     });
+    if (date.year == now.year && date.month == now.month && date.day == now.day) {
+      _upsertTodayDailySummary(persist: false);
+    }
     _queueLocalStatePersist();
     _refreshGoalsAfterRealization();
-    _showFeedback('✓ « ${picked.name} » ajouté à l’historique : $actual min.');
+    _showFeedback('✓ « ${picked.name} » ajouté au ${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} et marqué réalisé : $actual min.');
   }
 }
