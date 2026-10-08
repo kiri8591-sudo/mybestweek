@@ -134,14 +134,14 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
                     ),
                     onChanged: (_) { if (mounted) setState(() {}); },
                     onSubmitted: (_) {
-                      if (current != null && current > 0) _close(current);
+                      if (current != null && current >= 0) _close(current);
                     },
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
                   tooltip: 'Valider cette durée',
-                  onPressed: (_closing || current == null || current < 1) ? null : () => _close(current),
+                  onPressed: (_closing || current == null || current < 0) ? null : () => _close(current),
                   icon: _uiIcon('confirm', Icons.check_circle_rounded, size: 23, color: _colors.accentIcon),
                 ),
               ],

@@ -91,9 +91,31 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
       current: log.realisedMinutes > 0 ? log.realisedMinutes : null,
     );
     if (minutes == null || !mounted) return;
-    final actual = max(1, minutes);
     final index = logs.indexOf(log);
     if (index < 0) return;
+
+    // Dans l’Historique, 0 min signifie explicitement : supprimer cette réalisation.
+    if (minutes == 0) {
+      setState(() {
+        logs.removeAt(index);
+        final planId = log.planItemId;
+        if (planId != null) {
+          for (final p in plan) {
+            if (p.id == planId && p.done) {
+              p.done = false;
+              p.realisedMinutes = null;
+              p.feeling = null;
+            }
+          }
+        }
+      });
+      _queueLocalStatePersist();
+      _refreshGoalsAfterRealization();
+      _showFeedback('« ${log.title} » supprimée de l’historique.');
+      return;
+    }
+
+    final actual = max(1, minutes);
     setState(() {
       logs[index] = _logWithMinutes(log, actual);
       final planId = log.planItemId;
@@ -111,8 +133,13 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
   /// Historique : ajouter après coup une réalisation (activité, jour, durée).
   Future<void> addHistoryLog() async {
     if (!mounted) return;
-    final candidates = activities.where((a) => !_isSportActivity(a)).toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    // L’ajout depuis l’Historique doit proposer toutes les activités, y compris Sport.
+    final candidates = activities.toList()
+      ..sort((a, b) {
+        final typeCompare = (_isSportActivity(a) ? 0 : 1).compareTo(_isSportActivity(b) ? 0 : 1);
+        if (typeCompare != 0) return typeCompare;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
     if (candidates.isEmpty) {
       _showFeedback('Aucune activité disponible.');
       return;
@@ -136,7 +163,7 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
                 ListTile(
                   leading: _activityIconWidget(a.emoji, size: 26),
                   title: Text(a.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text('${a.duration} min prévues'),
+                  subtitle: Text('${a.duration} min prévues · ${_isSportActivity(a) ? 'Sport' : 'Activité'}'),
                   onTap: () => Navigator.pop(sheetContext, a),
                 ),
             ],
