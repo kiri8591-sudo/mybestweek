@@ -50,36 +50,10 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  _activityIconWidget(activity.emoji, size: 28),
-                  const SizedBox(width: 9),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Historique de l’activité',
-                          style: TextStyle(
-                            fontSize: AppType.titleL,
-                            fontWeight: FontWeight.w800,
-                            color: _colors.textStrong,
-                          ),
-                        ),
-                        const SizedBox(height: 1),
-                        Text(
-                          activity.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: AppType.label,
-                            color: _colors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              _SheetHeader(
+                leading: _activityIconWidget(activity.emoji, size: 26),
+                title: 'Historique de l’activité',
+                subtitle: activity.name,
               ),
               const SizedBox(height: 6),
               Text(
@@ -106,9 +80,24 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                         _uiIcon('missionDone', Icons.check_circle_outline_rounded, size: 17, color: _colors.accentIcon),
                         const SizedBox(width: 7),
                         Expanded(
-                          child: Text(
-                            durationLabel(log.realisedMinutes),
-                            style: TextStyle(fontSize: AppType.label, color: _colors.textMuted),
+                          child: InkWell(
+                            onTap: () async {
+                              Navigator.of(context).pop();
+                              await editHistoryLogMinutes(log);
+                              if (mounted) _evo8OpenActivityMiniHistory(activity);
+                            },
+                            borderRadius: BorderRadius.circular(AppRadius.s),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                Text(
+                                  durationLabel(log.realisedMinutes),
+                                  style: TextStyle(fontSize: AppType.label, color: _colors.textMuted),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(Icons.edit_outlined, size: 14, color: _colors.textFaint),
+                              ]),
+                            ),
                           ),
                         ),
                         if (feelingEmoji(log.feeling).isNotEmpty)

@@ -5,7 +5,7 @@
 part of '../main.dart';
 
 extension _TimeEditingPart on _MaBelleSemaineAppState {
-  Future<int?> _askMinutes({required String name, required int planned, int? current}) {
+  Future<int?> _askMinutes({required String name, required int planned, int? current, bool allowDelete = false}) {
     return showModalBottomSheet<int>(
       context: _navigatorKey.currentContext!,
       isScrollControlled: true,
@@ -14,6 +14,7 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
         activityName: name,
         plannedMinutes: max(1, planned),
         currentMinutes: current,
+        allowDelete: allowDelete,
       ),
     );
   }
@@ -82,76 +83,200 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
     _showFeedback('✓ Temps réalisé : $actual min.');
   }
 
-  /// Historique : corriger la durée d'une réalisation.
+  /// Saisir ou corriger le temps vécu d'une activité (Sport ou non) un jour donné.
+  Future<void> editActivityMinutesOnDate(Activity activity, DateTime date) async {
+    if (!mounted) return;
+    final day = date.weekday - 1;
+    final isSport = _isSportActivity(activity) || activity.isSportProgram;
+    final currentWeek = _sameDateOnlyNonSport(date, _addDays(_startOfCurrentWeek(), day));
+    if (currentWeek) {
+      final items = plan.where((p) => p.activityId == activity.id && p.day == day).toList();
+      if (items.isNotEmpty) {
+        if (isSport) {
+          await _editSportRealisedMinutes(items.first, activity);
+        } else {
+          await editItemRealisedMinutes(items.first);
+        }
+        return;
+      }
+    }
+    final index = logs.indexWhere((log) =>
+        _sameDateOnlyNonSport(log.date, date) &&
+        (log.activityId == activity.id || (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase())));
+    if (index >= 0) {
+      await editHistoryLogMinutes(logs[index]);
+      return;
+    }
+    final minutes = await _askMinutes(name: activity.name, planned: activity.duration);
+    if (minutes == null || !mounted) return;
+    final actual = max(1, minutes);
+    _recordRealisationOnDate(activity, date, actual);
+    _showFeedback('✓ ${activity.name} : $actual min enregistrées.');
+  }
+
+  /// Priorités, accueil : temps du jour d'une activité (crée le moment si besoin).
+  Future<void> editActivityMinutesToday(Activity activity) async {
+    if (!mounted) return;
+    var items = plan.where((p) => p.day == today && p.activityId == activity.id).toList();
+    if (items.isEmpty) {
+      _ensureDailyPrioritiesInTodayPlan();
+      items = plan.where((p) => p.day == today && p.activityId == activity.id).toList();
+    }
+    final now = DateTime.now();
+    if (items.isEmpty) {
+      await editActivityMinutesOnDate(activity, DateTime(now.year, now.month, now.day));
+      return;
+    }
+    if (_isSportActivity(activity) || activity.isSportProgram) {
+      await _editSportRealisedMinutes(items.first, activity);
+    } else {
+      await editItemRealisedMinutes(items.first);
+    }
+  }
+
+  /// Historique : corriger la durée d'une réalisation ; 0 minute la supprime.
   Future<void> editHistoryLogMinutes(ActivityLog log) async {
     if (!mounted || logs.indexOf(log) < 0) return;
     final minutes = await _askMinutes(
       name: log.title,
       planned: log.plannedMinutes > 0 ? log.plannedMinutes : max(1, log.realisedMinutes),
-      current: log.realisedMinutes > 0 ? log.realisedMinutes : null,
+      current: log.realisedMinutes,
+      allowDelete: true,
     );
     if (minutes == null || !mounted) return;
-    final index = logs.indexOf(log);
-    if (index < 0) return;
-
-    // Dans l’Historique, 0 min signifie explicitement : supprimer cette réalisation.
-    if (minutes == 0) {
-      setState(() {
-        logs.removeAt(index);
-        final planId = log.planItemId;
-        if (planId != null) {
-          // Une réalisation ajoutée depuis l’Historique peut avoir créé une
-          // occurrence dédiée dans le jour (id "history_..."). À 0 min,
-          // cette occurrence ne doit pas rester affichée comme « non réalisée » :
-          // elle doit disparaître complètement du planning du jour.
-          final linked = plan.where((p) => p.id == planId).toList();
-          if (linked.isNotEmpty) {
-            final item = linked.first;
-            final wasAddedFromHistory = item.id.startsWith('history_') &&
-                item.userAdded && item.manualPlacement;
-            if (wasAddedFromHistory) {
-              plan.removeWhere((p) => p.id == planId);
-            } else if (item.done) {
-              // Pour une occurrence planifiée existante, on conserve le
-              // créneau mais on annule uniquement sa réalisation.
-              item.done = false;
-              item.realisedMinutes = null;
-              item.feeling = null;
-            }
-          }
-        }
-      });
-      _queueLocalStatePersist();
-      _refreshGoalsAfterRealization();
-      _showFeedback('« ${log.title} » supprimée de l’historique et du jour.');
+    if (minutes <= 0) {
+      _deleteHistoryLog(log);
       return;
     }
-
-    final actual = max(1, minutes);
+    final index = logs.indexOf(log);
+    if (index < 0) return;
     setState(() {
-      logs[index] = _logWithMinutes(log, actual);
+      logs[index] = _logWithMinutes(log, minutes);
       final planId = log.planItemId;
       if (planId != null) {
         for (final p in plan) {
-          if (p.id == planId && p.done) p.realisedMinutes = actual;
+          if (p.id == planId && p.done) p.realisedMinutes = minutes;
         }
       }
     });
     _queueLocalStatePersist();
     _refreshGoalsAfterRealization();
-    _showFeedback('✓ Temps mis à jour : $actual min.');
+    _showFeedback('✓ Temps mis à jour : $minutes min.');
+  }
+
+  /// Supprime une réalisation de l'historique et remet à jour le moment du planning lié.
+  void _deleteHistoryLog(ActivityLog log) {
+    _prepareUndoSnapshot();
+    final day = log.date.weekday - 1;
+    final inCurrentWeek = _sameDateOnlyNonSport(log.date, _addDays(_startOfCurrentWeek(), day));
+    setState(() {
+      logs.remove(log);
+      PlanItem? linked;
+      final planId = log.planItemId;
+      if (planId != null) {
+        for (final p in plan) {
+          if (p.id == planId) linked = p;
+        }
+      }
+      if (linked == null && inCurrentWeek && log.activityId != null) {
+        // Anciennes validations sans lien : on retrouve le moment validé du même jour.
+        for (final p in plan) {
+          if (p.done && p.activityId == log.activityId && p.day == day && !logs.any((l) => l.planItemId == p.id)) {
+            linked = p;
+            break;
+          }
+        }
+      }
+      final target = linked;
+      if (target != null) {
+        if (target.id.startsWith('history_') || target.id.startsWith('extra_')) {
+          plan.removeWhere((p) => p.id == target.id);
+        } else {
+          target.done = false;
+          target.realisedMinutes = null;
+          target.feeling = null;
+        }
+        _sortPlan();
+      }
+      if (inCurrentWeek && day == today) dailySummaries.removeWhere((summary) => summary.dateKey == _todayDateKey());
+    });
+    _queueLocalStatePersist();
+    _refreshGoalsAfterRealization();
+    _showFeedback('🗑️ Réalisation supprimée de l’historique : « ${log.title} ».');
+  }
+
+  /// Enregistre une réalisation à une date donnée et met à jour le planning de ce jour
+  /// (semaine en cours : le moment prévu est validé, ou un moment validé est créé).
+  void _recordRealisationOnDate(Activity activity, DateTime date, int actual) {
+    final day = date.weekday - 1;
+    final currentWeek = _sameDateOnlyNonSport(date, _addDays(_startOfCurrentWeek(), day));
+    _prepareUndoSnapshot();
+    setState(() {
+      String? planItemId;
+      var planned = 0;
+      if (currentWeek) {
+        PlanItem? target;
+        for (final p in plan) {
+          if (p.activityId == activity.id && p.day == day && !p.done && !_isDateRangePlanItem(p)) {
+            target = p;
+            break;
+          }
+        }
+        if (target != null) {
+          target.done = true;
+          target.realisedMinutes = actual;
+          target.feeling = 'Bien';
+          planItemId = target.id;
+          planned = target.duration;
+        } else {
+          final item = PlanItem(
+            id: 'history_${activity.id}_${DateTime.now().microsecondsSinceEpoch}',
+            day: day,
+            period: _generationPeriod(activity, day),
+            timeLabel: null,
+            title: activity.name,
+            details: 'Réalisation ajoutée depuis l’historique.',
+            activityId: activity.id,
+            duration: max(1, activity.duration),
+            optional: false,
+            userAdded: true,
+            fixedInWeeklyTemplate: false,
+            manualPlacement: true,
+            done: true,
+            realisedMinutes: actual,
+            feeling: 'Bien',
+          );
+          plan.add(item);
+          planItemId = item.id;
+          _sortPlan();
+        }
+      }
+      logs.add(ActivityLog(
+        date: DateTime(date.year, date.month, date.day, 12),
+        title: activity.name,
+        emoji: activity.emoji,
+        category: activity.category,
+        period: _periodForActivity(activity, day),
+        day: day,
+        plannedMinutes: planned,
+        realisedMinutes: actual,
+        feeling: 'Bien',
+        unplanned: planned == 0,
+        planItemId: planItemId,
+        activityId: activity.id,
+      ));
+    });
+    if (currentWeek && day == today && _todayIsCompleted()) _upsertTodayDailySummary(persist: false);
+    _queueLocalStatePersist();
+    _refreshGoalsAfterRealization();
+    _maybeAwardDailyPriorityBonus();
   }
 
   /// Historique : ajouter après coup une réalisation (activité, jour, durée).
   Future<void> addHistoryLog() async {
     if (!mounted) return;
-    // L’ajout depuis l’Historique doit proposer toutes les activités, y compris Sport.
-    final candidates = activities.toList()
-      ..sort((a, b) {
-        final typeCompare = (_isSportActivity(a) ? 0 : 1).compareTo(_isSportActivity(b) ? 0 : 1);
-        if (typeCompare != 0) return typeCompare;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
+    final candidates = activities.where((a) => !a.isSportProgram && !a.isDateRange).toList()
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     if (candidates.isEmpty) {
       _showFeedback('Aucune activité disponible.');
       return;
@@ -168,16 +293,30 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
             padding: const EdgeInsets.fromLTRB(AppSpace.l, 0, AppSpace.l, AppSpace.l),
             children: [
               Padding(
-                padding: const EdgeInsets.only(bottom: AppSpace.s),
-                child: Text('Quelle activité ?', style: _sheetTitleStyle(sheetContext)),
-              ),
-              for (final a in candidates)
-                ListTile(
-                  leading: _activityIconWidget(a.emoji, size: 26),
-                  title: Text(a.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text('${a.duration} min prévues · ${_isSportActivity(a) ? 'Sport' : 'Activité'}'),
-                  onTap: () => Navigator.pop(sheetContext, a),
+                padding: const EdgeInsets.only(bottom: AppSpace.m),
+                child: _SheetHeader(
+                  leading: _uiIcon('add', Icons.add_circle_outline, size: 24, color: _colors.accentIcon),
+                  title: 'Quelle activité ?',
+                  subtitle: '${candidates.length} activités, Sport compris.',
                 ),
+              ),
+              for (final group in [
+                ('Sport', candidates.where((a) => _isSportActivity(a)).toList()),
+                ('Autres activités', candidates.where((a) => !_isSportActivity(a)).toList()),
+              ])
+                if (group.$2.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, bottom: 6),
+                    child: Text('${group.$1} · ${group.$2.length}', style: _sectionTitleStyle(sheetContext)),
+                  ),
+                  for (final a in group.$2)
+                    _SheetPickRow(
+                      leading: _activityIconWidget(a.emoji, size: 24),
+                      title: a.name,
+                      subtitle: '${a.category} · ${a.duration} min prévues${a.isFrozen ? ' · gelée' : ''}',
+                      onTap: () => Navigator.pop(sheetContext, a),
+                    ),
+                ],
             ],
           ),
         ),
@@ -196,72 +335,7 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
     final minutes = await _askMinutes(name: picked.name, planned: picked.duration);
     if (minutes == null || !mounted) return;
     final actual = max(1, minutes);
-    final selectedDay = date.weekday - 1;
-    String? linkedPlanItemId;
-
-    setState(() {
-      // L'ajout depuis l'Historique doit aussi mettre à jour le jour choisi.
-      // Le planning est hebdomadaire : on rattache donc la réalisation au
-      // créneau correspondant (jour de semaine + activité).
-      final candidatesForDay = plan
-          .where((item) => item.day == selectedDay && item.activityId == picked.id)
-          .toList();
-
-      PlanItem? item;
-      for (final candidate in candidatesForDay) {
-        if (!candidate.done) {
-          item = candidate;
-          break;
-        }
-      }
-      item ??= candidatesForDay.isNotEmpty ? candidatesForDay.first : null;
-
-      if (item == null) {
-        item = PlanItem(
-          id: 'history_${picked.id}_${date.year}${date.month.toString().padLeft(2, '0')}${date.day.toString().padLeft(2, '0')}_${DateTime.now().microsecondsSinceEpoch}',
-          day: selectedDay,
-          period: picked.period,
-          title: picked.name,
-          duration: picked.duration,
-          activityId: picked.id,
-          userAdded: true,
-          manualPlacement: true,
-          done: true,
-          realisedMinutes: actual,
-          feeling: 'Bien',
-        );
-        plan.add(item);
-      } else {
-        item.done = true;
-        item.realisedMinutes = actual;
-        item.feeling = 'Bien';
-      }
-      linkedPlanItemId = item.id;
-
-      // Évite une double réalisation pour le même item : l'entrée ajoutée
-      // depuis l'Historique devient la trace de référence.
-      logs.removeWhere((log) => log.planItemId == linkedPlanItemId);
-      logs.add(ActivityLog(
-        date: DateTime(date.year, date.month, date.day, 12),
-        title: picked.name,
-        emoji: picked.emoji,
-        category: picked.category,
-        period: item.period,
-        day: selectedDay,
-        plannedMinutes: item.duration,
-        realisedMinutes: actual,
-        feeling: 'Bien',
-        unplanned: false,
-        planItemId: linkedPlanItemId,
-        activityId: picked.id,
-      ));
-      _sortPlan();
-    });
-    if (date.year == now.year && date.month == now.month && date.day == now.day) {
-      _upsertTodayDailySummary(persist: false);
-    }
-    _queueLocalStatePersist();
-    _refreshGoalsAfterRealization();
-    _showFeedback('✓ « ${picked.name} » ajouté au ${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} et marqué réalisé : $actual min.');
+    _recordRealisationOnDate(picked, date, actual);
+    _showFeedback('✓ « ${picked.name} » ajouté à l’historique : $actual min.');
   }
 }

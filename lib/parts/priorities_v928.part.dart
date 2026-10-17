@@ -246,10 +246,12 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Mes priorités du jour', style: TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800, color: _colors.textStrong)),
-                  const SizedBox(height: 4),
-                  Text('${working.length}/5 choisies · sélectionne les activités qui comptent particulièrement pour toi.', style: TextStyle(fontSize: AppType.label, color: _colors.textMuted, height: 1.3)),
-                  const SizedBox(height: 12),
+                  _SheetHeader(
+                    leading: _uiIcon('priority', Icons.star_rounded, size: 24, color: _colors.accentIcon),
+                    title: 'Mes priorités du jour',
+                    subtitle: '${working.length}/5 choisies · sélectionne ce qui compte pour toi aujourd’hui.',
+                  ),
+                  const SizedBox(height: AppSpace.m),
                   SizedBox(
                     height: min(MediaQuery.of(context).size.height * .58, 520.0),
                     child: ListView.builder(
@@ -257,44 +259,25 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                       itemBuilder: (_, index) {
                         final activity = candidates[index];
                         final selected = working.contains(activity.id);
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 7),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(AppRadius.l),
-                            onTap: () {
-                              if (!selected && working.length >= 5) {
-                                _showFeedback('Maximum 5 priorités pour garder la journée lisible.');
-                                return;
+                        return _SheetPickRow(
+                          leading: _activityIconWidget(activity.emoji, size: 24),
+                          title: activity.name,
+                          subtitle: '${activity.category} · ${activity.duration} min',
+                          selected: selected,
+                          multi: true,
+                          onTap: () {
+                            if (!selected && working.length >= 5) {
+                              _showFeedback('Maximum 5 priorités pour garder la journée lisible.');
+                              return;
+                            }
+                            setSheetState(() {
+                              if (selected) {
+                                working.remove(activity.id);
+                              } else {
+                                working.add(activity.id);
                               }
-                              setSheetState(() {
-                                if (selected) {
-                                  working.remove(activity.id);
-                                } else {
-                                  working.add(activity.id);
-                                }
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-                              decoration: BoxDecoration(
-                                color: selected ? _colors.tintStrong : _colors.surfaceSoft,
-                                borderRadius: BorderRadius.circular(AppRadius.l),
-                                border: Border.all(color: selected ? _colors.borderTint : _colors.border),
-                              ),
-                              child: Row(children: [
-                                Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.m)),
-                                  alignment: Alignment.center,
-                                  child: _activityIconWidget(activity.emoji, size: 24),
-                                ),
-                                const SizedBox(width: 9),
-                                Expanded(child: Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textStrong))),
-                                Icon(selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: selected ? _colors.accentIcon : _colors.textFaint, size: 22),
-                              ]),
-                            ),
-                          ),
+                            });
+                          },
                         );
                       },
                     ),
@@ -383,6 +366,11 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
               'J’ai pris en compte le gel de « ${activity.name} » : $removedToday occurrence(s) prévue(s) aujourd’hui ont été retirée(s), sans remplacement automatique.';
         }
       }
+      if (!freezing && !_isSportActivity(activity) && !activity.isSportProgram && !activity.isDateRange) {
+        // Comme la fiche d'activité : une activité dégelée retrouve sa place dans la semaine
+        // en cours (sans doublon si elle y figure déjà).
+        _syncActivityToWeek(activity, previous: activity.copy());
+      }
       _sortPlan();
     });
 
@@ -395,7 +383,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
               : '🧊 « ${activity.name} » est gelée. Elle reste disponible pour une reprise ultérieure.';
       _showFeedback(detail);
     } else {
-      _showFeedback('🌱 « ${activity.name} » est de nouveau active. Elle pourra revenir lors d’une prochaine régénération.');
+      _showFeedback('🌱 « ${activity.name} » est de nouveau active : elle retrouve sa place dans la semaine et ses réalisations restent comptées.');
     }
   }
 
@@ -498,7 +486,15 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
               const SizedBox(height: 3),
               Text(done ? 'Réalisée aujourd’hui' : '${activity.category} · ${activity.duration} min', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted)),
             ])),
-            const SizedBox(width: 7),
+            IconButton(
+              tooltip: 'Modifier le temps réalisé',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+              onPressed: () => editActivityMinutesToday(activity),
+              icon: _uiIcon('duration', Icons.timer_outlined, size: 19),
+            ),
+            const SizedBox(width: 4),
             Container(
               width: 40,
               height: 40,

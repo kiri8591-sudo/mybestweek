@@ -23,7 +23,7 @@ DateTime _mondayOf(DateTime d) => DateTime(d.year, d.month, d.day - (d.weekday -
 
 Activity _resolveActivity(ActivityLog log, List<Activity> activities) {
   for (final a in activities) {
-    if (_logMatchesActivity(log, a)) return a;
+    if (_logIsOfActivity(log, a)) return a;
   }
   return Activity(
     id: 'stats_${log.title.trim().toLowerCase().hashCode}',
@@ -115,7 +115,9 @@ class _AchievementReportPage extends StatefulWidget {
   final List<ActivityLog> logs;
   final List<Activity> activities;
 
-  const _AchievementReportPage({required this.logs, required this.activities});
+  final Future<void> Function(ActivityLog log) onEditLog;
+
+  const _AchievementReportPage({required this.logs, required this.activities, required this.onEditLog});
 
   @override
   State<_AchievementReportPage> createState() => _AchievementReportPageState();
@@ -151,7 +153,7 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
       padding: const EdgeInsets.only(bottom: AppSpace.m),
       child: _AppCard(
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => _ActivityStatsPage(activity: g.activity, logs: widget.logs)),
+          MaterialPageRoute<void>(builder: (_) => _ActivityStatsPage(activity: g.activity, logs: widget.logs, onEditLog: widget.onEditLog)),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [

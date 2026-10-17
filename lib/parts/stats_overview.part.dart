@@ -5,7 +5,7 @@
 
 part of '../main.dart';
 
-bool _logMatchesActivity(ActivityLog log, Activity activity) =>
+bool _logIsOfActivity(ActivityLog log, Activity activity) =>
     (log.activityId != null && log.activityId == activity.id) ||
     (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase());
 
@@ -84,7 +84,9 @@ class _StatsOverviewPage extends StatefulWidget {
   final List<ActivityLog> logs;
   final List<Activity> activities;
 
-  const _StatsOverviewPage({required this.logs, required this.activities});
+  final Future<void> Function(ActivityLog log) onEditLog;
+
+  const _StatsOverviewPage({required this.logs, required this.activities, required this.onEditLog});
 
   @override
   State<_StatsOverviewPage> createState() => _StatsOverviewPageState();
@@ -129,7 +131,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
 
   void _openActivity(Activity activity) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => _ActivityStatsPage(activity: activity, logs: widget.logs)),
+      MaterialPageRoute<void>(builder: (_) => _ActivityStatsPage(activity: activity, logs: widget.logs, onEditLog: widget.onEditLog)),
     );
   }
 
@@ -265,7 +267,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
               Expanded(
                 child: FilledButton.tonalIcon(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => _AchievementReportPage(logs: widget.logs, activities: widget.activities)),
+                    MaterialPageRoute<void>(builder: (_) => _AchievementReportPage(logs: widget.logs, activities: widget.activities, onEditLog: widget.onEditLog)),
                   ),
                   icon: const Icon(Icons.emoji_events_outlined, size: 18),
                   label: const Text('Mes réalisations'),
@@ -370,7 +372,9 @@ class _ActivityStatsPage extends StatefulWidget {
   final Activity activity;
   final List<ActivityLog> logs;
 
-  const _ActivityStatsPage({required this.activity, required this.logs});
+  final Future<void> Function(ActivityLog log) onEditLog;
+
+  const _ActivityStatsPage({required this.activity, required this.logs, required this.onEditLog});
 
   @override
   State<_ActivityStatsPage> createState() => _ActivityStatsPageState();
@@ -401,7 +405,7 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
   @override
   Widget build(BuildContext context) {
     final activity = widget.activity;
-    final logs = widget.logs.where((l) => l.realisedMinutes > 0 && _logMatchesActivity(l, activity)).toList()
+    final logs = widget.logs.where((l) => l.realisedMinutes > 0 && _logIsOfActivity(l, activity)).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
     final total = logs.fold<int>(0, (s, l) => s + l.realisedMinutes);
     final now = DateTime.now();
@@ -500,7 +504,21 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
                             padding: const EdgeInsets.only(right: 8),
                             child: Container(width: 9, height: 9, decoration: BoxDecoration(color: _feelingColor(_normalizeFeeling(l.feeling)), shape: BoxShape.circle)),
                           ),
-                        Text(_minutesLabel(l.realisedMinutes), style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+                        InkWell(
+                          onTap: () async {
+                            await widget.onEditLog(l);
+                            if (mounted) setState(() {});
+                          },
+                          borderRadius: BorderRadius.circular(AppRadius.s),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Text(_minutesLabel(l.realisedMinutes), style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+                              const SizedBox(width: 4),
+                              Icon(Icons.edit_outlined, size: 14, color: _colors.textFaint),
+                            ]),
+                          ),
+                        ),
                       ]),
                     ),
                 ]),

@@ -7,11 +7,13 @@ class _SportRealisedMinutesSheet extends StatefulWidget {
   final String activityName;
   final int plannedMinutes;
   final int? currentMinutes; // durée déjà enregistrée (modification)
+  final bool allowDelete; // 0 minute = supprimer la réalisation (historique)
 
   const _SportRealisedMinutesSheet({
     required this.activityName,
     required this.plannedMinutes,
     this.currentMinutes,
+    this.allowDelete = false,
   });
 
   @override
@@ -75,7 +77,7 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
                     borderRadius: BorderRadius.circular(AppRadius.s),
                   ),
                   alignment: Alignment.center,
-                  child: _activityIconWidget(_uiIconValue('sportTimer', ''), size: 21),
+                  child: _uiIcon('sportTimer', Icons.timer_outlined, size: 21, color: _colors.accentIcon),
                 ),
                 const SizedBox(width: 9),
                 Expanded(
@@ -134,18 +136,33 @@ class _SportRealisedMinutesSheetState extends State<_SportRealisedMinutesSheet> 
                     ),
                     onChanged: (_) { if (mounted) setState(() {}); },
                     onSubmitted: (_) {
-                      if (current != null && current >= 0) _close(current);
+                      if (current != null && (current > 0 || (widget.allowDelete && current == 0))) _close(current);
                     },
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
                   tooltip: 'Valider cette durée',
-                  onPressed: (_closing || current == null || current < 0) ? null : () => _close(current),
+                  onPressed: (_closing || current == null || current < (widget.allowDelete ? 0 : 1)) ? null : () => _close(current),
                   icon: _uiIcon('confirm', Icons.check_circle_rounded, size: 23, color: _colors.accentIcon),
                 ),
               ],
             ),
+            if (widget.allowDelete) ...[
+              const SizedBox(height: 6),
+              Row(children: [
+                Icon(Icons.info_outline, size: 15, color: _colors.textFaint),
+                const SizedBox(width: 6),
+                Expanded(child: Text('0 minute = supprimer cette réalisation de l’historique.', style: _hintStyle())),
+              ]),
+              const SizedBox(height: 4),
+              TextButton.icon(
+                onPressed: _closing ? null : () => _close(0),
+                style: TextButton.styleFrom(foregroundColor: _colors.danger, minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 6)),
+                icon: _uiIcon('delete', Icons.delete_outline_rounded, size: 18, color: _colors.danger),
+                label: const Text('Supprimer cette réalisation'),
+              ),
+            ],
           ],
         ),
       ),
@@ -169,6 +186,8 @@ class _SportWeekPage extends StatefulWidget {
   final void Function(Activity activity, DateTime date) onToggleDate;
   final Future<void> Function(PlanItem item) onRemoveItem;
   final Future<void> Function(int day) onAddSportActivity;
+  final Future<void> Function(Activity activity, DateTime date) onEditMinutes;
+  final Future<void> Function(PlanItem item) onEditItemMinutes;
   final void Function(int day, int minutes) onSetBudget;
   final DateTime Function() getNow;
   final bool Function(String?) isDailyPriority;
@@ -189,6 +208,8 @@ class _SportWeekPage extends StatefulWidget {
     required this.onToggleDate,
     required this.onRemoveItem,
     required this.onAddSportActivity,
+    required this.onEditMinutes,
+    required this.onEditItemMinutes,
     required this.onSetBudget,
     required this.getNow,
     required this.isDailyPriority,
@@ -529,7 +550,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
             _dateStripStart = _addDays(_dateStripStart, -7);
             _selectedDate = _addDays(_selectedDate, -7);
           }),
-          icon: _activityIconWidget(_uiIconValue('sportBack', ''), size: 20),
+          icon: _uiIcon('sportBack', Icons.chevron_left_rounded, size: 22),
         ),
         Expanded(
           child: Text(
@@ -545,7 +566,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
             _dateStripStart = _addDays(_dateStripStart, 7);
             _selectedDate = _addDays(_selectedDate, 7);
           }),
-          icon: _activityIconWidget(_uiIconValue('sportNext', ''), size: 20),
+          icon: _uiIcon('sportNext', Icons.chevron_right_rounded, size: 22),
         ),
       ]),
       Row(
@@ -553,7 +574,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         children: [
           Expanded(
             child: SizedBox(
-              height: 42,
+              height: 46,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: 7,
@@ -570,8 +591,8 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                               }),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 160),
-                      width: 34,
-                      padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
+                      width: 36,
+                      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
                       decoration: BoxDecoration(
                         color: selected ? _colors.tintStrong : _colors.surfaceSoft,
                         borderRadius: BorderRadius.circular(AppRadius.m),
@@ -580,28 +601,30 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                           width: selected ? 1.5 : 1,
                         ),
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            widget.dayNames[dayIndex].substring(0, 3).toUpperCase(),
-                            style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textMuted),
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            '${d.day}',
-                            style: TextStyle(
-                              fontSize: AppType.bodyL,
-                              fontWeight: FontWeight.w700,
-                              color: selected ? _colors.accentText : _colors.textStrong,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              widget.dayNames[dayIndex].substring(0, 3).toUpperCase(),
+                              style: TextStyle(fontSize: AppType.micro, height: 1.05, fontWeight: FontWeight.w700, color: _colors.textMuted),
                             ),
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            items.isEmpty ? '·' : '$done/${items.length}',
-                            style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textWarm),
-                          ),
-                        ],
+                            Text(
+                              '${d.day}',
+                              style: TextStyle(
+                                fontSize: AppType.bodyL,
+                                height: 1.05,
+                                fontWeight: FontWeight.w700,
+                                color: selected ? _colors.accentText : _colors.textStrong,
+                              ),
+                            ),
+                            Text(
+                              items.isEmpty ? '·' : '$done/${items.length}',
+                              style: TextStyle(fontSize: AppType.micro, height: 1.05, fontWeight: FontWeight.w700, color: _colors.textWarm),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -714,9 +737,23 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text(
-                      item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min',
-                      style: _detailMetaStyle(),
+                    InkWell(
+                      onTap: () async {
+                        await widget.onEditItemMinutes(item);
+                        if (mounted) setState(() {});
+                      },
+                      borderRadius: BorderRadius.circular(AppRadius.s),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          _uiIcon('duration', Icons.timer_outlined, size: 15),
+                          const SizedBox(width: 3),
+                          Text(
+                            item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min',
+                            style: _detailMetaStyle(),
+                          ),
+                        ]),
+                      ),
                     ),
                     const SizedBox(width: 5),
                     if (activity != null) ...[
@@ -786,6 +823,10 @@ class _SportWeekPageState extends State<_SportWeekPage> {
         child: Center(
           child: InkWell(
             onTap: () => widget.onToggleDate(activity, date),
+            onLongPress: () async {
+              await widget.onEditMinutes(activity, date);
+              if (mounted) setState(() {});
+            },
             borderRadius: BorderRadius.circular(AppRadius.xs),
             child: Container(
               width: 25,
@@ -852,6 +893,10 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     Widget dayCell(Activity activity, DateTime date, bool done) {
       return InkWell(
         onTap: () => widget.onToggleDate(activity, date),
+            onLongPress: () async {
+              await widget.onEditMinutes(activity, date);
+              if (mounted) setState(() {});
+            },
         borderRadius: BorderRadius.circular(3),
         child: SizedBox(
           width: 14,

@@ -425,13 +425,11 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                 const SizedBox(height: 6),
                 Align(alignment: Alignment.centerLeft, child: Text('Tu peux déplacer cette activité vers un autre jour et choisir Matin, Après-midi ou Soir.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted))),
                 const SizedBox(height: 10),
-                if (item.activityId == null || (findActivity(item.activityId!)?.category == 'Sport')) ...[
-                  TextField(
-                    controller: duration,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Durée (min)'),
-                  ),
-                ],
+                TextField(
+                  controller: duration,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Durée prévue (min)', helperText: 'Le temps réellement vécu se règle avec le chrono.'),
+                ),
                 if (item.done) ...[
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(

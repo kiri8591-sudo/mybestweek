@@ -138,6 +138,11 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
           onToggleDate: toggleSportActivityOnDate,
           onRemoveItem: _removePlanOccurrence,
           onAddSportActivity: _addSportActivityToDay,
+          onEditMinutes: editActivityMinutesOnDate,
+          onEditItemMinutes: (item) {
+            final a = item.activityId == null ? null : findActivity(item.activityId!);
+            return a != null ? _editSportRealisedMinutes(item, a) : editItemRealisedMinutes(item);
+          },
           onSetBudget: _setSportDailyBudget,
           getNow: () => _clockNow,
           isDailyPriority: _isDailyPriorityActivityId,

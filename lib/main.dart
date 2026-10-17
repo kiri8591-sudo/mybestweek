@@ -69,8 +69,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.13.0';
-  static const buildVersion = '12.13.0+49';
+  static const version = 'V12.15.0';
+  static const buildVersion = '12.15.0+51';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',

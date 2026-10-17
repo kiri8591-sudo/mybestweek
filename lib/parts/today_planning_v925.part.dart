@@ -122,7 +122,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                       ],
                     ]),
                     const SizedBox(height: 2),
-                    if (activity == null || activity.category == 'Sport')
+                    if (!_isDateRangePlanItem(item))
                       Text(item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min · ✓ validé' : '${item.duration} min', style: _detailMetaStyle())
                     else if (item.done)
                       Text('✓ validé', style: _detailMetaStyle()),
@@ -136,6 +136,15 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                 visualDensity: VisualDensity.compact,
                 onPressed: () => _showPlanItemCoachReason(item),
                 icon: _uiIcon('coach', Icons.psychology_alt_outlined, size: 18, color: _colors.accentIcon),
+              ),
+            if (!_isDateRangePlanItem(item))
+              IconButton(
+                tooltip: 'Modifier le temps réalisé',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                onPressed: () => (activity != null && _isSportActivity(activity)) ? _editSportRealisedMinutes(item, activity) : editItemRealisedMinutes(item),
+                icon: _uiIcon('duration', Icons.timer_outlined, size: 18),
               ),
             IconButton(
               tooltip: _isGenericActivityItem(item) ? 'Déplacer' : 'Voir / modifier',

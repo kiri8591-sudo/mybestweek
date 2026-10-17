@@ -1041,7 +1041,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                                     const SizedBox(width: 5),
                                     Tooltip(
                                       message: 'Activité gelée · ajout manuel autorisé',
-                                      child: _activityIconWidget(_uiIconValue('frozen', '🧊'), size: 16),
+                                      child: _uiIcon('frozen', Icons.ac_unit_rounded, size: 16, color: _colors.accentOutline),
                                     ),
                                   ],
                                 ]),

@@ -844,7 +844,7 @@ class _HistorySheetState extends State<_HistorySheet> {
   void _openStats() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _StatsOverviewPage(logs: widget.logs, activities: widget.activities),
+        builder: (_) => _StatsOverviewPage(logs: widget.logs, activities: widget.activities, onEditLog: widget.onEditLog),
       ),
     );
   }
@@ -852,7 +852,7 @@ class _HistorySheetState extends State<_HistorySheet> {
   void _openActivityStats(Activity activity) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _ActivityStatsPage(activity: activity, logs: widget.logs),
+        builder: (_) => _ActivityStatsPage(activity: activity, logs: widget.logs, onEditLog: widget.onEditLog),
       ),
     );
   }
@@ -989,7 +989,7 @@ class _HistorySheetState extends State<_HistorySheet> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                _activityIconWidget(_uiIconValue('histEmpty', '📖'), size: 42),
+                                _uiIcon('histEmpty', Icons.menu_book_outlined, size: 42, color: _colors.textFaint),
                                 const SizedBox(height: 10),
                                 Text('Aucune activité dans cette période.', style: TextStyle(color: _colors.textMuted)),
                               ],

@@ -62,7 +62,7 @@ Widget _uiIcon(
   if (override != null && override.isNotEmpty) {
     return _activityIconWidget(override, size: effectiveSize);
   }
-  return Icon(fallback, size: effectiveSize, color: color ?? _colors.textMuted);
+  return Icon(_kSystemIconDefaults[key] ?? fallback, size: effectiveSize, color: color ?? _colors.textMuted);
 }
 
 Uint8List? _decodeCustomIconData(String data) {
@@ -82,7 +82,7 @@ Widget _frozenActivityMarker(Activity? activity, {double size = 16}) {
     padding: const EdgeInsets.only(left: 5),
     child: Tooltip(
       message: 'Activité gelée · ajout manuel possible',
-      child: _activityIconWidget(_uiIconValue('frozen', '🧊'), size: size),
+      child: _uiIcon('frozen', Icons.ac_unit_rounded, size: size, color: _colors.accentOutline),
     ),
   );
 }

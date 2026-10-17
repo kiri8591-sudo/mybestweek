@@ -7,7 +7,12 @@ extension _SystemIconsPart on _MaBelleSemaineAppState {
   String _systemIconValue(String key, String fallback) => _uiIconValue(key, fallback);
 
   Widget _systemIconWidget(String key, {required String fallback, double size = 22}) {
-    return _activityIconWidget(_uiIconValue(key, fallback), size: size);
+    // Icône personnalisée > icône Material par défaut (table commune) > emoji de secours.
+    final override = _systemUiIconOverrides[key];
+    if (override != null && override.isNotEmpty) return _activityIconWidget(override, size: size);
+    final icon = _kSystemIconDefaults[key];
+    if (icon != null) return Icon(icon, size: size);
+    return _activityIconWidget(fallback, size: size);
   }
 
   Future<void> _editSystemIcon(String key, String label, String fallback) async {

@@ -473,3 +473,223 @@ class _WeekFilterBarState extends State<_WeekFilterBar> {
     ]);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Icônes système : une seule apparence par défaut (Material), partout.
+// Une icône personnalisée par l'utilisateur (Système · personnaliser) reste prioritaire.
+// ---------------------------------------------------------------------------
+
+const Map<String, IconData> _kSystemIconDefaults = {
+  'navHome': Icons.home_outlined,
+  'navWeek': Icons.calendar_view_week_outlined,
+  'navActivities': Icons.interests_outlined,
+  'navPriorities': Icons.star_outline_rounded,
+  'priority': Icons.star_rounded,
+  'navObjectives': Icons.flag_outlined,
+  'search': Icons.search_rounded,
+  'challenge': Icons.emoji_events_outlined,
+  'objective': Icons.track_changes_rounded,
+  'objectiveDetail': Icons.track_changes_rounded,
+  'objectiveSave': Icons.check_rounded,
+  'objectiveDelete': Icons.delete_outline_rounded,
+  'objectiveState': Icons.emoji_events_outlined,
+  'streak': Icons.local_fire_department_outlined,
+  'history': Icons.history_rounded,
+  'reviewBack': Icons.arrow_back_ios_new_rounded,
+  'undo': Icons.undo_rounded,
+  'histTrend': Icons.trending_down_rounded,
+  'histStable': Icons.check_circle_outline,
+  'histSortUp': Icons.arrow_upward_rounded,
+  'histSortDown': Icons.arrow_downward_rounded,
+  'histEmpty': Icons.menu_book_outlined,
+  'periodMorning': Icons.wb_twilight_rounded,
+  'periodAfternoon': Icons.wb_sunny_outlined,
+  'periodEvening': Icons.nights_stay_outlined,
+  'sport': Icons.fitness_center_rounded,
+  'sportWeek': Icons.view_week_outlined,
+  'sportTimer': Icons.timer_outlined,
+  'sportActive': Icons.directions_run_rounded,
+  'sportMinutes': Icons.hourglass_bottom_rounded,
+  'sportRate': Icons.check_circle_outline,
+  'sportMissing': Icons.warning_amber_rounded,
+  'sportFilter': Icons.filter_list_rounded,
+  'sportBack': Icons.chevron_left_rounded,
+  'sportNext': Icons.chevron_right_rounded,
+  'sportReactivate': Icons.refresh_rounded,
+  'sportWarning': Icons.warning_amber_rounded,
+  'frozen': Icons.ac_unit_rounded,
+  'backupDevice': Icons.smartphone_outlined,
+  'backupCloud': Icons.cloud_outlined,
+  'backupFile': Icons.description_outlined,
+  'backupShield': Icons.shield_outlined,
+  'backupDownload': Icons.download_rounded,
+  'backupUpload': Icons.cloud_upload_outlined,
+  'backupFolder': Icons.folder_open_outlined,
+  'backupReset': Icons.restart_alt_rounded,
+  'backupDue': Icons.schedule_rounded,
+  'backupOk': Icons.check_circle_outline,
+  'reviewMoments': Icons.check_circle_outline,
+  'reviewRegularity': Icons.event_repeat_outlined,
+  'reviewPlanned': Icons.event_note_outlined,
+  'reviewRealized': Icons.play_circle_outline_rounded,
+  'reviewRemaining': Icons.hourglass_empty_rounded,
+  'reviewMoved': Icons.open_with_rounded,
+  'reviewValidated': Icons.timer_outlined,
+  'reviewUnexpected': Icons.auto_awesome_outlined,
+  'reviewActiveDays': Icons.event_available_outlined,
+  'reviewTime': Icons.timer_outlined,
+  'reviewPiano': Icons.piano_outlined,
+  'reviewDifficult': Icons.battery_alert_outlined,
+  'reviewMood': Icons.sentiment_satisfied_alt_outlined,
+  'nextWeekDirections': Icons.tune_rounded,
+  'dragDown': Icons.expand_more_rounded,
+  'expandMore': Icons.expand_more_rounded,
+  'planOpen': Icons.chevron_right_rounded,
+  'missionDone': Icons.check_circle_outline,
+  'coach': Icons.psychology_outlined,
+  'add': Icons.add_circle_outline,
+  'edit': Icons.edit_outlined,
+  'remove': Icons.remove_circle_outline,
+  'delete': Icons.delete_outline_rounded,
+  'confirm': Icons.check_circle_outline,
+  'help': Icons.help_outline_rounded,
+  'photo': Icons.image_outlined,
+  'emoji': Icons.emoji_emotions_outlined,
+  'manageIcons': Icons.palette_outlined,
+  'save': Icons.save_outlined,
+  'restore': Icons.settings_backup_restore_rounded,
+  'calendar': Icons.calendar_month_outlined,
+  'week': Icons.view_week_outlined,
+  'duration': Icons.timer_outlined,
+  'move': Icons.open_with_rounded,
+  'repeat': Icons.repeat_rounded,
+  'close': Icons.close_rounded,
+  'apply': Icons.bolt_outlined,
+  'settings': Icons.settings_outlined,
+  'identity': Icons.person_outline_rounded,
+  'location': Icons.place_outlined,
+  'refresh': Icons.refresh_rounded,
+  'insights': Icons.insights_outlined,
+  'system': Icons.settings_outlined,
+};
+
+// ---------------------------------------------------------------------------
+// Feuilles et sélecteurs : composants communs
+// ---------------------------------------------------------------------------
+
+/// En-tête d'une feuille : pastille d'icône + titre + sous-titre.
+class _SheetHeader extends StatelessWidget {
+  final Widget leading;
+  final String title;
+  final String? subtitle;
+
+  const _SheetHeader({required this.leading, required this.title, this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(color: _colors.tintStrong, borderRadius: BorderRadius.circular(AppRadius.l), border: Border.all(color: _colors.borderTint)),
+        alignment: Alignment.center,
+        child: leading,
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: _sheetTitleStyle(context)),
+          if (subtitle != null) ...[
+            const SizedBox(height: 3),
+            Text(subtitle!, style: _hintStyle()),
+          ],
+        ]),
+      ),
+    ]);
+  }
+}
+
+/// Ligne de choix (liste d'activités dans une feuille).
+class _SheetPickRow extends StatelessWidget {
+  final Widget leading;
+  final String title;
+  final String? subtitle;
+  final bool selected;
+  final bool enabled;
+  final bool multi; // case à cocher (plusieurs choix) plutôt que bouton radio
+  final Widget? badge;
+  final VoidCallback? onTap;
+
+  const _SheetPickRow({
+    required this.leading,
+    required this.title,
+    this.subtitle,
+    this.selected = false,
+    this.enabled = true,
+    this.multi = false,
+    this.badge,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: _AppCard(
+        tone: selected ? _CardTone.tint : _CardTone.soft,
+        padding: const EdgeInsets.fromLTRB(12, 8, 10, 8),
+        onTap: enabled ? onTap : null,
+        child: Opacity(
+          opacity: enabled ? 1 : .55,
+          child: Row(children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.m)),
+              alignment: Alignment.center,
+              child: leading,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: enabled ? _colors.textStrong : _colors.textFaint)),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(subtitle!, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
+                ],
+              ]),
+            ),
+            if (badge != null) ...[const SizedBox(width: 6), badge!],
+            const SizedBox(width: 6),
+            Icon(
+              selected ? Icons.check_circle_rounded : (multi ? Icons.radio_button_unchecked_rounded : Icons.radio_button_unchecked_rounded),
+              size: 22,
+              color: selected ? _colors.accentIcon : _colors.textFaint,
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// Encart d'information (astuce, rappel) dans une feuille.
+class _InfoNote extends StatelessWidget {
+  final Widget leading;
+  final String text;
+
+  const _InfoNote({required this.leading, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return _AppCard(
+      tone: _CardTone.soft,
+      padding: const EdgeInsets.all(12),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        leading,
+        const SizedBox(width: 8),
+        Expanded(child: Text(text, style: TextStyle(fontSize: AppType.small, height: 1.32, color: _colors.accentText, fontWeight: FontWeight.w700))),
+      ]),
+    );
+  }
+}

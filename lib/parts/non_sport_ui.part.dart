@@ -12,7 +12,7 @@ extension _NonSportWeekNavigationPart on _MaBelleSemaineAppState {
           getLogs: () => List<ActivityLog>.from(logs),
           onOpenActivity: (activity) => addOrEditActivity(original: activity),
           onToggleDate: toggleNonSportActivityOnDate,
-          onEditMinutes: editNonSportMinutesOnDate,
+          onEditMinutes: editActivityMinutesOnDate,
           onEditLog: editHistoryLogMinutes,
         ),
       ),
@@ -465,13 +465,17 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
           IconButton(visualDensity: VisualDensity.compact, tooltip: 'Semaine suivante', onPressed: () => _shiftWeek(1), icon: _uiIcon('sportNext', Icons.chevron_right_rounded, size: 20)),
         ]),
         const SizedBox(height: 6),
-        SizedBox(height: 42, child: Row(children: List.generate(7, (day) {
+        SizedBox(height: 46, child: Row(children: List.generate(7, (day) {
           final date = _dayDate(day);
           final active = day == selected;
           final done = widget.getLogs().where((log) => _sameDate(log.date, date) && _isNonSportLog(log)).length;
           final items = _isCurrentWeek() ? widget.getPlan().where((p) => p.day == day && p.activityId != null && _allActivities().any((a) => a.id == p.activityId)).toList() : <PlanItem>[];
           final count = _isCurrentWeek() ? items.where((p) => p.done).length : done;
-          return Expanded(child: Padding(padding: EdgeInsets.only(right: day == 6 ? 0 : 3), child: GestureDetector(onTap: () => setState(() => _selectedDay = day), child: AnimatedContainer(duration: const Duration(milliseconds: 140), width: 42, padding: const EdgeInsets.symmetric(vertical: 2), decoration: BoxDecoration(color: active ? _colors.tintStrong : _colors.surfaceSoft, borderRadius: BorderRadius.circular(AppRadius.m), border: Border.all(color: active ? _colors.accentFill : _colors.border)), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(widget.dayNames[day].substring(0,3).toUpperCase(), style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textMuted)), Text('${date.day}', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: active ? _colors.accentText : _colors.textStrong)), Text(count == 0 ? '·' : '$count', style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textWarm))])))));
+          return Expanded(child: Padding(padding: EdgeInsets.only(right: day == 6 ? 0 : 3), child: GestureDetector(onTap: () => setState(() => _selectedDay = day), child: AnimatedContainer(duration: const Duration(milliseconds: 140), width: 42, padding: const EdgeInsets.symmetric(vertical: 2), decoration: BoxDecoration(color: active ? _colors.tintStrong : _colors.surfaceSoft, borderRadius: BorderRadius.circular(AppRadius.m), border: Border.all(color: active ? _colors.accentFill : _colors.border)), child: FittedBox(fit: BoxFit.scaleDown, child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(widget.dayNames[day].substring(0, 3).toUpperCase(), style: TextStyle(fontSize: AppType.micro, height: 1.05, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+            Text('${date.day}', style: TextStyle(fontSize: AppType.bodyL, height: 1.05, fontWeight: FontWeight.w800, color: active ? _colors.accentText : _colors.textStrong)),
+            Text(count == 0 ? '·' : '$count', style: TextStyle(fontSize: AppType.micro, height: 1.05, fontWeight: FontWeight.w700, color: _colors.textWarm)),
+          ]))))));
         }))),
         const SizedBox(height: 8),
         Container(padding: const EdgeInsets.fromLTRB(10, 8, 10, 8), decoration: BoxDecoration(color: _colors.tintSoft, borderRadius: BorderRadius.circular(AppRadius.l), border: Border.all(color: _colors.borderTint)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

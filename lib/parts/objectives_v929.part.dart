@@ -131,103 +131,43 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
     return SafeArea(
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
-          16,
-          8,
-          16,
-          MediaQuery.of(context).viewInsets.bottom + 20,
+          AppSpace.l,
+          AppSpace.s,
+          AppSpace.l,
+          MediaQuery.of(context).viewInsets.bottom + AppSpace.l,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: _colors.tintStrong,
-                    borderRadius: BorderRadius.circular(AppRadius.l),
-                  ),
-                  alignment: Alignment.center,
-                  child: _activityIconWidget('pack://target', size: 24),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    widget.existing == null ? 'Nouvel objectif' : 'Modifier l’objectif',
-                    style: const TextStyle(fontSize: AppType.h2, fontWeight: FontWeight.w800),
-                  ),
-                ),
-              ],
+            _SheetHeader(
+              leading: _activityIconWidget('pack://target', size: 26),
+              title: widget.existing == null ? 'Nouvel objectif' : 'Modifier l’objectif',
+              subtitle: 'Une habitude concrète et une cible simple.',
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Activité',
-              style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              decoration: BoxDecoration(
-                color: _colors.card,
-                borderRadius: BorderRadius.circular(AppRadius.l),
-                border: Border.all(color: _colors.borderStrong),
-              ),
-              constraints: const BoxConstraints(maxHeight: 255),
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(vertical: 4),
+            const SizedBox(height: AppSpace.l),
+            Text('Activité', style: _sectionTitleStyle(context)),
+            const SizedBox(height: AppSpace.s),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 280),
+              child: ListView.builder(
                 shrinkWrap: true,
                 itemCount: widget.activities.length,
-                separatorBuilder: (_, __) => const Divider(height: 1, indent: 52, endIndent: 10),
                 itemBuilder: (context, index) {
                   final activity = widget.activities[index];
                   final selected = activity.id == activityId;
                   final frozen = activity.isFrozen;
-                  final frozenLinkedToExisting = frozen &&
-                      widget.existing != null &&
-                      widget.existing!.activityId == activity.id;
+                  final frozenLinkedToExisting = frozen && widget.existing != null && widget.existing!.activityId == activity.id;
                   final selectable = !frozen || frozenLinkedToExisting;
-                  return ListTile(
-                    dense: true,
-                    enabled: selectable,
-                    selected: selected,
-                    selectedTileColor: _colors.tintStrong,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
-                    leading: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        _activityIconWidget(activity.emoji, size: 26),
-                        if (frozen)
-                          Positioned(
-                            right: -7,
-                            bottom: -4,
-                            child: _activityIconWidget('pack://water', size: 18),
-                          ),
-                      ],
-                    ),
-                    title: Text(
-                      activity.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: AppType.body,
-                        fontWeight: FontWeight.w700,
-                        color: frozen ? _colors.textFaint : _colors.textStrong,
-                      ),
-                    ),
+                  return _SheetPickRow(
+                    leading: _activityIconWidget(activity.emoji, size: 24),
+                    title: activity.name,
                     subtitle: frozen
-                        ? Text(
-                            frozenLinkedToExisting
-                                ? 'Activité gelée · liée à cet objectif · sélection conservée'
-                                : 'Activité gelée · non sélectionnable pour un nouvel objectif',
-                            style: TextStyle(fontSize: AppType.small, color: _colors.textFaint, fontWeight: FontWeight.w700),
-                          )
-                        : null,
-                    trailing: selected
-                        ? Icon(Icons.check_circle_rounded, color: _colors.textMuted, size: 20)
-                        : frozen
-                            ? Text('GELÉE', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.textMuted))
-                            : Icon(Icons.radio_button_unchecked_rounded, color: _colors.textFaint, size: 19),
-                    onTap: selectable ? () => setState(() => activityId = activity.id) : null,
+                        ? (frozenLinkedToExisting ? 'Gelée · liée à cet objectif' : 'Gelée · non sélectionnable pour un nouvel objectif')
+                        : '${activity.category} · ${activity.duration} min',
+                    selected: selected,
+                    enabled: selectable,
+                    badge: frozen ? const _Pill('Gelée') : null,
+                    onTap: () => setState(() => activityId = activity.id),
                   );
                 },
               ),
@@ -277,34 +217,17 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                 hintText: 'Ex. un film, une sortie, un après-midi libre…',
               ),
             ),
-            const SizedBox(height: 2),
-            Container(
-              decoration: BoxDecoration(
-                color: _colors.surfaceSoft,
-                borderRadius: BorderRadius.circular(AppRadius.l),
-                border: Border.all(color: _colors.borderTint),
-              ),
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _activityIconWidget('pack://bulb', size: 22),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'La récompense est gagnée une fois par période lorsque la cible est atteinte. Elle reste cumulée.',
-                      style: TextStyle(fontSize: AppType.small, height: 1.32, color: _colors.accentText, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
-              ),
+            const SizedBox(height: AppSpace.s),
+            _InfoNote(
+              leading: _activityIconWidget('pack://bulb', size: 22),
+              text: 'La récompense est gagnée une fois par période lorsque la cible est atteinte. Elle reste cumulée.',
             ),
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: _save,
-                icon: _activityIconWidget(_uiIconValue('objectiveSave', ''), size: 18),
+                icon: _uiIcon('objectiveSave', Icons.check_rounded, size: 18, color: _colors.onPrimary),
                 label: const Text('Enregistrer'),
               ),
             ),
@@ -314,7 +237,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                 width: double.infinity,
                 child: TextButton.icon(
                   onPressed: _delete,
-                  icon: _activityIconWidget(_uiIconValue('objectiveDelete', ''), size: 18),
+                  icon: _uiIcon('objectiveDelete', Icons.delete_outline_rounded, size: 18, color: _colors.danger),
                   label: const Text('Supprimer cet objectif'),
                 ),
               ),
@@ -667,7 +590,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                       borderRadius: BorderRadius.circular(AppRadius.l),
                     ),
                     alignment: Alignment.center,
-                    child: _activityIconWidget(_uiIconValue('objectiveDetail', ''), size: 22),
+                    child: _uiIcon('objectiveDetail', Icons.track_changes_rounded, size: 22, color: _colors.accentIcon),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -707,7 +630,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                     ),
                   ),
                   complete
-                      ? _activityIconWidget(_uiIconValue('objectiveState', ''), size: 21)
+                      ? _uiIcon('objectiveState', Icons.emoji_events_outlined, size: 21, color: _colors.goldText)
                       : _uiIcon('planOpen', Icons.chevron_right_rounded, size: 21, color: _colors.textFaint),
                 ],
               ),
@@ -979,7 +902,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 5),
             child: Row(
               children: [
-                _activityIconWidget(_uiIconValue('streak', ''), size: 21),
+                _uiIcon('streak', Icons.local_fire_department_outlined, size: 21, color: _colors.goldText),
                 const SizedBox(width: 7),
                 Expanded(
                   child: Text(
