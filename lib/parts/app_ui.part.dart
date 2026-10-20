@@ -693,3 +693,107 @@ class _InfoNote extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Vue « 1 mois » des écrans Semaine Sport et Semaine Activités
+// ---------------------------------------------------------------------------
+
+/// Pour chaque activité : titre, bilan du mois et une case par jour
+/// (toucher = cocher / décocher, appui long = saisir le temps).
+class _MonthActivityGrid extends StatelessWidget {
+  final DateTime month;
+  final List<Activity> activities;
+  final bool Function(Activity activity, DateTime date) doneOn;
+  final int Function(Activity activity, DateTime date) minutesOn;
+  final void Function(Activity activity, DateTime date) onToggle;
+  final Future<void> Function(Activity activity, DateTime date) onEditMinutes;
+  final ValueChanged<Activity> onOpenActivity;
+  final String emptyText;
+
+  const _MonthActivityGrid({
+    required this.month,
+    required this.activities,
+    required this.doneOn,
+    required this.minutesOn,
+    required this.onToggle,
+    required this.onEditMinutes,
+    required this.onOpenActivity,
+    required this.emptyText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (activities.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpace.m),
+        child: Text(emptyText, style: TextStyle(fontSize: AppType.body, color: _colors.textMuted)),
+      );
+    }
+    final days = DateTime(month.year, month.month + 1, 0).day;
+    final now = DateTime.now();
+    final todayKey = now.year * 10000 + now.month * 100 + now.day;
+
+    Widget cell(Activity activity, int day) {
+      final date = DateTime(month.year, month.month, day);
+      final done = doneOn(activity, date);
+      final isToday = date.year * 10000 + date.month * 100 + date.day == todayKey;
+      return InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.xs),
+        onTap: () => onToggle(activity, date),
+        onLongPress: () => onEditMinutes(activity, date),
+        child: Container(
+          width: 27,
+          height: 27,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: done ? _colors.accentFill : _colors.surfaceSunken,
+            borderRadius: BorderRadius.circular(AppRadius.xs),
+            border: isToday ? Border.all(color: _colors.accentText, width: 1.5) : Border.all(color: _colors.border),
+          ),
+          child: Text(
+            '$day',
+            style: TextStyle(
+              fontSize: AppType.small,
+              fontWeight: FontWeight.w700,
+              color: done ? _colors.card : _colors.textMuted,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      for (final activity in activities)
+        Builder(builder: (context) {
+          var doneDays = 0;
+          var totalMinutes = 0;
+          for (var d = 1; d <= days; d++) {
+            final date = DateTime(month.year, month.month, d);
+            if (doneOn(activity, date)) doneDays++;
+            totalMinutes += minutesOn(activity, date);
+          }
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpace.s),
+            child: _AppCard(
+              tone: _CardTone.soft,
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                InkWell(
+                  onTap: () => onOpenActivity(activity),
+                  borderRadius: BorderRadius.circular(AppRadius.s),
+                  child: Row(children: [
+                    _activityIconWidget(activity.emoji, size: 22),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(activity.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong))),
+                    _Pill(doneDays == 0 ? 'rien ce mois' : '$doneDays j${totalMinutes > 0 ? ' · ${_minutesLabel(totalMinutes)}' : ''}'),
+                  ]),
+                ),
+                const SizedBox(height: 8),
+                Wrap(spacing: 3, runSpacing: 3, children: [for (var d = 1; d <= days; d++) cell(activity, d)]),
+              ]),
+            ),
+          );
+        }),
+    ]);
+  }
+}

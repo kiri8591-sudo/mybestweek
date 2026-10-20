@@ -350,46 +350,51 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
 
   Widget _monthView() {
     final visible = _visibleActivities();
-    final days = DateTime(_month.year, _month.month + 1, 0).day;
     final logs = _nonSportLogs();
-    bool doneOn(Activity activity, DateTime date) => logs.any((log) => _sameDate(log.date, date) && (log.activityId == activity.id || (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase())));
-    Widget cell(Activity activity, bool done, int day) {
-      final date = DateTime(_month.year, _month.month, day);
-      return InkWell(
-        onTap: () => widget.onToggleDate(activity, date),
-        borderRadius: BorderRadius.circular(3),
-        child: SizedBox(width: 14, height: 16, child: Center(child: done
-            ? Container(width: 12, height: 12, decoration: BoxDecoration(color: _colors.accentFill, borderRadius: BorderRadius.circular(3)), child: const Icon(Icons.check, size: 8, color: Colors.white))
-            : Text('$day', style: TextStyle(fontSize: AppType.micro, color: _colors.textWarm)))),
-      );
-    }
-    return GestureDetector(
-      onHorizontalDragEnd: (details) {
-        final v = details.primaryVelocity ?? 0;
-        if (v.abs() > 250) _shiftMonth(v < 0 ? 1 : -1);
-      },
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          IconButton(padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 30, minHeight: 30), onPressed: () => _shiftMonth(-1), icon: _uiIcon('sportBack', Icons.chevron_left_rounded, size: 20)),
-          Expanded(child: Text('${_monthLabelFr()} ${_month.year}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800))),
-          IconButton(padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 30, minHeight: 30), onPressed: () => _shiftMonth(1), icon: _uiIcon('sportNext', Icons.chevron_right_rounded, size: 20)),
-        ]),
-        Text('Réalisations enregistrées sur le mois · toucher une case pour cocher/décocher.', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
-        const SizedBox(height: 6),
-        if (visible.isEmpty) const Text('Aucune activité non-Sport.')
-        else ...visible.map((activity) => Container(
-          margin: const EdgeInsets.only(bottom: 5),
-          padding: const EdgeInsets.fromLTRB(6, 5, 6, 5),
-          decoration: BoxDecoration(color: _colors.card, borderRadius: BorderRadius.circular(AppRadius.m), border: Border.all(color: _colors.border)),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            SizedBox(width: 92, child: Row(children: [_activityIconWidget(activity.emoji, size: 17), const SizedBox(width: 4), Expanded(child: Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textStrong)))])),
-            Expanded(child: Wrap(spacing: 1, runSpacing: 1, children: [for (var day = 1; day <= days; day++) cell(activity, doneOn(activity, DateTime(_month.year, _month.month, day)), day)])),
-          ]),
-        )),
-      ]),
-    );
-  }
+    bool sameActivity(ActivityLog log, Activity activity) =>
+        log.activityId == activity.id || (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase());
+    bool doneOn(Activity activity, DateTime date) => logs.any((log) => _sameDate(log.date, date) && sameActivity(log, activity));
+    int minutesOn(Activity activity, DateTime date) =>
+        logs.where((log) => _sameDate(log.date, date) && sameActivity(log, activity)).fold<int>(0, (sum, log) => sum + log.realisedMinutes);
 
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        IconButton(
+          tooltip: 'Mois précédent',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          onPressed: () => _shiftMonth(-1),
+          icon: const Icon(Icons.chevron_left_rounded, size: 26),
+        ),
+        Expanded(child: Text('${_monthLabelFr()} ${_month.year}', textAlign: TextAlign.center, style: _sectionTitleStyle(context))),
+        IconButton(
+          tooltip: 'Mois suivant',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          onPressed: () => _shiftMonth(1),
+          icon: const Icon(Icons.chevron_right_rounded, size: 26),
+        ),
+      ]),
+      Text('Toucher un jour pour cocher ou décocher · appui long pour saisir le temps.', style: _hintStyle()),
+      const SizedBox(height: AppSpace.s),
+      _MonthActivityGrid(
+        month: _month,
+        activities: visible,
+        doneOn: doneOn,
+        minutesOn: minutesOn,
+        onToggle: (activity, date) {
+          widget.onToggleDate(activity, date);
+          if (mounted) setState(() {});
+        },
+        onEditMinutes: (activity, date) async {
+          await widget.onEditMinutes(activity, date);
+          if (mounted) setState(() {});
+        },
+        onOpenActivity: widget.onOpenActivity,
+        emptyText: 'Aucune activité non-Sport ne correspond aux filtres.',
+      ),
+    ]);
+  }
 
   String _activityEmojiForItem(PlanItem item) {
     if (item.activityId != null) {
