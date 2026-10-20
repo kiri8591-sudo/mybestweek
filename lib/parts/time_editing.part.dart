@@ -338,4 +338,53 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
     _recordRealisationOnDate(picked, date, actual);
     _showFeedback('✓ « ${picked.name} » ajouté à l’historique : $actual min.');
   }
+
+  ActivityLog _logWithFeeling(ActivityLog log, String feeling) => ActivityLog(
+        date: log.date,
+        title: log.title,
+        emoji: log.emoji,
+        category: log.category,
+        period: log.period,
+        day: log.day,
+        plannedMinutes: log.plannedMinutes,
+        realisedMinutes: log.realisedMinutes,
+        feeling: feeling,
+        unplanned: log.unplanned,
+        planItemId: log.planItemId,
+        activityId: log.activityId,
+      );
+
+  /// Ressenti en un geste : Bien → Très bien → Difficile → Bien…
+  void cycleItemFeeling(PlanItem item) {
+    const order = ['Bien', 'Très bien', 'Difficile'];
+    final current = order.contains(_normalizeFeeling(item.feeling)) ? _normalizeFeeling(item.feeling) : 'Bien';
+    final next = order[(order.indexOf(current) + 1) % order.length];
+    setState(() {
+      item.feeling = next;
+      for (final log in logs.where((l) => l.planItemId == item.id).toList()) {
+        final index = logs.indexOf(log);
+        if (index >= 0) logs[index] = _logWithFeeling(log, next);
+      }
+    });
+    _queueLocalStatePersist();
+    _showFeedback('Ressenti : $next');
+  }
+
+  /// Pastille de ressenti d'un moment validé (rien si le moment n'est pas validé).
+  Widget _feelingChip(PlanItem item) {
+    final f = _normalizeFeeling(item.feeling);
+    final icon = f == 'Très bien'
+        ? Icons.sentiment_very_satisfied_rounded
+        : f == 'Difficile'
+            ? Icons.sentiment_dissatisfied_rounded
+            : Icons.sentiment_satisfied_alt_rounded;
+    return IconButton(
+      tooltip: 'Ressenti : ${f.isEmpty ? 'Bien' : f} (toucher pour changer)',
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+      onPressed: () => cycleItemFeeling(item),
+      icon: Icon(icon, size: 20, color: f == 'Très bien' || f == 'Difficile' ? _feelingColor(f) : _colors.textFaint),
+    );
+  }
 }

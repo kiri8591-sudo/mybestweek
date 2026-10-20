@@ -482,7 +482,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'C’est lundi 🌱. Repenser la semaine à partir de ton historique ?',
+                    'Nouvelle semaine 🌱 Le Coach peut organiser tes jours d’après ton historique.',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentIcon, height: 1.2),
@@ -490,13 +490,19 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 ),
                 const SizedBox(width: 4),
                 FilledButton.tonal(
-                  onPressed: openGenerationCriteria,
+                  onPressed: () => generateWeek(markAsRegenerated: true),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     minimumSize: const Size(0, 34),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Repenser', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700)),
+                  child: const Text('Lancer', style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700)),
+                ),
+                IconButton(
+                  tooltip: 'Réglages du Coach',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: openGenerationCriteria,
+                  icon: _uiIcon('nextWeekDirections', Icons.tune_rounded, size: 18),
                 ),
                 IconButton(
                   tooltip: 'Pas maintenant',
@@ -1278,6 +1284,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 _activityIconWidget(_planItemIconValue(item, activities), size: 28),
                 const SizedBox(width: 7),
                 title,
+                if (item.done) _feelingChip(item),
                 if (!_isDateRangePlanItem(item))
                   IconButton(
                     tooltip: 'Modifier le temps réalisé',
@@ -1407,6 +1414,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             ),
           ),
         ),
+        SliverToBoxAdapter(child: _coachSuggestionsCard()),
         if (_lastPlanningRegeneratedWeekKey == _currentWeekKey() && _lastPlanningRegeneratedDays.isNotEmpty)
           SliverToBoxAdapter(
             child: Padding(

@@ -207,6 +207,7 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
     Widget actions() => Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (item.done) _feelingChip(item),
             if (activity != null)
               IconButton(
                 tooltip: 'Modifier le temps réalisé',

@@ -836,7 +836,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
 
   bool get _showMondayRegenerationPrompt {
     final now = DateTime.now();
-    return now.weekday == DateTime.monday && now.hour < 12 &&
+    return now.weekday <= DateTime.wednesday &&
         !_mondayRegenPromptDismissed &&
         _lastPlanningRegeneratedWeekKey != _currentWeekKey();
   }

@@ -545,6 +545,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                   ),
                 ),
               ),
+              if (item.done) _feelingChip(item),
               if (isSport || !_isDateRangePlanItem(item))
                 IconButton(
                   tooltip: 'Modifier le temps réalisé',

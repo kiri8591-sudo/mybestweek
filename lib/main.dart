@@ -53,6 +53,7 @@ part 'parts/stats_overview.part.dart';
 part 'parts/stats_achievements.part.dart';
 part 'parts/sport_families.part.dart';
 part 'parts/time_editing.part.dart';
+part 'parts/coach_suggestions.part.dart';
 
 void main() {
   if (kIsWeb) _installMascotBrowserIcon();
@@ -69,8 +70,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.15.0';
-  static const buildVersion = '12.15.0+51';
+  static const version = 'V12.16.0';
+  static const buildVersion = '12.16.0+52';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -163,6 +164,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   // Ils ne modifient pas la configuration récurrente de l'activité Sport.
   final Map<int, int> _regeneratedSportBudgets = {};
   bool _mondayRegenPromptDismissed = false;
+  final Set<String> _coachDismissed = <String>{};
   // Après une réinitialisation complète, la prochaine régénération repart
   // du lundi de la semaine courante au lieu de préserver le passé.
   bool _regenerateWholeWeekAfterReset = false;

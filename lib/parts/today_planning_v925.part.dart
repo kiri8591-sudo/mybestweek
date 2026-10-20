@@ -137,6 +137,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                 onPressed: () => _showPlanItemCoachReason(item),
                 icon: _uiIcon('coach', Icons.psychology_alt_outlined, size: 18, color: _colors.accentIcon),
               ),
+            if (item.done) _feelingChip(item),
             if (!_isDateRangePlanItem(item))
               IconButton(
                 tooltip: 'Modifier le temps réalisé',
