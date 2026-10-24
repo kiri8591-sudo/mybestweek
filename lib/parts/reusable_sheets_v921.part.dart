@@ -830,9 +830,7 @@ class _AddMomentPageState extends State<_AddMomentPage> {
   String emoji = '📍';
   String themeFilter = 'Toutes';
 
-  static const _themeOptions = <String>[
-    'Toutes', 'Sport', 'Bien-être', 'Loisir', 'Culture', 'Sortie', 'Social', 'Autre'
-  ];
+  List<String> get _themeOptions => <String>['Toutes', ..._allCategoryNames(), 'Autre'];
 
   List<Activity> get availableActivities => widget.activities
       .where((a) => !a.isDateRange)
@@ -1048,8 +1046,8 @@ class _AddMomentPageState extends State<_AddMomentPage> {
                                 const SizedBox(height: 2),
                                 Text(
                                   a.isFrozen
-                                      ? '${a.category} · ${a.duration} min · gelée · ajout manuel possible'
-                                      : '${a.category} · ${a.duration} min',
+                                      ? '${a.category} · ${_durationOrCount(a)} · gelée · ajout manuel possible'
+                                      : '${a.category} · ${_durationOrCount(a)}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(

@@ -72,8 +72,9 @@ class _DonutPainter extends CustomPainter {
 
 class _ActivityTotal {
   final Activity activity;
-  final int minutes;
+  final int minutes; // minutes, ou nombre d'occurrences si l'activité est suivie en occurrences
   const _ActivityTotal(this.activity, this.minutes);
+  bool get isCount => activity.countOnly;
 }
 
 // ---------------------------------------------------------------------------
@@ -121,11 +122,14 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
     final activities = <String, Activity>{};
     for (final log in logs) {
       final a = _activityFor(log);
-      minutes[a.id] = (minutes[a.id] ?? 0) + log.realisedMinutes;
+      minutes[a.id] = (minutes[a.id] ?? 0) + (a.countOnly ? 1 : log.realisedMinutes);
       activities[a.id] = a;
     }
     final result = [for (final e in minutes.entries) _ActivityTotal(activities[e.key]!, e.value)];
-    result.sort((a, b) => b.minutes.compareTo(a.minutes));
+    result.sort((a, b) {
+      if (a.isCount != b.isCount) return a.isCount ? 1 : -1;
+      return b.minutes.compareTo(a.minutes);
+    });
     return result;
   }
 
@@ -165,8 +169,8 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
           Expanded(child: Text(item.activity.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong))),
           const SizedBox(width: 8),
           Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
-            Text(_hoursLabel(item.minutes), style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.accentText, height: 1.05)),
-            Text('heures', style: TextStyle(fontSize: AppType.micro, color: _colors.textMuted)),
+            Text(item.isCount ? '${item.minutes}' : _hoursLabel(item.minutes), style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.accentText, height: 1.05)),
+            Text(item.isCount ? 'fois' : 'heures', style: TextStyle(fontSize: AppType.micro, color: _colors.textMuted)),
           ]),
           const SizedBox(width: 4),
           _uiIcon('planOpen', Icons.chevron_right, size: 19, color: _colors.textMuted),
@@ -175,10 +179,14 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
     );
   }
 
-  Widget _calendarCard(Map<int, int> perDay) {
+  Widget _calendarCard(Map<int, int> perDay, Map<int, int> perDayCount) {
     var monthMinutes = 0;
+    var monthCount = 0;
     perDay.forEach((key, value) {
       if (key ~/ 100 == _calMonth.year * 100 + _calMonth.month) monthMinutes += value;
+    });
+    perDayCount.forEach((key, value) {
+      if (key ~/ 100 == _calMonth.year * 100 + _calMonth.month) monthCount += value;
     });
     return _AppCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -193,7 +201,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
             child: Column(children: [
               Text('${_frMonthsLong[_calMonth.month - 1]} ${_calMonth.year}', style: _sectionTitleStyle(context)),
               const SizedBox(height: 2),
-              Text(monthMinutes == 0 ? 'Aucune réalisation' : '${_minutesLabel(monthMinutes)} vécues, toutes activités', style: _hintStyle()),
+              Text(monthMinutes == 0 && monthCount == 0 ? 'Aucune réalisation' : '${monthMinutes > 0 ? '${_minutesLabel(monthMinutes)} vécues' : ''}${monthMinutes > 0 && monthCount > 0 ? ' · ' : ''}${monthCount > 0 ? '$monthCount occurrence${monthCount > 1 ? 's' : ''}' : ''}', style: _hintStyle()),
             ]),
           ),
           IconButton(
@@ -204,7 +212,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
           ),
         ]),
         const SizedBox(height: AppSpace.s),
-        _monthCalendarGrid(_calMonth, perDay),
+        _monthCalendarGrid(_calMonth, perDay, perDayCount: perDayCount),
       ]),
     );
   }
@@ -212,10 +220,11 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
   @override
   Widget build(BuildContext context) {
     final logs = _periodLogs();
-    final totalMinutes = logs.fold<int>(0, (s, l) => s + l.realisedMinutes);
+    final totalMinutes = _timeMinutesOf(logs);
 
+    final countLogs = logs.where(_logIsCount).toList();
     final byCategory = <String, int>{};
-    for (final l in logs) {
+    for (final l in logs.where((l) => !_logIsCount(l))) {
       final c = l.category.trim().isEmpty ? 'Autre' : l.category.trim();
       byCategory[c] = (byCategory[c] ?? 0) + l.realisedMinutes;
     }
@@ -334,10 +343,22 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
                 else
                   for (var i = 0; i < slices.length; i++)
                     _legendRow(slices[i].key, slices[i].value, totalMinutes, _palette[i % _palette.length]),
+                if (countLogs.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpace.m),
+                    child: Row(children: [
+                      Icon(Icons.task_alt_rounded, size: 18, color: _colors.accentIcon),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text('${countLogs.length} occurrence${countLogs.length > 1 ? 's' : ''} sans durée (hors total d’heures)', style: _hintStyle())),
+                    ]),
+                  ),
               ]),
             ),
             const SizedBox(height: AppSpace.m),
-            _calendarCard(_minutesPerDay(widget.logs.where((l) => l.realisedMinutes > 0))),
+            _calendarCard(
+              _minutesPerDay(widget.logs.where((l) => l.realisedMinutes > 0 && !_logIsCount(l))),
+              _countsPerDay(widget.logs.where((l) => l.realisedMinutes > 0 && _logIsCount(l))),
+            ),
             if (totals.isNotEmpty) ...[
               const SizedBox(height: AppSpace.m),
               _AppCard(
@@ -400,28 +421,32 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
 
   Widget _heatRow(DateTime month, Map<int, int> perDay) => _heatMonthRow(month, perDay);
 
-  Widget _calendar(Map<int, int> perDay) => _monthCalendarGrid(_month, perDay);
+  Widget _calendar(Map<int, int> perDay, {bool count = false}) =>
+      count ? _monthCalendarGrid(_month, const <int, int>{}, perDayCount: perDay) : _monthCalendarGrid(_month, perDay);
 
   @override
   Widget build(BuildContext context) {
     final activity = widget.activity;
     final logs = widget.logs.where((l) => l.realisedMinutes > 0 && _logIsOfActivity(l, activity)).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
-    final total = logs.fold<int>(0, (s, l) => s + l.realisedMinutes);
+    final isCount = activity.countOnly;
+    int amount(ActivityLog l) => isCount ? 1 : l.realisedMinutes;
+    final total = logs.fold<int>(0, (s, l) => s + amount(l));
     final now = DateTime.now();
     final todayDate = DateTime(now.year, now.month, now.day);
     final firstDate = logs.isEmpty ? null : logs.last.date;
     final days = firstDate == null ? 0 : _daysBetween(firstDate, todayDate) + 1;
     final perWeek = days <= 0 ? 0 : (total / max(1.0, days / 7.0)).round();
-    final last7 = logs.where((l) => !l.date.isBefore(_addDays(todayDate, -6))).fold<int>(0, (s, l) => s + l.realisedMinutes);
-    final nextMilestone = _nextMilestoneMinutes(total);
+    final perWeekCount = days <= 0 ? 0.0 : total / max(1.0, days / 7.0);
+    final last7 = logs.where((l) => !l.date.isBefore(_addDays(todayDate, -6))).fold<int>(0, (s, l) => s + amount(l));
+    final nextMilestone = isCount ? _nextCountMilestone(total) : _nextMilestoneMinutes(total);
     final toMilestone = nextMilestone == null ? 0 : nextMilestone - total;
 
     final perDay = <int, int>{};
     for (final l in logs) {
-      perDay[_dayKey(l.date)] = (perDay[_dayKey(l.date)] ?? 0) + l.realisedMinutes;
+      perDay[_dayKey(l.date)] = (perDay[_dayKey(l.date)] ?? 0) + amount(l);
     }
-    final monthMinutes = logs.where((l) => l.date.year == _month.year && l.date.month == _month.month).fold<int>(0, (s, l) => s + l.realisedMinutes);
+    final monthMinutes = logs.where((l) => l.date.year == _month.year && l.date.month == _month.month).fold<int>(0, (s, l) => s + amount(l));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Détail de l’activité'), leading: const BackButton()),
@@ -444,16 +469,16 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
                   ),
                   const SizedBox(width: 8),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
-                    Text(_hoursLabel(total), style: TextStyle(fontSize: AppType.display + 6, fontWeight: FontWeight.w800, color: _colors.goldText, height: 1)),
-                    Text('heures', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.goldText)),
+                    Text(isCount ? '$total' : _hoursLabel(total), style: TextStyle(fontSize: AppType.display + 6, fontWeight: FontWeight.w800, color: _colors.goldText, height: 1)),
+                    Text(isCount ? 'fois' : 'heures', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.goldText)),
                   ]),
                 ]),
                 const SizedBox(height: AppSpace.l),
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   _kpi('$days', days > 1 ? 'Jours' : 'Jour'),
-                  _kpi('${_hoursLabel(perWeek)} h', 'Chaque semaine'),
-                  _kpi('${_hoursLabel(last7)} h', '7 derniers jours'),
-                  _kpi(nextMilestone == null ? '—' : '${_hoursLabel(toMilestone)} h', nextMilestone == null ? 'Palier max' : 'Avant ${nextMilestone ~/ 60} h'),
+                  _kpi(isCount ? '${perWeekCount.toStringAsFixed(1).replaceAll('.', ',')}×' : '${_hoursLabel(perWeek)} h', 'Chaque semaine'),
+                  _kpi(isCount ? '$last7×' : '${_hoursLabel(last7)} h', '7 derniers jours'),
+                  _kpi(nextMilestone == null ? '—' : (isCount ? '$toMilestone×' : '${_hoursLabel(toMilestone)} h'), nextMilestone == null ? 'Palier max' : (isCount ? 'Avant $nextMilestone fois' : 'Avant ${nextMilestone ~/ 60} h')),
                 ]),
                 const SizedBox(height: AppSpace.m),
                 Divider(height: 1, color: _colors.borderTint),
@@ -474,7 +499,7 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
                     child: Column(children: [
                       Text('${_frMonthsLong[_month.month - 1]} ${_month.year}', style: _sectionTitleStyle(context)),
                       const SizedBox(height: 2),
-                      Text(monthMinutes == 0 ? 'Aucune réalisation' : _minutesLabel(monthMinutes), style: _hintStyle()),
+                      Text(monthMinutes == 0 ? 'Aucune réalisation' : (isCount ? '$monthMinutes fois' : _minutesLabel(monthMinutes)), style: _hintStyle()),
                     ]),
                   ),
                   IconButton(
@@ -485,7 +510,7 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
                   ),
                 ]),
                 const SizedBox(height: AppSpace.s),
-                _calendar(perDay),
+                _calendar(perDay, count: isCount),
               ]),
             ),
             if (logs.isNotEmpty) ...[
@@ -513,7 +538,7 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                             child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Text(_minutesLabel(l.realisedMinutes), style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+                              Text(isCount ? '1×' : _minutesLabel(l.realisedMinutes), style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted)),
                               const SizedBox(width: 4),
                               Icon(Icons.edit_outlined, size: 14, color: _colors.textFaint),
                             ]),

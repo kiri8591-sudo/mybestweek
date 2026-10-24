@@ -208,6 +208,7 @@ extension _AppShellPart on _MaBelleSemaineAppState {
 
   Widget _buildAppShell(BuildContext context) {
     _colors = _darkMode ? AppColors.night : AppColors.light;
+    _activityRegistry = activities;
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'MyBestWeek',

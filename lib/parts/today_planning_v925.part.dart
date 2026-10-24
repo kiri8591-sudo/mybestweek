@@ -122,7 +122,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                       ],
                     ]),
                     const SizedBox(height: 2),
-                    if (!_isDateRangePlanItem(item))
+                    if (!_isDateRangePlanItem(item) && !_itemIsCount(item))
                       Text(item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min · ✓ validé' : '${item.duration} min', style: _detailMetaStyle())
                     else if (item.done)
                       Text('✓ validé', style: _detailMetaStyle()),
@@ -138,7 +138,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                 icon: _uiIcon('coach', Icons.psychology_alt_outlined, size: 18, color: _colors.accentIcon),
               ),
             if (item.done) _feelingChip(item),
-            if (!_isDateRangePlanItem(item))
+            if (!_isDateRangePlanItem(item) && !_itemIsCount(item))
               IconButton(
                 tooltip: 'Modifier le temps réalisé',
                 visualDensity: VisualDensity.compact,
@@ -242,7 +242,9 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
       case 'Culture': return _darkMode ? const Color(0xFF3A3524) : const Color(0xFFF0E9D8);
       case 'Sortie': return _darkMode ? const Color(0xFF3A2D28) : const Color(0xFFF1E3DC);
       case 'Social': return _darkMode ? const Color(0xFF2A3440) : const Color(0xFFE2E8EC);
-      default: return _darkMode ? const Color(0xFF303330) : const Color(0xFFEEECE7);
+      default:
+        if (_customCategories.contains(category)) return _customCategoryPastel(category, _darkMode);
+        return _darkMode ? const Color(0xFF303330) : const Color(0xFFEEECE7);
     }
   }
 

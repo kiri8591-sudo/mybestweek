@@ -163,7 +163,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
                     title: activity.name,
                     subtitle: frozen
                         ? (frozenLinkedToExisting ? 'Gelée · liée à cet objectif' : 'Gelée · non sélectionnable pour un nouvel objectif')
-                        : '${activity.category} · ${activity.duration} min',
+                        : '${activity.category} · ${_durationOrCount(activity)}',
                     selected: selected,
                     enabled: selectable,
                     badge: frozen ? const _Pill('Gelée') : null,

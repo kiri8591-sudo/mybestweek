@@ -284,7 +284,10 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                       style: _sheetTitleStyle(context),
                     ),
                   ),
-                  Text(item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min', style: _detailMetaStyle()),
+                  if (!_itemIsCount(item))
+                    Text(item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min', style: _detailMetaStyle())
+                  else if (item.done)
+                    Text('✓ fait', style: _detailMetaStyle()),
                 ],
               ),
               const SizedBox(height: 6),
@@ -326,6 +329,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                   ),
                 ),
               ],
+              if (!_itemIsCount(item)) ...[
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
@@ -338,6 +342,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                   label: Text(item.done ? 'Modifier le temps réalisé' : 'Valider avec un temps précis'),
                 ),
               ),
+              ],
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
@@ -425,6 +430,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                 const SizedBox(height: 6),
                 Align(alignment: Alignment.centerLeft, child: Text('Tu peux déplacer cette activité vers un autre jour et choisir Matin, Après-midi ou Soir.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted))),
                 const SizedBox(height: 10),
+                if (!_itemIsCount(item))
                 TextField(
                   controller: duration,
                   keyboardType: TextInputType.number,

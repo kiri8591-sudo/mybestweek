@@ -595,6 +595,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
         a.maxDailyOccurrences != b.maxDailyOccurrences ||
         a.sportGroup != b.sportGroup ||
         a.sportFamily != b.sportFamily ||
+        a.countOnly != b.countOnly ||
         a.sportGroupFrequency != b.sportGroupFrequency ||
         a.activeInSportRotation != b.activeInSportRotation ||
         a.isSportProgram != b.isSportProgram ||
@@ -754,6 +755,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
     var priority = draft.priority;
     var sportWeight = draft.sportWeight;
     var sportFamily = draft.sportFamily;
+    var trackCount = draft.countOnly && draft.category != 'Sport';
     var allowMultiplePerDay = draft.allowMultiplePerDay;
     var maxDailyOccurrences = draft.maxDailyOccurrences.clamp(2, 3).toInt();
     var preferred = Set<int>.from(draft.preferredDays);
@@ -769,9 +771,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
     // Toujours inclure la valeur actuellement enregistrée dans les listes
     // déroulantes. Cela évite l'assertion Flutter si une ancienne sauvegarde
     // contient une icône ou une catégorie qui n'est plus proposée aujourd'hui.
-    final categoryOptions = <String>[
-      'Sport', 'Bien-être', 'Loisir', 'Culture', 'Sortie', 'Social'
-    ];
+    final categoryOptions = <String>[..._allCategoryNames()];
     if (!categoryOptions.contains(category)) {
       categoryOptions.insert(0, category);
     }
@@ -886,14 +886,62 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                 DropdownButtonFormField<String>(
                   value: category,
                   decoration: const InputDecoration(labelText: 'Catégorie'),
-                  items: categoryOptions
-                      .map((v) => DropdownMenuItem<String>(value: v, child: Text(v)))
-                      .toList(),
-                  onChanged: (v) => setDialogState(() {
-                    category = v ?? category;
-                    if (category == 'Sport') dateRangeEnabled = false;
-                  }),
+                  items: [
+                    ...categoryOptions.map((v) => DropdownMenuItem<String>(value: v, child: Text(v))),
+                    const DropdownMenuItem<String>(
+                      value: '__new__',
+                      child: Row(children: [Icon(Icons.add_circle_outline, size: 18), SizedBox(width: 8), Text('Nouvelle catégorie…')]),
+                    ),
+                  ],
+                  onChanged: (v) async {
+                    if (v == '__new__') {
+                      final created = await askNewCategory();
+                      if (created != null) {
+                        setDialogState(() {
+                          categoryOptions.add(created);
+                          category = created;
+                        });
+                      } else {
+                        setDialogState(() {});
+                      }
+                      return;
+                    }
+                    setDialogState(() {
+                      category = v ?? category;
+                      if (category == 'Sport') {
+                        dateRangeEnabled = false;
+                        trackCount = false;
+                      }
+                    });
+                  },
                 ),
+                if (category != 'Sport' && !draft.isSportProgram) ...[
+                  const SizedBox(height: 12),
+                  Text('Suivi', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<bool>(
+                      segments: const [
+                        ButtonSegment<bool>(value: false, icon: Icon(Icons.timer_outlined, size: 17), label: Text('En temps')),
+                        ButtonSegment<bool>(value: true, icon: Icon(Icons.task_alt_rounded, size: 17), label: Text('En occurrences')),
+                      ],
+                      selected: <bool>{trackCount},
+                      onSelectionChanged: (selection) => setDialogState(() {
+                        if (selection.isEmpty) return;
+                        trackCount = selection.first;
+                        if (!trackCount && (int.tryParse(duration.text.trim()) ?? 0) <= 1) duration.text = '30';
+                      }),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    trackCount
+                        ? 'Chaque réalisation compte pour « 1 fois », sans durée (ex. visiter un site).'
+                        : 'Chaque réalisation est suivie avec le temps passé.',
+                    style: _hintStyle(),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 InkWell(
                   borderRadius: BorderRadius.circular(AppRadius.l),
@@ -920,7 +968,8 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                     ]),
                   ),
                 ),
-                const SizedBox(height: 10),                const SizedBox(height: 10),
+                const SizedBox(height: 10),                if (!(trackCount && category != 'Sport' && !draft.isSportProgram)) ...[
+                const SizedBox(height: 10),
                 TextField(
                   controller: duration,
                   keyboardType: TextInputType.number,
@@ -943,6 +992,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       onSelected: (_) => setDialogState(() => duration.text = '$v'),
                     ),
                 ]),
+                ],
                 if (!(category == 'Sport' || draft.isSportProgram)) ...[
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
@@ -1286,7 +1336,9 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   emoji: emoji,
                   category: category,
                   period: category == 'Sport' || draft.isSportProgram ? draft.period : period,
-                  duration: (int.tryParse(duration.text.trim()) ?? (category == 'Sport' || draft.isSportProgram ? 30 : draft.duration)).clamp(1, 600).toInt(),
+                  duration: (category != 'Sport' && !draft.isSportProgram && trackCount)
+                      ? 1
+                      : (int.tryParse(duration.text.trim()) ?? (category == 'Sport' || draft.isSportProgram ? 30 : draft.duration)).clamp(1, 600).toInt(),
                   frequency: frequency,
                   priority: priority,
                   preferredDays: preferred.toList()..sort(),
@@ -1299,6 +1351,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   sportGroup: sportGroup,
                   sportGroupFrequency: sportGroupFrequency,
                   sportFamily: category == 'Sport' ? sportFamily : null,
+                  countOnly: category != 'Sport' && !draft.isSportProgram && trackCount,
                   activeInSportRotation: activeInSportRotation,
                   isSportProgram: draft.isSportProgram,
                   isFrozen: isFrozen,

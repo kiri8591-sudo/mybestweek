@@ -492,6 +492,9 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
           else
             ...selectedItems.map((item) => Padding(padding: const EdgeInsets.only(bottom: 4), child: Row(children: [
               _activityIconWidget(_activityEmojiForItem(item), size: 19), const SizedBox(width: 5), Expanded(child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w700, color: _colors.textStrong))),
+              if (_itemIsCount(item))
+                Text(item.done ? '✓ fait' : '', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentText))
+              else
               InkWell(
                 onTap: () async {
                   final activity = _allActivities().firstWhere((a) => a.id == item.activityId);

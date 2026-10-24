@@ -533,7 +533,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                                   style: _detailMetaStyle(),
                                 ),
                               if (highlightMission && !isSport)
-                                Text('${item.duration} min · ${item.period}', style: _detailMetaStyle()),
+                                Text(_itemIsCount(item) ? item.period : '${item.duration} min · ${item.period}', style: _detailMetaStyle()),
                               if (isDailyPriority)
                                 _uiIcon('priority', Icons.star_rounded, size: 13, color: _colors.goldText),
                               if (activity != null) _frozenActivityMarker(activity),
@@ -546,7 +546,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                 ),
               ),
               if (item.done) _feelingChip(item),
-              if (isSport || !_isDateRangePlanItem(item))
+              if (isSport || (!_isDateRangePlanItem(item) && !_itemIsCount(item)))
                 IconButton(
                   tooltip: 'Modifier le temps réalisé',
                   visualDensity: VisualDensity.compact,

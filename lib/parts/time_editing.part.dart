@@ -71,6 +71,15 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
   /// Si le moment n'est pas encore validé, il l'est avec ce temps.
   Future<void> editItemRealisedMinutes(PlanItem item) async {
     if (!mounted) return;
+    if (_itemIsCount(item)) {
+      // Occurrence : pas de durée à saisir, on valide simplement.
+      if (!item.done) {
+        togglePlanItemDone(item, true);
+      } else {
+        _showFeedback('« ${item.title} » est suivie en occurrences : pas de durée à saisir.');
+      }
+      return;
+    }
     final current = item.done ? (item.realisedMinutes ?? item.duration) : null;
     final minutes = await _askMinutes(name: item.title, planned: item.duration, current: current);
     if (minutes == null || !mounted) return;
@@ -86,6 +95,10 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
   /// Saisir ou corriger le temps vécu d'une activité (Sport ou non) un jour donné.
   Future<void> editActivityMinutesOnDate(Activity activity, DateTime date) async {
     if (!mounted) return;
+    if (activity.countOnly) {
+      toggleNonSportActivityOnDate(activity, date);
+      return;
+    }
     final day = date.weekday - 1;
     final isSport = _isSportActivity(activity) || activity.isSportProgram;
     final currentWeek = _sameDateOnlyNonSport(date, _addDays(_startOfCurrentWeek(), day));
@@ -137,6 +150,21 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
   /// Historique : corriger la durée d'une réalisation ; 0 minute la supprime.
   Future<void> editHistoryLogMinutes(ActivityLog log) async {
     if (!mounted || logs.indexOf(log) < 0) return;
+    if (_logIsCount(log)) {
+      final remove = await showDialog<bool>(
+        context: _navigatorKey.currentContext!,
+        builder: (context) => AlertDialog(
+          title: const Text('Supprimer cette occurrence ?'),
+          content: Text('« ${log.title} » est suivie en occurrences : il n’y a pas de durée à modifier. Supprimer cette fois de l’historique ?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Garder')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Supprimer')),
+          ],
+        ),
+      );
+      if (remove == true && mounted) _deleteHistoryLog(log);
+      return;
+    }
     final minutes = await _askMinutes(
       name: log.title,
       planned: log.plannedMinutes > 0 ? log.plannedMinutes : max(1, log.realisedMinutes),
@@ -313,7 +341,7 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
                     _SheetPickRow(
                       leading: _activityIconWidget(a.emoji, size: 24),
                       title: a.name,
-                      subtitle: '${a.category} · ${a.duration} min prévues${a.isFrozen ? ' · gelée' : ''}',
+                      subtitle: '${a.category} · ${a.countOnly ? 'Occurrence' : '${a.duration} min prévues'}${a.isFrozen ? ' · gelée' : ''}',
                       onTap: () => Navigator.pop(sheetContext, a),
                     ),
                 ],
@@ -332,11 +360,11 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
       helpText: 'Quel jour ?',
     );
     if (date == null || !mounted) return;
-    final minutes = await _askMinutes(name: picked.name, planned: picked.duration);
+    final int? minutes = picked.countOnly ? 1 : await _askMinutes(name: picked.name, planned: picked.duration);
     if (minutes == null || !mounted) return;
     final actual = max(1, minutes);
     _recordRealisationOnDate(picked, date, actual);
-    _showFeedback('✓ « ${picked.name} » ajouté à l’historique : $actual min.');
+    _showFeedback(picked.countOnly ? '✓ « ${picked.name} » ajouté à l’historique (1 fois).' : '✓ « ${picked.name} » ajouté à l’historique : $actual min.');
   }
 
   ActivityLog _logWithFeeling(ActivityLog log, String feeling) => ActivityLog(

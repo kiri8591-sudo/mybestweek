@@ -51,6 +51,15 @@ int _longestStreak(Iterable<ActivityLog> logs) {
   return best;
 }
 
+/// Occurrences par jour (activités suivies en occurrences).
+Map<int, int> _countsPerDay(Iterable<ActivityLog> logs) {
+  final map = <int, int>{};
+  for (final l in logs) {
+    map[_dayKey(l.date)] = (map[_dayKey(l.date)] ?? 0) + 1;
+  }
+  return map;
+}
+
 Map<int, int> _minutesPerDay(Iterable<ActivityLog> logs) {
   final map = <int, int>{};
   for (final l in logs) {
@@ -147,6 +156,8 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
     final days = g.logs.map((l) => _dayKey(l.date)).toSet().length;
     final span = _daysBetween(first, last) + 1;
     final perWeek = (g.minutes / max(1.0, span / 7.0)).round();
+    final isCount = g.activity.countOnly;
+    final perWeekCount = g.minutes / max(1.0, span / 7.0);
     final longestRecord = g.logs.fold<int>(0, (m, l) => max(m, l.realisedMinutes));
     final perDay = _minutesPerDay(g.logs);
     return Padding(
@@ -168,16 +179,16 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
             ),
             const SizedBox(width: 8),
             Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
-              Text(_hoursLabel(g.minutes), style: TextStyle(fontSize: AppType.display + 2, fontWeight: FontWeight.w800, color: _colors.goldText, height: 1)),
-              Text('heures', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.goldText)),
+              Text(isCount ? '${g.minutes}' : _hoursLabel(g.minutes), style: TextStyle(fontSize: AppType.display + 2, fontWeight: FontWeight.w800, color: _colors.goldText, height: 1)),
+              Text(isCount ? 'fois' : 'heures', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.goldText)),
             ]),
           ]),
           const SizedBox(height: AppSpace.l),
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             _kpiCell('$days', days > 1 ? 'Jours' : 'Jour'),
-            _kpiCell('${_hoursLabel(perWeek)} h', 'Chaque semaine'),
+            _kpiCell(isCount ? '${perWeekCount.toStringAsFixed(1).replaceAll('.', ',')}×' : '${_hoursLabel(perWeek)} h', 'Chaque semaine'),
             _kpiCell('${_longestStreak(g.logs)}', 'Plus longue série (j)'),
-            _kpiCell(_minutesLabel(longestRecord), 'Plus long record'),
+            if (isCount) _kpiCell('${g.minutes}×', 'Au total') else _kpiCell(_minutesLabel(longestRecord), 'Plus long record'),
           ]),
           const SizedBox(height: AppSpace.s),
           for (var i = 2; i >= 0; i--) _heatMonthRow(DateTime(last.year, last.month - i), perDay),
@@ -194,7 +205,7 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
     if (!scopes.contains(_scope)) _scope = 'Tout';
     final logs = _scope == 'Tout' ? all : all.where((l) => '${l.date.year}' == _scope).toList();
 
-    final total = logs.fold<int>(0, (s, l) => s + l.realisedMinutes);
+    final total = _timeMinutesOf(logs);
     final recordedDays = logs.map((l) => _dayKey(l.date)).toSet().length;
 
     final groups = <String, _ActivityGroup>{};
@@ -202,9 +213,15 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
       final a = _resolveActivity(l, widget.activities);
       final g = groups.putIfAbsent(a.id, () => _ActivityGroup(a));
       g.logs.add(l);
-      g.minutes += l.realisedMinutes;
+      g.minutes += g.activity.countOnly ? 1 : l.realisedMinutes;
     }
-    final ordered = groups.values.toList()..sort((a, b) => b.minutes.compareTo(a.minutes));
+    final ordered = groups.values.toList()
+      ..sort((a, b) {
+        if (a.activity.countOnly != b.activity.countOnly) return a.activity.countOnly ? 1 : -1;
+        return b.minutes.compareTo(a.minutes);
+      });
+    final timeOrdered = ordered.where((g) => !g.activity.countOnly).toList();
+    final countTotal = ordered.where((g) => g.activity.countOnly).fold<int>(0, (s, g) => s + g.minutes);
 
     final heatYear = _scope == 'Tout' ? DateTime.now().year : (int.tryParse(_scope) ?? DateTime.now().year);
     final yearPerDay = _minutesPerDay(all.where((l) => l.date.year == heatYear));
@@ -252,7 +269,8 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         _summaryLine('Jours enregistrés', '$recordedDays'),
                         _summaryLine('Total investi', _hoursLabel(total), 'h'),
-                        if (ordered.isNotEmpty) _summaryLine('Le plus investi', ordered.first.activity.name, '${_hoursLabel(ordered.first.minutes)} h'),
+                        if (timeOrdered.isNotEmpty) _summaryLine('Le plus investi', timeOrdered.first.activity.name, '${_hoursLabel(timeOrdered.first.minutes)} h'),
+                        if (countTotal > 0) _summaryLine('Occurrences', '$countTotal', countTotal > 1 ? 'fois' : 'fois'),
                       ]),
                     ),
                   ]),
@@ -409,8 +427,8 @@ class _WeeksReviewPage extends StatelessWidget {
 
 String _cellMinutes(int minutes) => minutes < 60 ? '${minutes}m' : '${_hoursLabel(minutes)}h';
 
-Widget _calendarDayCell(int day, int minutes, bool isToday) {
-  final active = minutes > 0;
+Widget _calendarDayCell(int day, int minutes, bool isToday, {int count = 0}) {
+  final active = minutes > 0 || count > 0;
   return AspectRatio(
     aspectRatio: .95,
     child: Container(
@@ -425,7 +443,7 @@ Widget _calendarDayCell(int day, int minutes, bool isToday) {
           fit: BoxFit.scaleDown,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Text('$day', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: active ? _colors.card : _colors.textMuted, height: 1.1)),
-            if (active) Text(_cellMinutes(minutes), style: TextStyle(fontSize: AppType.micro, color: _colors.card, height: 1.1)),
+            if (active) Text(minutes > 0 ? _cellMinutes(minutes) : '$count×', style: TextStyle(fontSize: AppType.micro, color: _colors.card, height: 1.1)),
           ]),
         ),
       ),
@@ -434,7 +452,7 @@ Widget _calendarDayCell(int day, int minutes, bool isToday) {
 }
 
 /// Grille du mois (lundi en premier) : jour + minutes vécues les jours actifs.
-Widget _monthCalendarGrid(DateTime month, Map<int, int> perDay) {
+Widget _monthCalendarGrid(DateTime month, Map<int, int> perDay, {Map<int, int>? perDayCount}) {
   final first = DateTime(month.year, month.month, 1);
   final days = DateTime(month.year, month.month + 1, 0).day;
   final lead = first.weekday - 1;
@@ -442,7 +460,8 @@ Widget _monthCalendarGrid(DateTime month, Map<int, int> perDay) {
   final cells = <Widget>[
     for (var i = 0; i < lead; i++) const SizedBox.shrink(),
     for (var d = 1; d <= days; d++)
-      _calendarDayCell(d, perDay[_dayKey(DateTime(month.year, month.month, d))] ?? 0, todayKey == _dayKey(DateTime(month.year, month.month, d))),
+      _calendarDayCell(d, perDay[_dayKey(DateTime(month.year, month.month, d))] ?? 0, todayKey == _dayKey(DateTime(month.year, month.month, d)),
+          count: perDayCount?[_dayKey(DateTime(month.year, month.month, d))] ?? 0),
   ];
   while (cells.length % 7 != 0) {
     cells.add(const SizedBox.shrink());

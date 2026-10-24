@@ -102,7 +102,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
     final nextMonday = DateTime(monday.year, monday.month, monday.day + 7);
     final weekMoves = widget.moveLogs.where((m) => !m.date.isBefore(monday) && m.date.isBefore(nextMonday)).toList()..sort((a,b) => b.date.compareTo(a.date));
     final weekLogs = widget.logs.where((log) => !log.date.isBefore(monday) && log.date.isBefore(nextMonday) && log.realisedMinutes > 0).toList();
-    final validatedMinutes = weekLogs.fold<int>(0, (sum, log) => sum + log.realisedMinutes);
+    final validatedMinutes = _timeMinutesOf(weekLogs);
     final unplanned = weekLogs.where((log) => log.unplanned).length;
     final pianoMinutes = weekLogs
         .where((log) => log.title.toLowerCase().contains('piano'))
@@ -120,7 +120,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
       final start = DateTime(monday.year, monday.month, monday.day - index * 7);
       final end = DateTime(start.year, start.month, start.day + 7);
       final rowLogs = widget.logs.where((log) => !log.date.isBefore(start) && log.date.isBefore(end) && log.realisedMinutes > 0).toList();
-      final minutes = rowLogs.fold<int>(0, (sum, log) => sum + max(0, log.realisedMinutes));
+      final minutes = _timeMinutesOf(rowLogs);
       final activeDays = rowLogs
           .map((log) => DateTime(log.date.year, log.date.month, log.date.day))
           .toSet()

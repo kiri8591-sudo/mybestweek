@@ -262,7 +262,7 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
                         return _SheetPickRow(
                           leading: _activityIconWidget(activity.emoji, size: 24),
                           title: activity.name,
-                          subtitle: '${activity.category} · ${activity.duration} min',
+                          subtitle: '${activity.category} · ${_durationOrCount(activity)}',
                           selected: selected,
                           multi: true,
                           onTap: () {
@@ -484,8 +484,9 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: done ? _colors.accentIcon : _colors.textStrong, decoration: done ? TextDecoration.lineThrough : null)),
               const SizedBox(height: 3),
-              Text(done ? 'Réalisée aujourd’hui' : '${activity.category} · ${activity.duration} min', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+              Text(done ? 'Réalisée aujourd’hui' : '${activity.category} · ${_durationOrCount(activity)}', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted)),
             ])),
+            if (!activity.countOnly)
             IconButton(
               tooltip: 'Modifier le temps réalisé',
               visualDensity: VisualDensity.compact,

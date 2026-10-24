@@ -167,6 +167,7 @@ class Activity {
   final String? sportGroup;
   final int? sportGroupFrequency;
   final String? sportFamily; // null = déduite du nom ; 'none' = aucune
+  final bool countOnly; // suivi en occurrences (« fois ») plutôt qu'en temps
   final bool activeInSportRotation;
   final bool isSportProgram;
   Map<int, int> sportDailyDurations;
@@ -191,6 +192,7 @@ class Activity {
     this.sportGroup,
     this.sportGroupFrequency,
     this.sportFamily,
+    this.countOnly = false,
     this.activeInSportRotation = true,
     this.isSportProgram = false,
     Map<int, int>? sportDailyDurations,
@@ -219,6 +221,7 @@ class Activity {
         sportGroup: sportGroup,
         sportGroupFrequency: sportGroupFrequency,
         sportFamily: sportFamily,
+        countOnly: countOnly,
         activeInSportRotation: activeInSportRotation,
         isSportProgram: isSportProgram,
         sportDailyDurations: {...sportDailyDurations},

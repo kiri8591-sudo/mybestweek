@@ -38,10 +38,11 @@ extension _CoachSuggestionsPart on _MaBelleSemaineAppState {
 
     for (final a in activities) {
       if (a.isFrozen || a.isSportProgram || a.isDateRange) continue;
+      final timeTracked = !a.countOnly;
       final profile = _activityLearning(a);
 
       // 1) Durée prévue très différente du temps réellement vécu.
-      if (profile.hasEnoughData && profile.averageRealisedMinutes > 0 && profile.durationGapRatio >= .25) {
+      if (timeTracked && profile.hasEnoughData && profile.averageRealisedMinutes > 0 && profile.durationGapRatio >= .25) {
         final suggested = max(5, (profile.averageRealisedMinutes / 5).round() * 5);
         if ((suggested - a.duration).abs() >= 5) {
           result.add(_CoachSuggestion(
@@ -80,7 +81,7 @@ extension _CoachSuggestionsPart on _MaBelleSemaineAppState {
       }
 
       // 3) Souvent vécue comme difficile.
-      if (profile.hasEnoughData && profile.difficultCount >= 2 && profile.difficultRate >= .5 && a.duration > 10) {
+      if (timeTracked && profile.hasEnoughData && profile.difficultCount >= 2 && profile.difficultRate >= .5 && a.duration > 10) {
         final reduced = a.duration - 5;
         result.add(_CoachSuggestion(
           id: 'hard_${a.id}_$reduced',

@@ -270,6 +270,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         'data': e.data,
       }).toList(),
       'systemIconOverrides': {..._systemIconOverrides},
+      'customCategories': [..._customCategories],
       'todayNameday': _todayNameday,
       'todayNamedayDateKey': _todayNamedayDateKey,
       'morningThought': _morningThought,
@@ -326,6 +327,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         'sportGroup': a.sportGroup,
         'sportGroupFrequency': a.sportGroupFrequency,
         'sportFamily': a.sportFamily,
+        'countOnly': a.countOnly,
         'activeInSportRotation': a.activeInSportRotation,
         'isSportProgram': a.isSportProgram,
         'sportDailyDurations': {for (final e in a.sportDailyDurations.entries) '${e.key}': e.value},
@@ -468,6 +470,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
           maxDailyOccurrences: max(2, min(3, _asInt(rawActivity['maxDailyOccurrences'], 2))),
           sportGroup: _asString(rawActivity['sportGroup']),
           sportFamily: _asString(rawActivity['sportFamily']),
+          countOnly: rawActivity['countOnly'] == true,
           sportGroupFrequency: rawActivity['sportGroupFrequency'] == null ? null : max(1, min(7, _asInt(rawActivity['sportGroupFrequency']))),
           activeInSportRotation: _asBool(rawActivity['activeInSportRotation'], true),
           isSportProgram: _asBool(rawActivity['isSportProgram']),
@@ -701,6 +704,11 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         _systemUiIconOverrides
           ..clear()
           ..addAll(_systemIconOverrides);
+        _customCategories
+          ..clear()
+          ..addAll((root['customCategories'] is List ? List<dynamic>.from(root['customCategories']) : <dynamic>[])
+              .map((value) => '$value'.trim())
+              .where((value) => value.isNotEmpty));
         _todayNameday = _asString(root['todayNameday']) ?? '';
         _todayNamedayDateKey = _asString(root['todayNamedayDateKey']) ?? '';
         weeklyNote = _asString(root['weeklyNote']) ?? '';
@@ -858,6 +866,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _realizationGoals.clear();
       _systemIconOverrides.clear();
       _systemUiIconOverrides.clear();
+      _customCategories.clear();
       categoryFilter = 'Toutes';
       tab = 0;
       _morningThought = freshThought;

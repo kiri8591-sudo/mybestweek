@@ -760,7 +760,7 @@ class _HistorySheetState extends State<_HistorySheet> {
 
   Widget _historyLogCard(ActivityLog log) {
     final date = log.date;
-    final dateLabel = '${log.realisedMinutes} min';
+    final dateLabel = _logAmountLabel(log);
     final feeling = _normalizeFeeling(log.feeling);
 
     return Padding(

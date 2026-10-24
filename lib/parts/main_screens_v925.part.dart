@@ -59,7 +59,9 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
               Text(
                 recent.isEmpty
                     ? 'Aucune réalisation enregistrée pour le moment.'
-                    : '${recent.length} réalisation${recent.length > 1 ? 's' : ''} · $totalMinutes min réalisées au total',
+                    : (activity.countOnly
+            ? '${recent.length} fois enregistrée${recent.length > 1 ? 's' : ''}'
+            : '${recent.length} réalisation${recent.length > 1 ? 's' : ''} · $totalMinutes min réalisées au total'),
                 style: TextStyle(fontSize: AppType.label, color: _colors.textMuted),
               ),
               if (shown.isNotEmpty) ...[
@@ -91,7 +93,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                               padding: const EdgeInsets.symmetric(vertical: 4),
                               child: Row(mainAxisSize: MainAxisSize.min, children: [
                                 Text(
-                                  durationLabel(log.realisedMinutes),
+                                  activity.countOnly ? '1×' : durationLabel(log.realisedMinutes),
                                   style: TextStyle(fontSize: AppType.label, color: _colors.textMuted),
                                 ),
                                 const SizedBox(width: 4),
@@ -1253,7 +1255,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                           overflow: TextOverflow.ellipsis,
                           style: _detailTitleStyle(decoration: item.done ? TextDecoration.lineThrough : null),
                         ),
-                        if (!_isDateRangePlanItem(item))
+                        if (!_isDateRangePlanItem(item) && !_itemIsCount(item))
                           Text(
                             item.done ? '${item.realisedMinutes ?? item.duration} min réalisées' : '${item.duration} min',
                             style: TextStyle(fontSize: AppType.small, color: _colors.textMuted),
@@ -1285,7 +1287,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 const SizedBox(width: 7),
                 title,
                 if (item.done) _feelingChip(item),
-                if (!_isDateRangePlanItem(item))
+                if (!_isDateRangePlanItem(item) && !_itemIsCount(item))
                   IconButton(
                     tooltip: 'Modifier le temps réalisé',
                     visualDensity: VisualDensity.compact,
@@ -1701,7 +1703,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
   }
 
   Widget buildActivities() {
-    final cats = <String>['Toutes', 'Sport', 'Bien-être', 'Loisir', 'Culture', 'Sortie', 'Social'];
+    final cats = <String>['Toutes', ..._allCategoryNames()];
     final query = _activitySearchQuery.trim().toLowerCase();
     final filtered = activities.where((a) {
       final matchesCategory = categoryFilter == 'Toutes' || a.category == categoryFilter;
@@ -1876,7 +1878,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                                         ? 'Programme Sport · ${a.sportDailyDurations.values.where((v) => v > 0).fold<int>(0, (s, v) => s + v)} min/sem.'
                                         : a.isDateRange
                                             ? '${a.category} · ${_dateRangeLabel(a)}'
-                                            : '${a.category} · ${a.duration} min · ${a.frequency}×/sem.',
+                                            : '${a.category} · ${_durationOrCount(a)} · ${a.frequency}×/sem.',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(fontSize: AppType.label, color: _colors.textMuted),
