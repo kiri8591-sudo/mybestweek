@@ -126,3 +126,69 @@ extension _CategoriesPart on _MaBelleSemaineAppState {
     return created;
   }
 }
+
+/// Vrai si l'activité n'existe plus dans la liste (supprimée) : son historique reste consultable.
+bool _activityIsDeleted(Activity activity) => _registeredActivity(id: activity.id) == null;
+
+// ---------------------------------------------------------------------------
+// Suppression d'une activité
+// ---------------------------------------------------------------------------
+
+extension _ActivityDeletionPart on _MaBelleSemaineAppState {
+  /// Explique les conséquences et demande quoi faire de l'historique.
+  /// Retourne 'keep' (garder l'historique), 'all' (tout supprimer) ou null (annuler).
+  Future<String?> confirmDeleteActivity(Activity activity) async {
+    final mine = logs.where((l) => _logIsOfActivity(l, activity)).toList();
+    final upcoming = plan.where((p) => p.activityId == activity.id && !p.done).length;
+    final goals = _realizationGoals.where((g) => g.activityId == activity.id).length;
+    final time = _timeMinutesOf(mine);
+    final history = mine.isEmpty
+        ? null
+        : '${mine.length} réalisation${mine.length > 1 ? 's' : ''} dans l’historique${activity.countOnly || time == 0 ? '' : ' (${_minutesLabel(time)})'}';
+    final consequences = <String>[
+      if (upcoming > 0) '$upcoming moment${upcoming > 1 ? 's' : ''} à venir retiré${upcoming > 1 ? 's' : ''} du planning',
+      if (goals > 0) '$goals objectif${goals > 1 ? 's' : ''} lié${goals > 1 ? 's' : ''} supprimé${goals > 1 ? 's' : ''}',
+    ];
+    return showDialog<String>(
+      context: _navigatorKey.currentContext!,
+      builder: (context) => AlertDialog(
+        title: Text('Supprimer « ${activity.name} » ?'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (history != null) ...[
+            Text(history, style: TextStyle(fontWeight: FontWeight.w700, color: _colors.textStrong)),
+            const SizedBox(height: 6),
+            Text('« Garder l’historique » : les réalisations restent dans l’historique et les statistiques (activité marquée « supprimée »).', style: _hintStyle()),
+            const SizedBox(height: 4),
+            Text('« Tout supprimer » : elles sont aussi effacées.', style: _hintStyle()),
+          ] else
+            Text('Aucune réalisation enregistrée : rien à conserver.', style: _hintStyle()),
+          if (consequences.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            for (final line in consequences) Text('• $line', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted)),
+          ],
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+          if (history != null) TextButton(onPressed: () => Navigator.pop(context, 'all'), style: TextButton.styleFrom(foregroundColor: _colors.danger), child: const Text('Tout supprimer')),
+          FilledButton(onPressed: () => Navigator.pop(context, 'keep'), child: Text(history != null ? 'Garder l’historique' : 'Supprimer')),
+        ],
+      ),
+    );
+  }
+
+  void performDeleteActivity(Activity activity, {required bool deleteHistory}) {
+    _prepareUndoSnapshot();
+    setState(() {
+      activities.removeWhere((a) => a.id == activity.id);
+      plan.removeWhere((p) => p.activityId == activity.id);
+      _dailyPriorityActivityIds.remove(activity.id);
+      _realizationGoals.removeWhere((g) => g.activityId == activity.id);
+      if (deleteHistory) logs.removeWhere((l) => _logIsOfActivity(l, activity));
+    });
+    _queueLocalStatePersist();
+    _refreshGoalsAfterRealization();
+    _showFeedback(deleteHistory
+        ? '🗑️ « ${activity.name} » et son historique ont été supprimés.'
+        : '🗑️ « ${activity.name} » supprimée. Son historique est conservé.');
+  }
+}

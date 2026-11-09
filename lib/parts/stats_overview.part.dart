@@ -86,8 +86,9 @@ class _StatsOverviewPage extends StatefulWidget {
   final List<Activity> activities;
 
   final Future<void> Function(ActivityLog log) onEditLog;
+  final Future<void> Function(Activity activity) onAddForActivity;
 
-  const _StatsOverviewPage({required this.logs, required this.activities, required this.onEditLog});
+  const _StatsOverviewPage({required this.logs, required this.activities, required this.onEditLog, required this.onAddForActivity});
 
   @override
   State<_StatsOverviewPage> createState() => _StatsOverviewPageState();
@@ -135,7 +136,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
 
   void _openActivity(Activity activity) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => _ActivityStatsPage(activity: activity, logs: widget.logs, onEditLog: widget.onEditLog)),
+      MaterialPageRoute<void>(builder: (_) => _ActivityStatsPage(activity: activity, logs: widget.logs, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity)),
     );
   }
 
@@ -167,6 +168,10 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
           CircleAvatar(radius: 18, backgroundColor: _colors.tintStrong, child: _activityIconWidget(item.activity.emoji, size: 24)),
           const SizedBox(width: 12),
           Expanded(child: Text(item.activity.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong))),
+          if (_activityIsDeleted(item.activity)) ...[
+            const SizedBox(width: 6),
+            _Pill('supprimée', background: _colors.surfaceSunken, foreground: _colors.textMuted),
+          ],
           const SizedBox(width: 8),
           Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
             Text(item.isCount ? '${item.minutes}' : _hoursLabel(item.minutes), style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.accentText, height: 1.05)),
@@ -276,7 +281,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
               Expanded(
                 child: FilledButton.tonalIcon(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => _AchievementReportPage(logs: widget.logs, activities: widget.activities, onEditLog: widget.onEditLog)),
+                    MaterialPageRoute<void>(builder: (_) => _AchievementReportPage(logs: widget.logs, activities: widget.activities, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity)),
                   ),
                   icon: const Icon(Icons.emoji_events_outlined, size: 18),
                   label: const Text('Mes réalisations'),
@@ -394,8 +399,9 @@ class _ActivityStatsPage extends StatefulWidget {
   final List<ActivityLog> logs;
 
   final Future<void> Function(ActivityLog log) onEditLog;
+  final Future<void> Function(Activity activity) onAddForActivity;
 
-  const _ActivityStatsPage({required this.activity, required this.logs, required this.onEditLog});
+  const _ActivityStatsPage({required this.activity, required this.logs, required this.onEditLog, required this.onAddForActivity});
 
   @override
   State<_ActivityStatsPage> createState() => _ActivityStatsPageState();
@@ -464,7 +470,7 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: _sheetTitleStyle(context)),
                       const SizedBox(height: 3),
-                      Text(firstDate == null ? 'Pas encore de réalisation' : 'Depuis le ${_fullDate(firstDate)}', style: _hintStyle()),
+                      Text(firstDate == null ? 'Pas encore de réalisation' : '${_activityIsDeleted(activity) ? 'Activité supprimée · ' : ''}Depuis le ${_fullDate(firstDate)}', style: _hintStyle()),
                     ]),
                   ),
                   const SizedBox(width: 8),
@@ -511,6 +517,20 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
                 ]),
                 const SizedBox(height: AppSpace.s),
                 _calendar(perDay, count: isCount),
+                if (!_activityIsDeleted(activity)) ...[
+                  const SizedBox(height: AppSpace.s),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        await widget.onAddForActivity(activity);
+                        if (mounted) setState(() {});
+                      },
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: const Text('Ajouter une réalisation passée'),
+                    ),
+                  ),
+                ],
               ]),
             ),
             if (logs.isNotEmpty) ...[

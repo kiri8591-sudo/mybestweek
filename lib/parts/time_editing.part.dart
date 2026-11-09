@@ -351,6 +351,12 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
       ),
     );
     if (picked == null || !mounted) return;
+    await addHistoryLogFor(picked);
+  }
+
+  /// Saisit une réalisation passée pour une activité donnée : jour, puis temps (sauf occurrence).
+  Future<void> addHistoryLogFor(Activity picked) async {
+    if (!mounted) return;
     final now = DateTime.now();
     final date = await showDatePicker(
       context: _navigatorKey.currentContext!,

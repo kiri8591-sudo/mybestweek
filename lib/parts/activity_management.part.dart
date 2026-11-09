@@ -1313,13 +1313,11 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
             if (edit)
               TextButton(
-                onPressed: () {
-                  setState(() {
-                    activities.removeWhere((a) => a.id == original.id);
-                    plan.removeWhere((p) => p.activityId == original.id);
-                  });
-                  _queueLocalStatePersist();
-                  Navigator.pop(context);
+                onPressed: () async {
+                  final choice = await confirmDeleteActivity(original);
+                  if (choice == null) return;
+                  performDeleteActivity(original, deleteHistory: choice == 'all');
+                  if (context.mounted) Navigator.pop(context);
                 },
                 child: const Text('Supprimer'),
               ),

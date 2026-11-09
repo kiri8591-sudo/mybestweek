@@ -26,7 +26,7 @@ Activity _resolveActivity(ActivityLog log, List<Activity> activities) {
     if (_logIsOfActivity(log, a)) return a;
   }
   return Activity(
-    id: 'stats_${log.title.trim().toLowerCase().hashCode}',
+    id: log.activityId ?? 'stats_${log.title.trim().toLowerCase().hashCode}',
     name: log.title,
     emoji: log.emoji,
     category: log.category,
@@ -125,8 +125,9 @@ class _AchievementReportPage extends StatefulWidget {
   final List<Activity> activities;
 
   final Future<void> Function(ActivityLog log) onEditLog;
+  final Future<void> Function(Activity activity) onAddForActivity;
 
-  const _AchievementReportPage({required this.logs, required this.activities, required this.onEditLog});
+  const _AchievementReportPage({required this.logs, required this.activities, required this.onEditLog, required this.onAddForActivity});
 
   @override
   State<_AchievementReportPage> createState() => _AchievementReportPageState();
@@ -164,7 +165,7 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
       padding: const EdgeInsets.only(bottom: AppSpace.m),
       child: _AppCard(
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => _ActivityStatsPage(activity: g.activity, logs: widget.logs, onEditLog: widget.onEditLog)),
+          MaterialPageRoute<void>(builder: (_) => _ActivityStatsPage(activity: g.activity, logs: widget.logs, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity)),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
@@ -174,7 +175,7 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(g.activity.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: _sectionTitleStyle(context)),
                 const SizedBox(height: 3),
-                Text('${_longDate(first)} ~ ${_longDate(last)}', style: _hintStyle()),
+                Text('${_activityIsDeleted(g.activity) ? 'Activité supprimée · ' : ''}${_longDate(first)} ~ ${_longDate(last)}', style: _hintStyle()),
               ]),
             ),
             const SizedBox(width: 8),

@@ -10,6 +10,7 @@ class _HistorySheet extends StatefulWidget {
   final VoidCallback onOpenGenerationCriteria;
   final Future<void> Function(ActivityLog log) onEditLog;
   final Future<void> Function() onAddLog;
+  final Future<void> Function(Activity activity) onAddForActivity;
 
   const _HistorySheet({
     required this.logs,
@@ -18,6 +19,7 @@ class _HistorySheet extends StatefulWidget {
     required this.onOpenGenerationCriteria,
     required this.onEditLog,
     required this.onAddLog,
+    required this.onAddForActivity,
   });
 
   @override
@@ -844,7 +846,7 @@ class _HistorySheetState extends State<_HistorySheet> {
   void _openStats() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _StatsOverviewPage(logs: widget.logs, activities: widget.activities, onEditLog: widget.onEditLog),
+        builder: (_) => _StatsOverviewPage(logs: widget.logs, activities: widget.activities, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity),
       ),
     );
   }
@@ -852,7 +854,7 @@ class _HistorySheetState extends State<_HistorySheet> {
   void _openActivityStats(Activity activity) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _ActivityStatsPage(activity: activity, logs: widget.logs, onEditLog: widget.onEditLog),
+        builder: (_) => _ActivityStatsPage(activity: activity, logs: widget.logs, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity),
       ),
     );
   }
