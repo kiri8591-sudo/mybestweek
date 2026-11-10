@@ -53,6 +53,7 @@ extension _NonSportWeekNavigationPart on _MaBelleSemaineAppState {
       }
     });
     _queueLocalStatePersist();
+    if (existing < 0 && _isRepsActivity(activity)) Future.microtask(() => _promptRepsForDate(activity, date));
   }
 
   /// Semaine Activités : saisir ou corriger le temps vécu d'une activité un jour donné.
@@ -184,8 +185,24 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
 
   List<ActivityLog> _nonSportLogs() => widget.getLogs().where(_isNonSportLog).toList();
 
-  int _plannedCount(Activity activity) => widget.getPlan().where((p) => p.activityId == activity.id).length;
-  int _doneCount(Activity activity) => widget.getPlan().where((p) => p.activityId == activity.id && p.done).length;
+  /// Jours de la semaine affichée où l'activité a été réalisée (d'après l'historique).
+  int _logDaysInViewedWeek(Activity activity) {
+    final end = _addDays(_weekStart, 7);
+    final days = <String>{};
+    for (final log in widget.getLogs()) {
+      if (log.date.isBefore(_weekStart) || !log.date.isBefore(end)) continue;
+      if (log.activityId == activity.id || (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase())) {
+        days.add('${log.date.year}-${log.date.month}-${log.date.day}');
+      }
+    }
+    return days.length;
+  }
+
+  // Semaine en cours : planning. Autre semaine : historique (le planning ne couvre que la semaine en cours).
+  int _plannedCount(Activity activity) =>
+      _isCurrentWeek() ? widget.getPlan().where((p) => p.activityId == activity.id).length : _logDaysInViewedWeek(activity);
+  int _doneCount(Activity activity) =>
+      _isCurrentWeek() ? widget.getPlan().where((p) => p.activityId == activity.id && p.done).length : _logDaysInViewedWeek(activity);
 
   bool _missingFromWeek(Activity activity) => _plannedCount(activity) == 0;
 
@@ -492,7 +509,24 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
           else
             ...selectedItems.map((item) => Padding(padding: const EdgeInsets.only(bottom: 4), child: Row(children: [
               _activityIconWidget(_activityEmojiForItem(item), size: 19), const SizedBox(width: 5), Expanded(child: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w700, color: _colors.textStrong))),
-              if (_itemIsCount(item))
+              if (_itemIsReps(item))
+                InkWell(
+                  onTap: () async {
+                    final act = _allActivities().firstWhere((a) => a.id == item.activityId);
+                    await widget.onEditMinutes(act, selectedDate);
+                    if (mounted) setState(() {});
+                  },
+                  borderRadius: BorderRadius.circular(AppRadius.s),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.repeat_rounded, size: 15, color: _colors.textMuted),
+                      const SizedBox(width: 3),
+                      Text(_repsLineForItem(item).split(' · ').first, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentText)),
+                    ]),
+                  ),
+                )
+              else if (_itemIsCount(item))
                 Text(item.done ? '✓ fait' : '', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.accentText))
               else
               InkWell(

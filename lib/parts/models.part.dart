@@ -168,6 +168,7 @@ class Activity {
   final int? sportGroupFrequency;
   final String? sportFamily; // null = déduite du nom ; 'none' = aucune
   final bool countOnly; // suivi en occurrences (« fois ») plutôt qu'en temps
+  int? repsTarget; // objectif de répétitions (suivi en répétitions ; implique countOnly)
   final bool activeInSportRotation;
   final bool isSportProgram;
   Map<int, int> sportDailyDurations;
@@ -193,6 +194,7 @@ class Activity {
     this.sportGroupFrequency,
     this.sportFamily,
     this.countOnly = false,
+    this.repsTarget,
     this.activeInSportRotation = true,
     this.isSportProgram = false,
     Map<int, int>? sportDailyDurations,
@@ -222,6 +224,7 @@ class Activity {
         sportGroupFrequency: sportGroupFrequency,
         sportFamily: sportFamily,
         countOnly: countOnly,
+        repsTarget: repsTarget,
         activeInSportRotation: activeInSportRotation,
         isSportProgram: isSportProgram,
         sportDailyDurations: {...sportDailyDurations},
@@ -281,6 +284,7 @@ class ActivityLog {
   final bool unplanned;
   final String? planItemId;
   final String? activityId;
+  final int? reps; // répétitions réalisées (activités suivies en répétitions)
 
   ActivityLog({
     required this.date,
@@ -295,6 +299,7 @@ class ActivityLog {
     this.unplanned = false,
     this.planItemId,
     this.activityId,
+    this.reps,
   });
 }
 

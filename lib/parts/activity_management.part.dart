@@ -596,6 +596,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
         a.sportGroup != b.sportGroup ||
         a.sportFamily != b.sportFamily ||
         a.countOnly != b.countOnly ||
+        a.repsTarget != b.repsTarget ||
         a.sportGroupFrequency != b.sportGroupFrequency ||
         a.activeInSportRotation != b.activeInSportRotation ||
         a.isSportProgram != b.isSportProgram ||
@@ -645,6 +646,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
           unplanned: log.unplanned,
           planItemId: log.planItemId,
           activityId: log.activityId,
+          reps: log.reps,
         );
       }
     });
@@ -735,9 +737,9 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
     );
   }
 
-  void addOrEditActivity({Activity? original}) {
+  void addOrEditActivity({Activity? original, Activity? prefill}) {
     final edit = original != null;
-    final draft = original?.copy() ?? Activity(
+    final draft = original?.copy() ?? prefill?.copy() ?? Activity(
       id: 'custom_${DateTime.now().microsecondsSinceEpoch}',
       name: '',
       emoji: '✨',
@@ -756,6 +758,8 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
     var sportWeight = draft.sportWeight;
     var sportFamily = draft.sportFamily;
     var trackCount = draft.countOnly && draft.category != 'Sport';
+    var trackReps = draft.repsTarget != null && draft.countOnly && draft.category != 'Sport';
+    final repsTargetCtl = TextEditingController(text: draft.repsTarget?.toString() ?? '');
     var allowMultiplePerDay = draft.allowMultiplePerDay;
     var maxDailyOccurrences = draft.maxDailyOccurrences.clamp(2, 3).toInt();
     var preferred = Set<int>.from(draft.preferredDays);
@@ -911,6 +915,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       if (category == 'Sport') {
                         dateRangeEnabled = false;
                         trackCount = false;
+                        trackReps = false;
                       }
                     });
                   },
@@ -921,26 +926,54 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   const SizedBox(height: 6),
                   SizedBox(
                     width: double.infinity,
-                    child: SegmentedButton<bool>(
+                    child: SegmentedButton<String>(
                       segments: const [
-                        ButtonSegment<bool>(value: false, icon: Icon(Icons.timer_outlined, size: 17), label: Text('En temps')),
-                        ButtonSegment<bool>(value: true, icon: Icon(Icons.task_alt_rounded, size: 17), label: Text('En occurrences')),
+                        ButtonSegment<String>(value: 'time', icon: Icon(Icons.timer_outlined, size: 17), label: Text('Temps')),
+                        ButtonSegment<String>(value: 'count', icon: Icon(Icons.task_alt_rounded, size: 17), label: Text('Occurrences')),
+                        ButtonSegment<String>(value: 'reps', icon: Icon(Icons.repeat_rounded, size: 17), label: Text('Répétitions')),
                       ],
-                      selected: <bool>{trackCount},
+                      selected: <String>{trackReps ? 'reps' : (trackCount ? 'count' : 'time')},
                       onSelectionChanged: (selection) => setDialogState(() {
                         if (selection.isEmpty) return;
-                        trackCount = selection.first;
+                        final mode = selection.first;
+                        trackCount = mode != 'time';
+                        trackReps = mode == 'reps';
                         if (!trackCount && (int.tryParse(duration.text.trim()) ?? 0) <= 1) duration.text = '30';
                       }),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    trackCount
-                        ? 'Chaque réalisation compte pour « 1 fois », sans durée (ex. visiter un site).'
-                        : 'Chaque réalisation est suivie avec le temps passé.',
+                    trackReps
+                        ? 'Chaque réalisation enregistre un nombre de répétitions, comparé à un objectif (ex. pompes).'
+                        : trackCount
+                            ? 'Chaque réalisation compte pour « 1 fois », sans durée (ex. visiter un site).'
+                            : 'Chaque réalisation est suivie avec le temps passé.',
                     style: _hintStyle(),
                   ),
+                  if (trackReps) ...[
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: repsTargetCtl,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => setDialogState(() {}),
+                      decoration: const InputDecoration(
+                        labelText: 'Objectif (répétitions)',
+                        helperText: 'Ex. 100. Le Coach compare ta dernière réalisation à cet objectif.',
+                        helperMaxLines: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(spacing: 6, children: [
+                      for (final v in const [10, 20, 30, 50, 100])
+                        ChoiceChip(
+                          label: Text('$v', style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700)),
+                          selected: repsTargetCtl.text.trim() == '$v',
+                          visualDensity: VisualDensity.compact,
+                          onSelected: (_) => setDialogState(() => repsTargetCtl.text = '$v'),
+                        ),
+                    ]),
+                  ],
                 ],
                 const SizedBox(height: 10),
                 InkWell(
@@ -1350,6 +1383,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   sportGroupFrequency: sportGroupFrequency,
                   sportFamily: category == 'Sport' ? sportFamily : null,
                   countOnly: category != 'Sport' && !draft.isSportProgram && trackCount,
+                  repsTarget: (category != 'Sport' && !draft.isSportProgram && trackCount && trackReps) ? max(1, int.tryParse(repsTargetCtl.text.trim()) ?? 10) : null,
                   activeInSportRotation: activeInSportRotation,
                   isSportProgram: draft.isSportProgram,
                   isFrozen: isFrozen,
@@ -1398,6 +1432,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                         unplanned: log.unplanned,
                         planItemId: log.planItemId,
                         activityId: log.activityId,
+                        reps: log.reps,
                       );
                     }
                     _syncActivityToWeek(updated, previous: original);
@@ -1413,6 +1448,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   }
                 });
                 _queueLocalStatePersist();
+                if (!edit) _offerRelinkOrphanHistory(updated);
                 if (freezeTransition) {
                   _applyFreezeTransitionFromEditor(updated, original);
                   _queueLocalStatePersist();

@@ -555,6 +555,15 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
                   onPressed: () => isSport ? _editSportRealisedMinutes(item, activity!) : editItemRealisedMinutes(item),
                   icon: _uiIcon('duration', Icons.timer_outlined, size: 18, color: _colors.textMuted),
                 ),
+              if (_itemIsReps(item))
+                IconButton(
+                  tooltip: 'Saisir les répétitions',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                  onPressed: () => editItemReps(item),
+                  icon: _uiIcon('repeat', Icons.repeat_rounded, size: 18),
+                ),
               PopupMenuButton<String>(
                 tooltip: 'Autres actions',
                 padding: EdgeInsets.zero,

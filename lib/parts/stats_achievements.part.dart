@@ -126,8 +126,10 @@ class _AchievementReportPage extends StatefulWidget {
 
   final Future<void> Function(ActivityLog log) onEditLog;
   final Future<void> Function(Activity activity) onAddForActivity;
+  final Future<void> Function(Activity activity) onRecreate;
+  final Future<void> Function(Activity activity) onRelink;
 
-  const _AchievementReportPage({required this.logs, required this.activities, required this.onEditLog, required this.onAddForActivity});
+  const _AchievementReportPage({required this.logs, required this.activities, required this.onEditLog, required this.onAddForActivity, required this.onRecreate, required this.onRelink});
 
   @override
   State<_AchievementReportPage> createState() => _AchievementReportPageState();
@@ -158,14 +160,14 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
     final span = _daysBetween(first, last) + 1;
     final perWeek = (g.minutes / max(1.0, span / 7.0)).round();
     final isCount = g.activity.countOnly;
-    final perWeekCount = g.minutes / max(1.0, span / 7.0);
+    final perWeekCount = (_isRepsActivity(g.activity) ? g.logs.length : g.minutes) / max(1.0, span / 7.0);
     final longestRecord = g.logs.fold<int>(0, (m, l) => max(m, l.realisedMinutes));
     final perDay = _minutesPerDay(g.logs);
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpace.m),
       child: _AppCard(
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => _ActivityStatsPage(activity: g.activity, logs: widget.logs, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity)),
+          MaterialPageRoute<void>(builder: (_) => _ActivityStatsPage(activity: g.activity, logs: widget.logs, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity, onRecreate: widget.onRecreate, onRelink: widget.onRelink)),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
@@ -181,7 +183,7 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
             const SizedBox(width: 8),
             Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
               Text(isCount ? '${g.minutes}' : _hoursLabel(g.minutes), style: TextStyle(fontSize: AppType.display + 2, fontWeight: FontWeight.w800, color: _colors.goldText, height: 1)),
-              Text(isCount ? 'fois' : 'heures', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.goldText)),
+              Text(_amountUnit(g.activity), style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.goldText)),
             ]),
           ]),
           const SizedBox(height: AppSpace.l),
@@ -189,7 +191,7 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
             _kpiCell('$days', days > 1 ? 'Jours' : 'Jour'),
             _kpiCell(isCount ? '${perWeekCount.toStringAsFixed(1).replaceAll('.', ',')}×' : '${_hoursLabel(perWeek)} h', 'Chaque semaine'),
             _kpiCell('${_longestStreak(g.logs)}', 'Plus longue série (j)'),
-            if (isCount) _kpiCell('${g.minutes}×', 'Au total') else _kpiCell(_minutesLabel(longestRecord), 'Plus long record'),
+            if (_isRepsActivity(g.activity)) _kpiCell('${g.logs.fold<int>(0, (m, l) => max(m, l.reps ?? 0))}', 'Meilleure') else if (isCount) _kpiCell('${g.logs.length}×', 'Au total') else _kpiCell(_minutesLabel(longestRecord), 'Plus long record'),
           ]),
           const SizedBox(height: AppSpace.s),
           for (var i = 2; i >= 0; i--) _heatMonthRow(DateTime(last.year, last.month - i), perDay),
@@ -214,7 +216,7 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
       final a = _resolveActivity(l, widget.activities);
       final g = groups.putIfAbsent(a.id, () => _ActivityGroup(a));
       g.logs.add(l);
-      g.minutes += g.activity.countOnly ? 1 : l.realisedMinutes;
+      g.minutes += _isRepsActivity(g.activity) ? (l.reps ?? 0) : (g.activity.countOnly ? 1 : l.realisedMinutes);
     }
     final ordered = groups.values.toList()
       ..sort((a, b) {
@@ -222,7 +224,7 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
         return b.minutes.compareTo(a.minutes);
       });
     final timeOrdered = ordered.where((g) => !g.activity.countOnly).toList();
-    final countTotal = ordered.where((g) => g.activity.countOnly).fold<int>(0, (s, g) => s + g.minutes);
+    final countTotal = ordered.where((g) => g.activity.countOnly).fold<int>(0, (s, g) => s + g.logs.length);
 
     final heatYear = _scope == 'Tout' ? DateTime.now().year : (int.tryParse(_scope) ?? DateTime.now().year);
     final yearPerDay = _minutesPerDay(all.where((l) => l.date.year == heatYear));

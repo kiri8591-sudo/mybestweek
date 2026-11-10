@@ -32,6 +32,7 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
         unplanned: log.unplanned,
         planItemId: log.planItemId,
         activityId: log.activityId,
+        reps: log.reps,
       );
 
   /// Applique un temps réalisé à un moment déjà validé (moment + ligne de journal).
@@ -96,7 +97,11 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
   Future<void> editActivityMinutesOnDate(Activity activity, DateTime date) async {
     if (!mounted) return;
     if (activity.countOnly) {
-      toggleNonSportActivityOnDate(activity, date);
+      if (_isRepsActivity(activity)) {
+        await editActivityRepsOnDate(activity, date);
+      } else {
+        toggleNonSportActivityOnDate(activity, date);
+      }
       return;
     }
     final day = date.weekday - 1;
@@ -150,6 +155,17 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
   /// Historique : corriger la durée d'une réalisation ; 0 minute la supprime.
   Future<void> editHistoryLogMinutes(ActivityLog log) async {
     if (!mounted || logs.indexOf(log) < 0) return;
+    final repsActivity = _registeredActivity(id: log.activityId, title: log.activityId == null ? log.title : null);
+    if (repsActivity != null && _isRepsActivity(repsActivity)) {
+      final reps = await _askReps(activity: repsActivity, current: log.reps, allowDelete: true);
+      if (reps == null || !mounted) return;
+      if (reps <= 0) {
+        _deleteHistoryLog(log);
+      } else {
+        _setLogReps(log, reps);
+      }
+      return;
+    }
     if (_logIsCount(log)) {
       final remove = await showDialog<bool>(
         context: _navigatorKey.currentContext!,
@@ -235,7 +251,7 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
 
   /// Enregistre une réalisation à une date donnée et met à jour le planning de ce jour
   /// (semaine en cours : le moment prévu est validé, ou un moment validé est créé).
-  void _recordRealisationOnDate(Activity activity, DateTime date, int actual) {
+  void _recordRealisationOnDate(Activity activity, DateTime date, int actual, {int? reps}) {
     final day = date.weekday - 1;
     final currentWeek = _sameDateOnlyNonSport(date, _addDays(_startOfCurrentWeek(), day));
     _prepareUndoSnapshot();
@@ -292,6 +308,7 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
         unplanned: planned == 0,
         planItemId: planItemId,
         activityId: activity.id,
+        reps: reps,
       ));
     });
     if (currentWeek && day == today && _todayIsCompleted()) _upsertTodayDailySummary(persist: false);
@@ -366,11 +383,16 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
       helpText: 'Quel jour ?',
     );
     if (date == null || !mounted) return;
+    int? repsValue;
+    if (_isRepsActivity(picked)) {
+      repsValue = await _askReps(activity: picked);
+      if (repsValue == null || repsValue < 1 || !mounted) return;
+    }
     final int? minutes = picked.countOnly ? 1 : await _askMinutes(name: picked.name, planned: picked.duration);
     if (minutes == null || !mounted) return;
     final actual = max(1, minutes);
-    _recordRealisationOnDate(picked, date, actual);
-    _showFeedback(picked.countOnly ? '✓ « ${picked.name} » ajouté à l’historique (1 fois).' : '✓ « ${picked.name} » ajouté à l’historique : $actual min.');
+    _recordRealisationOnDate(picked, date, actual, reps: repsValue);
+    _showFeedback(repsValue != null ? '✓ « ${picked.name} » ajouté à l’historique : $repsValue rép.' : picked.countOnly ? '✓ « ${picked.name} » ajouté à l’historique (1 fois).' : '✓ « ${picked.name} » ajouté à l’historique : $actual min.');
   }
 
   ActivityLog _logWithFeeling(ActivityLog log, String feeling) => ActivityLog(
@@ -386,6 +408,7 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
         unplanned: log.unplanned,
         planItemId: log.planItemId,
         activityId: log.activityId,
+        reps: log.reps,
       );
 
   /// Ressenti en un geste : Bien → Très bien → Difficile → Bien…

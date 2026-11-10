@@ -39,6 +39,39 @@ extension _CoachSuggestionsPart on _MaBelleSemaineAppState {
     for (final a in activities) {
       if (a.isFrozen || a.isSportProgram || a.isDateRange) continue;
       final timeTracked = !a.countOnly;
+
+      // 0) Suivi en répétitions : dernière réalisation et objectif.
+      if (_isRepsActivity(a)) {
+        final lastLog = _lastRepsLog(a);
+        final target = a.repsTarget;
+        if (lastLog != null && target != null && lastLog.reps != null) {
+          final last = lastLog.reps!;
+          if (last >= target) {
+            final next = max(target + 5, ((target * 1.25) / 5).round() * 5);
+            result.add(_CoachSuggestion(
+              id: 'reps_goal_${a.id}_$target',
+              icon: Icons.emoji_events_outlined,
+              title: '« ${a.name} » : objectif atteint',
+              body: 'Dernière réalisation : $last rép. pour un objectif de $target. Prêt pour la suite ?',
+              actions: [
+                ('Viser $next rép.', () {
+                  setState(() => a.repsTarget = next);
+                  _queueLocalStatePersist();
+                  _showFeedback('✓ Nouvel objectif : $next rép.');
+                }),
+              ],
+            ));
+          } else {
+            result.add(_CoachSuggestion(
+              id: 'reps_${a.id}_$last',
+              icon: Icons.repeat_rounded,
+              title: '« ${a.name} » : $last / $target rép.',
+              body: 'Dernière réalisation : $last rép. Il reste ${target - last} répétitions pour atteindre l’objectif de $target (${(last * 100 / target).round()} %).',
+              actions: [('Saisir une série', () => editActivityRepsToday(a))],
+            ));
+          }
+        }
+      }
       final profile = _activityLearning(a);
 
       // 1) Durée prévue très différente du temps réellement vécu.

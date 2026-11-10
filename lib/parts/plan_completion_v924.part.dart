@@ -56,6 +56,7 @@ extension _PlanCompletionPart on _MaBelleSemaineAppState {
     _refreshGoalsAfterRealization();
     _maybeAwardDailyPriorityBonus();
     _showFeedback('✓ « ${item.title} » validé.');
+    if (activity != null && _isRepsActivity(activity)) Future.microtask(() => _promptRepsForItem(item));
   }
 
   Future<int?> _askSportRealisedMinutes(PlanItem item, Activity activity) async {
@@ -135,6 +136,7 @@ extension _PlanCompletionPart on _MaBelleSemaineAppState {
               unplanned: log.unplanned,
               planItemId: log.planItemId,
               activityId: log.activityId,
+              reps: log.reps,
             );
           }
         }

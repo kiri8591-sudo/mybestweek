@@ -495,6 +495,15 @@ extension _PrioritiesV928Part on _MaBelleSemaineAppState {
               onPressed: () => editActivityMinutesToday(activity),
               icon: _uiIcon('duration', Icons.timer_outlined, size: 19),
             ),
+            if (_isRepsActivity(activity))
+              IconButton(
+                tooltip: 'Saisir les répétitions',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                onPressed: () => editActivityRepsToday(activity),
+                icon: _uiIcon('repeat', Icons.repeat_rounded, size: 19),
+              ),
             const SizedBox(width: 4),
             Container(
               width: 40,

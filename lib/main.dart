@@ -55,6 +55,7 @@ part 'parts/sport_families.part.dart';
 part 'parts/time_editing.part.dart';
 part 'parts/coach_suggestions.part.dart';
 part 'parts/tracking_mode.part.dart';
+part 'parts/reps_tracking.part.dart';
 
 void main() {
   if (kIsWeb) _installMascotBrowserIcon();
@@ -71,8 +72,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.17.1';
-  static const buildVersion = '12.17.1+55';
+  static const version = 'V12.18.0';
+  static const buildVersion = '12.18.0+56';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',

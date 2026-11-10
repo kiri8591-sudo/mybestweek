@@ -328,6 +328,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         'sportGroupFrequency': a.sportGroupFrequency,
         'sportFamily': a.sportFamily,
         'countOnly': a.countOnly,
+        'repsTarget': a.repsTarget,
         'activeInSportRotation': a.activeInSportRotation,
         'isSportProgram': a.isSportProgram,
         'sportDailyDurations': {for (final e in a.sportDailyDurations.entries) '${e.key}': e.value},
@@ -378,6 +379,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         'unplanned': l.unplanned,
         'planItemId': l.planItemId,
         'activityId': l.activityId,
+        'reps': l.reps,
       }).toList(),
       'dailySummaries': dailySummaries.map((summary) => {
         'date': summary.date.toIso8601String(),
@@ -471,6 +473,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
           sportGroup: _asString(rawActivity['sportGroup']),
           sportFamily: _asString(rawActivity['sportFamily']),
           countOnly: rawActivity['countOnly'] == true,
+          repsTarget: rawActivity['repsTarget'] is num ? max(1, (rawActivity['repsTarget'] as num).toInt()) : null,
           sportGroupFrequency: rawActivity['sportGroupFrequency'] == null ? null : max(1, min(7, _asInt(rawActivity['sportGroupFrequency']))),
           activeInSportRotation: _asBool(rawActivity['activeInSportRotation'], true),
           isSportProgram: _asBool(rawActivity['isSportProgram']),
@@ -574,6 +577,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
           unplanned: _asBool(rawLog['unplanned']),
           planItemId: _asString(rawLog['planItemId']),
           activityId: _asString(rawLog['activityId']),
+          reps: rawLog['reps'] is num ? max(0, (rawLog['reps'] as num).toInt()) : null,
         ));
       }
 

@@ -286,6 +286,8 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                   ),
                   if (!_itemIsCount(item))
                     Text(item.done ? '${item.realisedMinutes ?? item.duration} / ${item.duration} min' : '${item.duration} min', style: _detailMetaStyle())
+                  else if (_itemIsReps(item))
+                    Text(_repsLineForItem(item), style: _detailMetaStyle())
                   else if (item.done)
                     Text('✓ fait', style: _detailMetaStyle()),
                 ],
@@ -326,6 +328,20 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
                     },
                     icon: _uiIcon('add', Icons.add_task_outlined, size: 18),
                     label: const Text('Réaliser encore aujourd’hui'),
+                  ),
+                ),
+              ],
+              if (_itemIsReps(item)) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(sheetContext);
+                      editItemReps(item);
+                    },
+                    icon: _uiIcon('repeat', Icons.repeat_rounded, size: 18),
+                    label: Text(item.done ? 'Modifier les répétitions' : 'Valider avec des répétitions'),
                   ),
                 ),
               ],

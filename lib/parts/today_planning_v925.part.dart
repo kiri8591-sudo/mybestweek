@@ -147,6 +147,15 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
                 onPressed: () => (activity != null && _isSportActivity(activity)) ? _editSportRealisedMinutes(item, activity) : editItemRealisedMinutes(item),
                 icon: _uiIcon('duration', Icons.timer_outlined, size: 18),
               ),
+            if (_itemIsReps(item))
+              IconButton(
+                tooltip: 'Saisir les répétitions',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                onPressed: () => editItemReps(item),
+                icon: _uiIcon('repeat', Icons.repeat_rounded, size: 18),
+              ),
             IconButton(
               tooltip: _isGenericActivityItem(item) ? 'Déplacer' : 'Voir / modifier',
               visualDensity: VisualDensity.compact,

@@ -76,6 +76,7 @@ extension _UndoPart on _MaBelleSemaineAppState {
               unplanned: log.unplanned,
               planItemId: log.planItemId,
               activityId: log.activityId,
+              reps: log.reps,
             );
           }
           _resetGeneration++;

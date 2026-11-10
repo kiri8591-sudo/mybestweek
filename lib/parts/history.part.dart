@@ -11,6 +11,8 @@ class _HistorySheet extends StatefulWidget {
   final Future<void> Function(ActivityLog log) onEditLog;
   final Future<void> Function() onAddLog;
   final Future<void> Function(Activity activity) onAddForActivity;
+  final Future<void> Function(Activity activity) onRecreate;
+  final Future<void> Function(Activity activity) onRelink;
 
   const _HistorySheet({
     required this.logs,
@@ -20,6 +22,8 @@ class _HistorySheet extends StatefulWidget {
     required this.onEditLog,
     required this.onAddLog,
     required this.onAddForActivity,
+    required this.onRecreate,
+    required this.onRelink,
   });
 
   @override
@@ -846,7 +850,7 @@ class _HistorySheetState extends State<_HistorySheet> {
   void _openStats() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _StatsOverviewPage(logs: widget.logs, activities: widget.activities, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity),
+        builder: (_) => _StatsOverviewPage(logs: widget.logs, activities: widget.activities, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity, onRecreate: widget.onRecreate, onRelink: widget.onRelink),
       ),
     );
   }
@@ -854,7 +858,7 @@ class _HistorySheetState extends State<_HistorySheet> {
   void _openActivityStats(Activity activity) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _ActivityStatsPage(activity: activity, logs: widget.logs, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity),
+        builder: (_) => _ActivityStatsPage(activity: activity, logs: widget.logs, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity, onRecreate: widget.onRecreate, onRelink: widget.onRelink),
       ),
     );
   }

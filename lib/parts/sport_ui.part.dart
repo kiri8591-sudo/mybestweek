@@ -329,11 +329,26 @@ class _SportWeekPageState extends State<_SportWeekPage> {
     }).toList();
   }
 
-  int _plannedCount(Activity activity) =>
-      widget.getPlan().where((item) => item.activityId == activity.id).length;
+  /// Jours de la semaine affichée où l'activité a été réalisée (d'après l'historique).
+  int _logDaysInViewedWeek(Activity activity) {
+    final end = _addDays(_weekStart, 7);
+    final days = <String>{};
+    for (final log in widget.getLogs()) {
+      if (log.date.isBefore(_weekStart) || !log.date.isBefore(end)) continue;
+      if (log.activityId == activity.id || (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase())) {
+        days.add('${log.date.year}-${log.date.month}-${log.date.day}');
+      }
+    }
+    return days.length;
+  }
 
-  int _doneCount(Activity activity) => widget.getPlan().where((item) =>
-      item.activityId == activity.id && item.done).length;
+  // Semaine en cours : planning. Autre semaine : historique (le planning ne couvre que la semaine en cours).
+  int _plannedCount(Activity activity) =>
+      _isCurrentWeek() ? widget.getPlan().where((item) => item.activityId == activity.id).length : _logDaysInViewedWeek(activity);
+
+  int _doneCount(Activity activity) => _isCurrentWeek()
+      ? widget.getPlan().where((item) => item.activityId == activity.id && item.done).length
+      : _logDaysInViewedWeek(activity);
 
   int _target(Activity activity) => activity.sportGroupFrequency ?? activity.frequency;
 

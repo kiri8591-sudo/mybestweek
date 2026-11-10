@@ -87,8 +87,10 @@ class _StatsOverviewPage extends StatefulWidget {
 
   final Future<void> Function(ActivityLog log) onEditLog;
   final Future<void> Function(Activity activity) onAddForActivity;
+  final Future<void> Function(Activity activity) onRecreate;
+  final Future<void> Function(Activity activity) onRelink;
 
-  const _StatsOverviewPage({required this.logs, required this.activities, required this.onEditLog, required this.onAddForActivity});
+  const _StatsOverviewPage({required this.logs, required this.activities, required this.onEditLog, required this.onAddForActivity, required this.onRecreate, required this.onRelink});
 
   @override
   State<_StatsOverviewPage> createState() => _StatsOverviewPageState();
@@ -123,7 +125,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
     final activities = <String, Activity>{};
     for (final log in logs) {
       final a = _activityFor(log);
-      minutes[a.id] = (minutes[a.id] ?? 0) + (a.countOnly ? 1 : log.realisedMinutes);
+      minutes[a.id] = (minutes[a.id] ?? 0) + (_isRepsActivity(a) ? (log.reps ?? 0) : (a.countOnly ? 1 : log.realisedMinutes));
       activities[a.id] = a;
     }
     final result = [for (final e in minutes.entries) _ActivityTotal(activities[e.key]!, e.value)];
@@ -136,7 +138,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
 
   void _openActivity(Activity activity) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => _ActivityStatsPage(activity: activity, logs: widget.logs, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity)),
+      MaterialPageRoute<void>(builder: (_) => _ActivityStatsPage(activity: activity, logs: widget.logs, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity, onRecreate: widget.onRecreate, onRelink: widget.onRelink)),
     );
   }
 
@@ -175,7 +177,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
           const SizedBox(width: 8),
           Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
             Text(item.isCount ? '${item.minutes}' : _hoursLabel(item.minutes), style: TextStyle(fontSize: AppType.titleL, fontWeight: FontWeight.w800, color: _colors.accentText, height: 1.05)),
-            Text(item.isCount ? 'fois' : 'heures', style: TextStyle(fontSize: AppType.micro, color: _colors.textMuted)),
+            Text(_amountUnit(item.activity), style: TextStyle(fontSize: AppType.micro, color: _colors.textMuted)),
           ]),
           const SizedBox(width: 4),
           _uiIcon('planOpen', Icons.chevron_right, size: 19, color: _colors.textMuted),
@@ -281,7 +283,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
               Expanded(
                 child: FilledButton.tonalIcon(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => _AchievementReportPage(logs: widget.logs, activities: widget.activities, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity)),
+                    MaterialPageRoute<void>(builder: (_) => _AchievementReportPage(logs: widget.logs, activities: widget.activities, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity, onRecreate: widget.onRecreate, onRelink: widget.onRelink)),
                   ),
                   icon: const Icon(Icons.emoji_events_outlined, size: 18),
                   label: const Text('Mes réalisations'),
@@ -400,8 +402,10 @@ class _ActivityStatsPage extends StatefulWidget {
 
   final Future<void> Function(ActivityLog log) onEditLog;
   final Future<void> Function(Activity activity) onAddForActivity;
+  final Future<void> Function(Activity activity) onRecreate;
+  final Future<void> Function(Activity activity) onRelink;
 
-  const _ActivityStatsPage({required this.activity, required this.logs, required this.onEditLog, required this.onAddForActivity});
+  const _ActivityStatsPage({required this.activity, required this.logs, required this.onEditLog, required this.onAddForActivity, required this.onRecreate, required this.onRelink});
 
   @override
   State<_ActivityStatsPage> createState() => _ActivityStatsPageState();
@@ -436,6 +440,7 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
     final logs = widget.logs.where((l) => l.realisedMinutes > 0 && _logIsOfActivity(l, activity)).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
     final isCount = activity.countOnly;
+    final isReps = _isRepsActivity(activity);
     int amount(ActivityLog l) => isCount ? 1 : l.realisedMinutes;
     final total = logs.fold<int>(0, (s, l) => s + amount(l));
     final now = DateTime.now();
@@ -448,6 +453,10 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
     final nextMilestone = isCount ? _nextCountMilestone(total) : _nextMilestoneMinutes(total);
     final toMilestone = nextMilestone == null ? 0 : nextMilestone - total;
 
+    final repsLogs = logs.where((l) => l.reps != null).toList();
+    final repsLast = repsLogs.isEmpty ? null : repsLogs.first.reps;
+    final repsBest = repsLogs.fold<int>(0, (m, l) => max(m, l.reps ?? 0));
+    final repsAvg = repsLogs.isEmpty ? 0 : (_repsTotal(repsLogs) / repsLogs.length).round();
     final perDay = <int, int>{};
     for (final l in logs) {
       perDay[_dayKey(l.date)] = (perDay[_dayKey(l.date)] ?? 0) + amount(l);
@@ -475,22 +484,69 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
                   ),
                   const SizedBox(width: 8),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, mainAxisSize: MainAxisSize.min, children: [
-                    Text(isCount ? '$total' : _hoursLabel(total), style: TextStyle(fontSize: AppType.display + 6, fontWeight: FontWeight.w800, color: _colors.goldText, height: 1)),
-                    Text(isCount ? 'fois' : 'heures', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.goldText)),
+                    Text(isReps ? '${_repsTotal(logs)}' : (isCount ? '$total' : _hoursLabel(total)), style: TextStyle(fontSize: AppType.display + 6, fontWeight: FontWeight.w800, color: _colors.goldText, height: 1)),
+                    Text(_amountUnit(activity), style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.goldText)),
                   ]),
                 ]),
                 const SizedBox(height: AppSpace.l),
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _kpi('$days', days > 1 ? 'Jours' : 'Jour'),
-                  _kpi(isCount ? '${perWeekCount.toStringAsFixed(1).replaceAll('.', ',')}×' : '${_hoursLabel(perWeek)} h', 'Chaque semaine'),
-                  _kpi(isCount ? '$last7×' : '${_hoursLabel(last7)} h', '7 derniers jours'),
-                  _kpi(nextMilestone == null ? '—' : (isCount ? '$toMilestone×' : '${_hoursLabel(toMilestone)} h'), nextMilestone == null ? 'Palier max' : (isCount ? 'Avant $nextMilestone fois' : 'Avant ${nextMilestone ~/ 60} h')),
+                  ...(isReps
+                      ? <Widget>[
+                          _kpi(repsLast == null ? '—' : '$repsLast', 'Dernière'),
+                          _kpi('$repsBest', 'Meilleure'),
+                          _kpi('${activity.repsTarget}', 'Objectif'),
+                          _kpi('$repsAvg', 'Moyenne'),
+                        ]
+                      : <Widget>[
+                      _kpi('$days', days > 1 ? 'Jours' : 'Jour'),
+                      _kpi(isCount ? '${perWeekCount.toStringAsFixed(1).replaceAll('.', ',')}×' : '${_hoursLabel(perWeek)} h', 'Chaque semaine'),
+                      _kpi(isCount ? '$last7×' : '${_hoursLabel(last7)} h', '7 derniers jours'),
+                      _kpi(nextMilestone == null ? '—' : (isCount ? '$toMilestone×' : '${_hoursLabel(toMilestone)} h'), nextMilestone == null ? 'Palier max' : (isCount ? 'Avant $nextMilestone fois' : 'Avant ${nextMilestone ~/ 60} h')),
+                        ]),
                 ]),
+                if (isReps && repsLast != null && (activity.repsTarget ?? 0) > 0) ...[
+                  const SizedBox(height: AppSpace.m),
+                  _MeterBar(value: repsLast / activity.repsTarget!, height: 8, color: repsLast >= activity.repsTarget! ? _colors.accentFill : _colors.goldBorder),
+                  const SizedBox(height: 4),
+                  Text('${(repsLast * 100 / activity.repsTarget!).round()} % de l’objectif (${activity.repsTarget} rép.)', style: _hintStyle()),
+                ],
                 const SizedBox(height: AppSpace.m),
                 Divider(height: 1, color: _colors.borderTint),
                 for (var i = 2; i >= 0; i--) _heatRow(DateTime(now.year, now.month - i), perDay),
               ]),
             ),
+            if (_activityIsDeleted(activity)) ...[
+              const SizedBox(height: AppSpace.m),
+              _AppCard(
+                tone: _CardTone.soft,
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Icon(Icons.info_outline, size: 18, color: _colors.textMuted),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('Cette activité a été supprimée. Son historique est conservé : tu peux la recréer ou relier ces réalisations à une activité existante.', style: _hintStyle())),
+                  ]),
+                  const SizedBox(height: AppSpace.m),
+                  Wrap(spacing: AppSpace.s, runSpacing: 6, children: [
+                    FilledButton.tonalIcon(
+                      onPressed: () async {
+                        await widget.onRecreate(activity);
+                        if (mounted) setState(() {});
+                      },
+                      icon: const Icon(Icons.add_circle_outline, size: 18),
+                      label: const Text('Recréer l’activité'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        await widget.onRelink(activity);
+                        if (mounted) setState(() {});
+                      },
+                      icon: const Icon(Icons.link_rounded, size: 18),
+                      label: const Text('Relier à une activité'),
+                    ),
+                  ]),
+                ]),
+              ),
+            ],
             const SizedBox(height: AppSpace.m),
             _AppCard(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
