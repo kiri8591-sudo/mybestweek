@@ -160,7 +160,7 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
     final span = _daysBetween(first, last) + 1;
     final perWeek = (g.minutes / max(1.0, span / 7.0)).round();
     final isCount = g.activity.countOnly;
-    final perWeekCount = (_isRepsActivity(g.activity) ? g.logs.length : g.minutes) / max(1.0, span / 7.0);
+    final perWeekCount = (_isRepsOnly(g.activity) ? g.logs.length : g.minutes) / max(1.0, span / 7.0);
     final longestRecord = g.logs.fold<int>(0, (m, l) => max(m, l.realisedMinutes));
     final perDay = _minutesPerDay(g.logs);
     return Padding(
@@ -191,7 +191,7 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
             _kpiCell('$days', days > 1 ? 'Jours' : 'Jour'),
             _kpiCell(isCount ? '${perWeekCount.toStringAsFixed(1).replaceAll('.', ',')}×' : '${_hoursLabel(perWeek)} h', 'Chaque semaine'),
             _kpiCell('${_longestStreak(g.logs)}', 'Plus longue série (j)'),
-            if (_isRepsActivity(g.activity)) _kpiCell('${g.logs.fold<int>(0, (m, l) => max(m, l.reps ?? 0))}', 'Meilleure') else if (isCount) _kpiCell('${g.logs.length}×', 'Au total') else _kpiCell(_minutesLabel(longestRecord), 'Plus long record'),
+            if (_isRepsOnly(g.activity)) _kpiCell('${g.logs.fold<int>(0, (m, l) => max(m, l.reps ?? 0))}', 'Meilleure') else if (isCount) _kpiCell('${g.logs.length}×', 'Au total') else _kpiCell(_minutesLabel(longestRecord), 'Plus long record'),
           ]),
           const SizedBox(height: AppSpace.s),
           for (var i = 2; i >= 0; i--) _heatMonthRow(DateTime(last.year, last.month - i), perDay),
@@ -216,7 +216,7 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
       final a = _resolveActivity(l, widget.activities);
       final g = groups.putIfAbsent(a.id, () => _ActivityGroup(a));
       g.logs.add(l);
-      g.minutes += _isRepsActivity(g.activity) ? (l.reps ?? 0) : (g.activity.countOnly ? 1 : l.realisedMinutes);
+      g.minutes += _isRepsOnly(g.activity) ? (l.reps ?? 0) : (g.activity.countOnly ? 1 : l.realisedMinutes);
     }
     final ordered = groups.values.toList()
       ..sort((a, b) {

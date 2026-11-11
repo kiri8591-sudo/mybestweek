@@ -156,7 +156,35 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
   Future<void> editHistoryLogMinutes(ActivityLog log) async {
     if (!mounted || logs.indexOf(log) < 0) return;
     final repsActivity = _registeredActivity(id: log.activityId, title: log.activityId == null ? log.title : null);
-    if (repsActivity != null && _isRepsActivity(repsActivity)) {
+    // Temps + répétitions (Sport) : choisir ce que l'on modifie.
+    if (repsActivity != null && _isRepsActivity(repsActivity) && !repsActivity.countOnly && log.reps != null) {
+      final choice = await showModalBottomSheet<String>(
+        context: _navigatorKey.currentContext!,
+        showDragHandle: true,
+        builder: (sheetContext) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpace.l, 0, AppSpace.l, AppSpace.l),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              _SheetHeader(
+                leading: _uiIcon('edit', Icons.edit_outlined, size: 24, color: _colors.accentIcon),
+                title: 'Modifier la réalisation',
+                subtitle: log.title,
+              ),
+              const SizedBox(height: AppSpace.m),
+              _SheetPickRow(leading: _uiIcon('duration', Icons.timer_outlined, size: 22), title: 'Temps', subtitle: '${log.realisedMinutes} min', onTap: () => Navigator.pop(sheetContext, 'time')),
+              _SheetPickRow(leading: _uiIcon('repeat', Icons.repeat_rounded, size: 22), title: 'Répétitions', subtitle: '${log.reps} rép.', onTap: () => Navigator.pop(sheetContext, 'reps')),
+            ]),
+          ),
+        ),
+      );
+      if (choice == null || !mounted) return;
+      if (choice == 'reps') {
+        final reps = await _askReps(activity: repsActivity, current: log.reps);
+        if (reps != null && reps > 0 && mounted) _setLogReps(log, reps);
+        return;
+      }
+    }
+    if (repsActivity != null && _isRepsOnly(repsActivity)) {
       final reps = await _askReps(activity: repsActivity, current: log.reps, allowDelete: true);
       if (reps == null || !mounted) return;
       if (reps <= 0) {

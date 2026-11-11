@@ -758,7 +758,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
     var sportWeight = draft.sportWeight;
     var sportFamily = draft.sportFamily;
     var trackCount = draft.countOnly && draft.category != 'Sport';
-    var trackReps = draft.repsTarget != null && draft.countOnly && draft.category != 'Sport';
+    var trackReps = draft.repsTarget != null;
     final repsTargetCtl = TextEditingController(text: draft.repsTarget?.toString() ?? '');
     var allowMultiplePerDay = draft.allowMultiplePerDay;
     var maxDailyOccurrences = draft.maxDailyOccurrences.clamp(2, 3).toInt();
@@ -911,15 +911,48 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                       return;
                     }
                     setDialogState(() {
+                      final wasSport = category == 'Sport';
                       category = v ?? category;
                       if (category == 'Sport') {
                         dateRangeEnabled = false;
                         trackCount = false;
+                      } else if (wasSport) {
                         trackReps = false;
                       }
                     });
                   },
                 ),
+                if (category == 'Sport' && !draft.isSportProgram) ...[
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Suivre aussi les répétitions'),
+                    subtitle: Text('En plus du temps : nombre de répétitions à chaque séance, comparé à un objectif (ex. pompes).', style: _hintStyle()),
+                    value: trackReps,
+                    onChanged: (value) => setDialogState(() {
+                      trackReps = value;
+                      if (value && repsTargetCtl.text.trim().isEmpty) repsTargetCtl.text = '50';
+                    }),
+                  ),
+                  if (trackReps) ...[
+                    TextField(
+                      controller: repsTargetCtl,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => setDialogState(() {}),
+                      decoration: const InputDecoration(labelText: 'Objectif (répétitions)', helperText: 'Le Coach compare ta dernière séance à cet objectif.', helperMaxLines: 2),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(spacing: 6, children: [
+                      for (final v in const [10, 20, 30, 50, 100])
+                        ChoiceChip(
+                          label: Text('$v', style: const TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700)),
+                          selected: repsTargetCtl.text.trim() == '$v',
+                          visualDensity: VisualDensity.compact,
+                          onSelected: (_) => setDialogState(() => repsTargetCtl.text = '$v'),
+                        ),
+                    ]),
+                  ],
+                ],
                 if (category != 'Sport' && !draft.isSportProgram) ...[
                   const SizedBox(height: 12),
                   Text('Suivi', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w700, color: _colors.textMuted)),
@@ -932,7 +965,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                         ButtonSegment<String>(value: 'count', icon: Icon(Icons.task_alt_rounded, size: 17), label: Text('Occurrences')),
                         ButtonSegment<String>(value: 'reps', icon: Icon(Icons.repeat_rounded, size: 17), label: Text('Répétitions')),
                       ],
-                      selected: <String>{trackReps ? 'reps' : (trackCount ? 'count' : 'time')},
+                      selected: <String>{(trackReps && trackCount) ? 'reps' : (trackCount ? 'count' : 'time')},
                       onSelectionChanged: (selection) => setDialogState(() {
                         if (selection.isEmpty) return;
                         final mode = selection.first;
@@ -1383,7 +1416,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
                   sportGroupFrequency: sportGroupFrequency,
                   sportFamily: category == 'Sport' ? sportFamily : null,
                   countOnly: category != 'Sport' && !draft.isSportProgram && trackCount,
-                  repsTarget: (category != 'Sport' && !draft.isSportProgram && trackCount && trackReps) ? max(1, int.tryParse(repsTargetCtl.text.trim()) ?? 10) : null,
+                  repsTarget: (!draft.isSportProgram && trackReps && (category == 'Sport' || trackCount)) ? max(1, int.tryParse(repsTargetCtl.text.trim()) ?? 10) : null,
                   activeInSportRotation: activeInSportRotation,
                   isSportProgram: draft.isSportProgram,
                   isFrozen: isFrozen,

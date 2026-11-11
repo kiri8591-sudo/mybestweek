@@ -29,10 +29,14 @@ bool _logIsCount(ActivityLog log) => _registeredActivity(id: log.activityId, tit
 bool _itemIsCount(PlanItem item) => item.activityId != null && _registeredActivity(id: item.activityId)?.countOnly == true;
 
 /// « 1× » pour une occurrence, « 25 min » pour un temps.
-String _logAmountLabel(ActivityLog log) => log.reps != null ? '${log.reps} rép.' : (_logIsCount(log) ? '1×' : '${log.realisedMinutes} min');
+String _logAmountLabel(ActivityLog log) => log.reps != null
+    ? (_logIsCount(log) ? '${log.reps} rép.' : '${log.realisedMinutes} min · ${log.reps} rép.')
+    : (_logIsCount(log) ? '1×' : '${log.realisedMinutes} min');
 
 /// « Occurrence » ou « 30 min » selon le mode de suivi de l'activité.
-String _durationOrCount(Activity a) => a.countOnly ? (a.repsTarget != null ? 'Objectif ${a.repsTarget} rép.' : 'Occurrence') : '${a.duration} min';
+String _durationOrCount(Activity a) => a.countOnly
+    ? (a.repsTarget != null ? 'Objectif ${a.repsTarget} rép.' : 'Occurrence')
+    : (a.repsTarget != null ? '${a.duration} min · objectif ${a.repsTarget} rép.' : '${a.duration} min');
 
 const List<int> _countMilestones = [5, 10, 25, 50, 100, 250, 500, 1000];
 
@@ -198,7 +202,11 @@ extension _ActivityDeletionPart on _MaBelleSemaineAppState {
 // Répétitions
 // ---------------------------------------------------------------------------
 
-bool _isRepsActivity(Activity a) => a.countOnly && a.repsTarget != null;
+/// Activité avec un suivi de répétitions (en plus du temps pour le Sport).
+bool _isRepsActivity(Activity a) => a.repsTarget != null;
+
+/// Suivi uniquement en répétitions (sans durée).
+bool _isRepsOnly(Activity a) => a.countOnly && a.repsTarget != null;
 
 bool _itemIsReps(PlanItem item) {
   final a = item.activityId == null ? null : _registeredActivity(id: item.activityId);

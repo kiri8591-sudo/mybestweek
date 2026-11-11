@@ -125,7 +125,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
     final activities = <String, Activity>{};
     for (final log in logs) {
       final a = _activityFor(log);
-      minutes[a.id] = (minutes[a.id] ?? 0) + (_isRepsActivity(a) ? (log.reps ?? 0) : (a.countOnly ? 1 : log.realisedMinutes));
+      minutes[a.id] = (minutes[a.id] ?? 0) + (_isRepsOnly(a) ? (log.reps ?? 0) : (a.countOnly ? 1 : log.realisedMinutes));
       activities[a.id] = a;
     }
     final result = [for (final e in minutes.entries) _ActivityTotal(activities[e.key]!, e.value)];
@@ -440,7 +440,8 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
     final logs = widget.logs.where((l) => l.realisedMinutes > 0 && _logIsOfActivity(l, activity)).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
     final isCount = activity.countOnly;
-    final isReps = _isRepsActivity(activity);
+    final isReps = _isRepsOnly(activity);
+    final hasRepsExtra = _isRepsActivity(activity) && !activity.countOnly;
     int amount(ActivityLog l) => isCount ? 1 : l.realisedMinutes;
     final total = logs.fold<int>(0, (s, l) => s + amount(l));
     final now = DateTime.now();
@@ -504,7 +505,15 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
                       _kpi(nextMilestone == null ? '—' : (isCount ? '$toMilestone×' : '${_hoursLabel(toMilestone)} h'), nextMilestone == null ? 'Palier max' : (isCount ? 'Avant $nextMilestone fois' : 'Avant ${nextMilestone ~/ 60} h')),
                         ]),
                 ]),
-                if (isReps && repsLast != null && (activity.repsTarget ?? 0) > 0) ...[
+                if ((isReps || hasRepsExtra) && repsLast != null && (activity.repsTarget ?? 0) > 0) ...[
+                  if (hasRepsExtra) ...[
+                    const SizedBox(height: AppSpace.m),
+                    Wrap(spacing: AppSpace.s, runSpacing: 6, children: [
+                      _Pill('Dernière : $repsLast rép.'),
+                      _Pill('Meilleure : $repsBest rép.'),
+                      _Pill('Objectif : ${activity.repsTarget} rép.', background: _colors.peachBg, foreground: _colors.goldText),
+                    ]),
+                  ],
                   const SizedBox(height: AppSpace.m),
                   _MeterBar(value: repsLast / activity.repsTarget!, height: 8, color: repsLast >= activity.repsTarget! ? _colors.accentFill : _colors.goldBorder),
                   const SizedBox(height: 4),

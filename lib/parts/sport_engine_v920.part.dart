@@ -139,6 +139,7 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
           onRemoveItem: _removePlanOccurrence,
           onAddSportActivity: _addSportActivityToDay,
           onEditMinutes: editActivityMinutesOnDate,
+          onEditItemReps: editItemReps,
           onEditItemMinutes: (item) {
             final a = item.activityId == null ? null : findActivity(item.activityId!);
             return a != null ? _editSportRealisedMinutes(item, a) : editItemRealisedMinutes(item);

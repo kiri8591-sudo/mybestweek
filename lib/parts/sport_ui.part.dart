@@ -188,6 +188,7 @@ class _SportWeekPage extends StatefulWidget {
   final Future<void> Function(int day) onAddSportActivity;
   final Future<void> Function(Activity activity, DateTime date) onEditMinutes;
   final Future<void> Function(PlanItem item) onEditItemMinutes;
+  final Future<void> Function(PlanItem item) onEditItemReps;
   final void Function(int day, int minutes) onSetBudget;
   final DateTime Function() getNow;
   final bool Function(String?) isDailyPriority;
@@ -210,6 +211,7 @@ class _SportWeekPage extends StatefulWidget {
     required this.onAddSportActivity,
     required this.onEditMinutes,
     required this.onEditItemMinutes,
+    required this.onEditItemReps,
     required this.onSetBudget,
     required this.getNow,
     required this.isDailyPriority,
@@ -770,6 +772,22 @@ class _SportWeekPageState extends State<_SportWeekPage> {
                         ]),
                       ),
                     ),
+                    if (_itemIsReps(item))
+                      InkWell(
+                        onTap: () async {
+                          await widget.onEditItemReps(item);
+                          if (mounted) setState(() {});
+                        },
+                        borderRadius: BorderRadius.circular(AppRadius.s),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            _uiIcon('repeat', Icons.repeat_rounded, size: 15),
+                            const SizedBox(width: 3),
+                            Text(_repsLineForItem(item).split(' · ').first, style: _detailMetaStyle()),
+                          ]),
+                        ),
+                      ),
                     const SizedBox(width: 5),
                     if (activity != null) ...[
                       _sportWeeklyIndicator(activity),

@@ -219,6 +219,7 @@ extension _PlanCompletionPart on _MaBelleSemaineAppState {
     _refreshGoalsAfterRealization();
     _maybeAwardDailyPriorityBonus();
     _showFeedback('✓ « ${item.title} » validé · $actual min réalisés.');
+    if (_isRepsActivity(activity)) Future.microtask(() => _promptRepsForItem(item));
   }
 
 }
