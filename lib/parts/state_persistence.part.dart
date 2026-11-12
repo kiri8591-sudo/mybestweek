@@ -271,6 +271,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       }).toList(),
       'systemIconOverrides': {..._systemIconOverrides},
       'customCategories': [..._customCategories],
+      'coachRules': [for (final r in _coachRules) r.toJson()],
       'todayNameday': _todayNameday,
       'todayNamedayDateKey': _todayNamedayDateKey,
       'morningThought': _morningThought,
@@ -708,6 +709,11 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         _systemUiIconOverrides
           ..clear()
           ..addAll(_systemIconOverrides);
+        _coachRules
+          ..clear()
+          ..addAll((root['coachRules'] is List ? List<dynamic>.from(root['coachRules']) : <dynamic>[])
+              .map(CoachRule.fromJson)
+              .whereType<CoachRule>());
         _customCategories
           ..clear()
           ..addAll((root['customCategories'] is List ? List<dynamic>.from(root['customCategories']) : <dynamic>[])
@@ -871,6 +877,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _systemIconOverrides.clear();
       _systemUiIconOverrides.clear();
       _customCategories.clear();
+      _coachRules.clear();
       categoryFilter = 'Toutes';
       tab = 0;
       _morningThought = freshThought;

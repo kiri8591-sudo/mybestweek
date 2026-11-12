@@ -101,9 +101,11 @@ extension _SportRuntimeUiPart on _MaBelleSemaineAppState {
                           onSelected: (value) {
                             if (value == 'journal') openSportCoachJournal();
                             if (value == 'week') openSportWeekOverview();
+                            if (value == 'rules') openCoachRules();
                           },
                           itemBuilder: (context) => const [
                             PopupMenuItem<String>(value: 'week', child: Text('Sport')),
+                            PopupMenuItem<String>(value: 'rules', child: Text('Consignes du Coach')),
                             PopupMenuItem<String>(value: 'journal', child: Text('Journal du coach Sport')),
                           ],
                         ),

@@ -140,6 +140,7 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
           onAddSportActivity: _addSportActivityToDay,
           onEditMinutes: editActivityMinutesOnDate,
           onEditItemReps: editItemReps,
+          onOpenCoachRules: openCoachRules,
           onEditItemMinutes: (item) {
             final a = item.activityId == null ? null : findActivity(item.activityId!);
             return a != null ? _editSportRealisedMinutes(item, a) : editItemRealisedMinutes(item);
@@ -245,6 +246,8 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
 
     // Respecte aussi la fréquence propre de l’activité dans la semaine.
     score -= (generatedCount[activity.id] ?? 0) * 2.5;
+    // Consignes du Coach en « préférence ».
+    score += _coachRulePreferenceScore(activity, day);
     return score;
   }
 
@@ -257,6 +260,7 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
     final available = candidates.where((a) =>
         a.activeInSportRotation &&
         !_manualDayBlocked(a, day) &&
+        !_coachRuleBlocks(a, day, generatedCount) &&
         (remaining[_sportRotationKey(a)] ?? 0) > 0 &&
         _sportGenerationDuration(a) <= budget).toList();
     if (available.isEmpty) return [];
@@ -607,10 +611,13 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
 
   void _generateSportPart(List<PlanItem> generated, int seqStart,
       {int startDay = 0, List<String>? decisionDetails}) {
+    _coachRuleReport.clear();
     final sportActivities = activities
         .where((a) => _isSportActivity(a) && a.activeInSportRotation && !_generationShouldAvoid(a))
         .toList();
     if (sportActivities.isEmpty || _sportProgram == null) return;
+    _coachRuleGenStart = startDay;
+    final rules = _activeCoachRules();
 
     // Après une réinitialisation complète (startDay == 0), le planning est
     // vierge : le Sport doit pouvoir reconstruire toute la semaine, y compris
@@ -634,17 +641,30 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
 
     for (final day in days.where((d) => d >= startDay)) {
       final budget = _sportBudgetForDay(day);
-      if (budget <= 0) continue;
+      if (budget <= 0) {
+        for (final r in rules.where((r) => r.must && r.type == 'on_days' && r.days.contains(day))) {
+          _coachRuleReport.add('⚠ « ${_ruleSentence(r)} » : ${_frWeekdaysLong[day]} n’a pas de budget Sport (jour de repos).');
+        }
+        continue;
+      }
       final manualSportIdsOnDay = plan.where((p) =>
           p.day == day && p.activityId != null && _isSportPlanItem(p) &&
           (p.manualPlacement || p.fixedInWeeklyTemplate)).map((p) => p.activityId!).toSet();
-      final dayCandidates = compositeActivities.where((a) =>
+      var dayCandidates = compositeActivities.where((a) =>
           !_manualDayBlocked(a, day) && !manualSportIdsOnDay.contains(a.id)).toList();
-      final selected = _chooseSportActivitiesForDay(
-        day, budget, dayCandidates, remaining, generatedCount, previousDayIds,
-      );
+      // Consignes « ces jours-là » obligatoires : placées en premier.
+      final forced = _placeForcedRuleActivities(rules, day, budget, dayCandidates, compositeActivities,
+          manualSportIdsOnDay, generated, seq, generatedCount, remaining);
+      seq += forced.length;
+      final forcedIds = forced.map((a) => a.id).toSet();
+      final forcedMinutes = forced.fold<int>(0, (sum, a) => sum + _sportGenerationDuration(a));
+      dayCandidates = dayCandidates.where((a) => !forcedIds.contains(a.id) && !_sportFamilyClash(a, forced)).toList();
+      final dpBudget = budget - forcedMinutes;
+      final selected = dpBudget > 0
+          ? _chooseSportActivitiesForDay(day, dpBudget, dayCandidates, remaining, generatedCount, previousDayIds)
+          : <Activity>[];
       final selectedIds = selected.map((a) => a.id).toSet();
-      var usedMinutes = 0;
+      var usedMinutes = forcedMinutes;
       for (final activity in selected) {
         final generationDuration = _sportGenerationDuration(activity);
         if (usedMinutes + generationDuration > budget) continue;
@@ -676,8 +696,15 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
       }
 
       _completeGeneratedSportRepeats(generated, day, budget);
-      previousDayIds = selectedIds;
+      previousDayIds = {...selectedIds, ...forcedIds};
     }
+
+    // Consignes « au moins N fois » : complétées sur les meilleurs jours restants.
+    seq = _topUpRequireRules(rules, generated, seq, days.where((d) => d >= startDay).toList(), sportActivities, generatedCount);
+    if (decisionDetails != null && _coachRuleReport.isNotEmpty) {
+      decisionDetails.insertAll(0, _coachRuleReport.take(12));
+    }
+    _coachRuleGenStart = null;
   }
 
 }

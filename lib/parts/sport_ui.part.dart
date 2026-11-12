@@ -189,6 +189,7 @@ class _SportWeekPage extends StatefulWidget {
   final Future<void> Function(Activity activity, DateTime date) onEditMinutes;
   final Future<void> Function(PlanItem item) onEditItemMinutes;
   final Future<void> Function(PlanItem item) onEditItemReps;
+  final VoidCallback onOpenCoachRules;
   final void Function(int day, int minutes) onSetBudget;
   final DateTime Function() getNow;
   final bool Function(String?) isDailyPriority;
@@ -212,6 +213,7 @@ class _SportWeekPage extends StatefulWidget {
     required this.onEditMinutes,
     required this.onEditItemMinutes,
     required this.onEditItemReps,
+    required this.onOpenCoachRules,
     required this.onSetBudget,
     required this.getNow,
     required this.isDailyPriority,
@@ -977,6 +979,11 @@ class _SportWeekPageState extends State<_SportWeekPage> {
       appBar: AppBar(
         title: const Text('Semaine Sport'),
         actions: [
+          IconButton(
+            tooltip: 'Consignes du Coach',
+            onPressed: widget.onOpenCoachRules,
+            icon: _uiIcon('coach', Icons.rule_rounded, size: 20),
+          ),
           IconButton(
             tooltip: 'Journal du coach Sport',
             onPressed: widget.onOpenCoachJournal,
