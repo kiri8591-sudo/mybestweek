@@ -839,6 +839,14 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                       ),
                       const SizedBox(width: 4),
                       IconButton(
+                        tooltip: 'Consignes du Coach',
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                        onPressed: openCoachRules,
+                        icon: _uiIcon('coach', Icons.rule_rounded, size: 18, color: _colors.accentIcon),
+                      ),
+                      IconButton(
                         tooltip: 'Repenser le planning',
                         visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
@@ -873,9 +881,17 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                           if (value == 'data') openDataManager();
                           if (value == 'identity') _editHomeIdentity();
                           if (value == 'darkMode') _toggleDarkMode();
-
+                          if (value == 'rules') openCoachRules();
                         },
                         itemBuilder: (context) => [
+                          PopupMenuItem<String>(
+                            value: 'rules',
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: _uiIcon('coach', Icons.rule_rounded, size: 18),
+                              title: const Text('Consignes du Coach'),
+                            ),
+                          ),
                           PopupMenuItem<String>(
                             value: 'data',
                             child: ListTile(

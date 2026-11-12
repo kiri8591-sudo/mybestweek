@@ -1,4 +1,4 @@
-// V12.20.0 — Consignes du Coach (Sport) : étape 1.
+// V12.21.0 — Consignes du Coach pour le Sport et les activités ordinaires.
 // Types : imposer (au moins N fois / semaine), plafonner (au plus N fois / semaine),
 // jours imposés, jours interdits. Portée : chaque semaine, cette semaine, jusqu'à une date.
 // Force : obligatoire (le moteur la respecte ou l'explique) ou préférence (bonus de score).
@@ -74,7 +74,7 @@ class CoachRule {
 /// Consignes enregistrées (sauvegardées avec les activités).
 final List<CoachRule> _coachRules = <CoachRule>[];
 
-/// Bilan de la dernière génération Sport : consignes appliquées ou non tenues.
+/// Bilan de la dernière génération : consignes appliquées ou non tenues.
 final List<String> _coachRuleReport = <String>[];
 
 // ---------------------------------------------------------------------------
@@ -120,14 +120,16 @@ String _ruleScopeLabel(CoachRule r) {
 }
 
 bool _ruleMatches(CoachRule r, Activity a) =>
-    r.targetKind == 'activity' ? a.id == r.targetId : _sportFamilyOf(a) == r.targetId;
+    r.targetKind == 'activity'
+        ? a.id == r.targetId
+        : a.category.trim().toLowerCase() == 'sport' && _sportFamilyOf(a) == r.targetId;
 
 bool _ruleTargetsOverlap(CoachRule a, CoachRule b) {
   if (a.targetKind == b.targetKind) return a.targetId == b.targetId;
   final act = a.targetKind == 'activity' ? a : b;
   final fam = a.targetKind == 'family' ? a : b;
   final activity = _registeredActivity(id: act.targetId);
-  return activity != null && _sportFamilyOf(activity) == fam.targetId;
+  return activity != null && activity.category.trim().toLowerCase() == 'sport' && _sportFamilyOf(activity) == fam.targetId;
 }
 
 /// Contradictions entre consignes obligatoires (affichées dans l'écran des consignes).
@@ -169,10 +171,17 @@ List<String> _coachRuleConflicts(List<CoachRule> rules) {
 }
 
 // ---------------------------------------------------------------------------
-// Moteur : intégration dans la génération Sport
+// Moteur : intégration dans les générations Sport et activités ordinaires
 // ---------------------------------------------------------------------------
 
 extension _CoachRulesEngine on _MaBelleSemaineAppState {
+  /// Une règle par famille reste sportive ; une règle par activité suit la catégorie réelle.
+  bool _coachRuleTargetsSport(CoachRule rule) {
+    if (rule.targetKind == 'family') return true;
+    final target = findActivity(rule.targetId);
+    return target != null && _isSportActivity(target);
+  }
+
   /// Consignes en vigueur (activées, dans leur portée, cible existante).
   List<CoachRule> _activeCoachRules() {
     if (_coachRules.isEmpty) return const <CoachRule>[];
@@ -193,12 +202,33 @@ extension _CoachRulesEngine on _MaBelleSemaineAppState {
     final days = <int>{};
     final start = _coachRuleGenStart;
     for (final p in plan) {
-      if (p.activityId == null || !_isSportPlanItem(p)) continue;
+      if (p.activityId == null) continue;
       if (excludeDay != null && p.day == excludeDay) continue;
       final kept = start == null || p.day < start || p.manualPlacement || p.fixedInWeeklyTemplate || p.done;
       if (!kept) continue;
       final a = findActivity(p.activityId!);
       if (a != null && _ruleMatches(r, a)) days.add(p.day);
+    }
+    // Une activité réellement consignée dans le journal compte même si elle
+    // n'était pas reliée à un élément du planning.
+    final weekStart = _startOfCurrentWeek();
+    final weekEnd = weekStart.add(const Duration(days: 7));
+    for (final log in logs) {
+      if (log.date.isBefore(weekStart) || !log.date.isBefore(weekEnd)) continue;
+      final day = log.date.difference(weekStart).inDays;
+      if (excludeDay != null && day == excludeDay) continue;
+      Activity? loggedActivity;
+      if (log.activityId != null) {
+        loggedActivity = findActivity(log.activityId!);
+      } else {
+        for (final candidate in activities) {
+          if (candidate.name.trim().toLowerCase() == log.title.trim().toLowerCase()) {
+            loggedActivity = candidate;
+            break;
+          }
+        }
+      }
+      if (loggedActivity != null && _ruleMatches(r, loggedActivity)) days.add(day);
     }
     var generatedDays = 0;
     if (generated != null) {
@@ -206,7 +236,7 @@ extension _CoachRulesEngine on _MaBelleSemaineAppState {
       for (final p in generated) {
         if (p.activityId == null || p.day == excludeDay) continue;
         final a = findActivity(p.activityId!);
-        if (a != null && _isSportActivity(a) && _ruleMatches(r, a)) gDays.add(p.day);
+        if (a != null && _ruleMatches(r, a)) gDays.add(p.day);
       }
       days.addAll(gDays);
     } else if (generatedCount != null) {
@@ -280,7 +310,7 @@ extension _CoachRulesEngine on _MaBelleSemaineAppState {
   ) {
     final forced = <Activity>[];
     var used = 0;
-    for (final r in rules.where((r) => r.must && r.type == 'on_days' && r.days.contains(day))) {
+    for (final r in rules.where((r) => r.must && r.type == 'on_days' && r.days.contains(day) && _coachRuleTargetsSport(r))) {
       if (all.any((a) => _ruleMatches(r, a) && manualIds.contains(a.id))) continue; // déjà prévue à la main
       final matching = all.where((a) => _ruleMatches(r, a)).toList();
       if (matching.isEmpty) {
@@ -325,6 +355,9 @@ extension _CoachRulesEngine on _MaBelleSemaineAppState {
   }
 
   /// Consignes « au moins N fois » : complète la semaine sur les meilleurs jours restants.
+  /// Une consigne obligatoire peut utiliser les jours de repos et dépasser le budget
+  /// Sport. Les anciennes occurrences automatiques (qui seront remplacées à la fin
+  /// de la génération) ne doivent pas bloquer leur propre recréation.
   int _topUpRequireRules(
     List<CoachRule> rules,
     List<PlanItem> generated,
@@ -333,7 +366,10 @@ extension _CoachRulesEngine on _MaBelleSemaineAppState {
     List<Activity> sportActivities,
     Map<String, int> generatedCount,
   ) {
-    final requires = rules.where((r) => r.type == 'require').toList()..sort((a, b) => (b.must ? 1 : 0).compareTo(a.must ? 1 : 0));
+    final requires = rules.where((r) => r.type == 'require' && _coachRuleTargetsSport(r)).toList()
+      ..sort((a, b) => (b.must ? 1 : 0).compareTo(a.must ? 1 : 0));
+    final generationStart = (_coachRuleGenStart ?? 0).clamp(0, 7).toInt();
+
     for (final r in requires) {
       var have = _ruleCountSoFar(r, generated: generated);
       final need = r.count - have;
@@ -341,38 +377,333 @@ extension _CoachRulesEngine on _MaBelleSemaineAppState {
         _coachRuleReport.add('✔ « ${_ruleSentence(r)} » : déjà atteint ($have).');
         continue;
       }
+
+      // En mode obligatoire, tous les jours encore générables sont candidats,
+      // pas seulement les jours qui avaient déjà un budget Sport configuré.
+      final candidateDays = <int>{...days.where((d) => d >= generationStart)};
+      if (r.must) {
+        for (var day = generationStart; day < 7; day++) {
+          candidateDays.add(day);
+        }
+      }
+      final order = candidateDays.toList()
+        ..sort((x, y) {
+          // On utilise d'abord les jours Sport habituels ; les jours de repos
+          // ne sont sollicités que si le minimum obligatoire n'est pas atteint.
+          final xRest = _sportBudgetForDay(x) > 0 ? 0 : 1;
+          final yRest = _sportBudgetForDay(y) > 0 ? 0 : 1;
+          final restCompare = xRest.compareTo(yRest);
+          if (restCompare != 0) return restCompare;
+          final loadCompare = _sportLoadOnDay(x, generated).compareTo(_sportLoadOnDay(y, generated));
+          return loadCompare != 0 ? loadCompare : x.compareTo(y);
+        });
+
       var added = 0;
-      final order = [...days]..sort((x, y) => _sportLoadOnDay(x, generated).compareTo(_sportLoadOnDay(y, generated)));
       for (final day in order) {
         if (added >= need) break;
-        if (_sportBudgetForDay(day) <= 0) continue;
+        final budgetBefore = _sportBudgetForDay(day);
+        if (budgetBefore <= 0 && !r.must) continue;
+
+        // Ne regarder que les éléments conservés (passé/aujourd'hui, manuels,
+        // modèle hebdomadaire, réalisés) et la génération en cours. Les anciennes
+        // séances automatiques futures seront supprimées par generateWeek().
+        final keptPlanItems = plan.where((p) =>
+            p.day == day &&
+            (_coachRuleGenStart == null ||
+                p.day < _coachRuleGenStart! ||
+                p.manualPlacement ||
+                p.fixedInWeeklyTemplate ||
+                p.done));
+        final dayItems = <PlanItem>[
+          ...keptPlanItems,
+          ...generated.where((p) => p.day == day),
+        ];
         final already = <Activity>[];
-        for (final p in [...plan.where((p) => p.day == day), ...generated.where((p) => p.day == day)]) {
+        for (final p in dayItems) {
           if (p.activityId == null) continue;
           final a = findActivity(p.activityId!);
           if (a != null && _isSportActivity(a)) already.add(a);
         }
         if (already.any((a) => _ruleMatches(r, a))) continue;
+
         final pool = sportActivities
-            .where((a) => _ruleMatches(r, a) && !_manualDayBlocked(a, day) && !_sportFamilyClash(a, already) && !_coachRuleBlocks(a, day, generatedCount))
+            .where((a) =>
+                _ruleMatches(r, a) &&
+                !_manualDayBlocked(a, day) &&
+                // Une obligation précise prime sur l'alternance des familles.
+                (r.must || !_sportFamilyClash(a, already)) &&
+                !_coachRuleBlocks(a, day, generatedCount))
             .toList();
         if (pool.isEmpty) continue;
-        pool.sort((x, y) => _sportRotationScore(y, day, <String>{}, generatedCount).compareTo(_sportRotationScore(x, day, <String>{}, generatedCount)));
+        pool.sort((x, y) => _sportRotationScore(y, day, <String>{}, generatedCount)
+            .compareTo(_sportRotationScore(x, day, <String>{}, generatedCount)));
+
         final a = pool.first;
-        final slack = _sportBudgetForDay(day) - _sportLoadOnDay(day, generated);
-        if (slack < _sportGenerationDuration(a) && !r.must) continue; // préférence : jamais au-delà du budget
+        final duration = _sportGenerationDuration(a);
+        final usedBefore = _sportLoadOnDay(day, generated);
+        final slack = budgetBefore - usedBefore;
+        final isConfiguredRestDay = _configuredSportBaseBudgetForDay(day) <= 0;
+        final needsBudgetActivation = budgetBefore <= 0 || isConfiguredRestDay;
+
+        // Une obligation peut transformer exceptionnellement un jour de repos
+        // (ou un jour dont le budget effectif est nul) en jour Sport, avec un
+        // budget visible suffisant pour son activité.
+        if (r.must && needsBudgetActivation) {
+          final dailyAdjustment = sportCoachDailyAdjustments[day] ?? 0;
+          final minimumBaseBudget = max(0, usedBefore + duration - dailyAdjustment);
+          _regeneratedSportBudgets[day] = max(
+            _regeneratedSportBudgets[day] ?? 0,
+            minimumBaseBudget,
+          );
+        }
+
         generated.add(_ruleGeneratedItem(a, day, seq, _ruleSentence(r)));
         seq++;
         generatedCount[a.id] = (generatedCount[a.id] ?? 0) + 1;
         added++;
-        _coachRuleReport.add('✔ ${a.name} ajoutée ${_frWeekdaysLong[day]} : consigne « ${_ruleSentence(r)} »${slack < _sportGenerationDuration(a) ? ' (dépasse le budget du jour)' : ''}.');
+
+        final budgetNote = needsBudgetActivation && r.must
+            ? (isConfiguredRestDay
+                ? ' (jour de repos transformé en jour Sport exceptionnel)'
+                : ' (budget Sport réactivé pour respecter la consigne)')
+            : slack < duration
+                ? ' (dépasse le budget du jour)'
+                : '';
+        _coachRuleReport.add('✔ ${a.name} ajoutée ${_frWeekdaysLong[day]} : consigne « ${_ruleSentence(r)} »$budgetNote.');
       }
+
       have += added;
       if (have < r.count) {
-        _coachRuleReport.add('⚠ « ${_ruleSentence(r)} » non tenue : $have sur ${r.count} (jours disponibles insuffisants, famille déjà présente ou plafond).');
+        _coachRuleReport.add('⚠ « ${_ruleSentence(r)} » non tenue : $have sur ${r.count} (jours déjà réalisés ou protégés, suppression manuelle, autre consigne obligatoire ou activité indisponible).');
       }
     }
     return seq;
+  }
+
+  /// Vrai si une activité ordinaire est déjà conservée ou créée ce jour.
+  bool _nonSportRuleActivityAlreadyOnDay(String activityId, int day, List<PlanItem> generated) {
+    final start = _coachRuleGenStart;
+    for (final item in plan) {
+      if (item.day != day || item.activityId != activityId) continue;
+      final kept = start == null || item.day < start || item.manualPlacement || item.fixedInWeeklyTemplate || item.done;
+      if (kept) return true;
+    }
+    final weekStart = _startOfCurrentWeek();
+    final activity = findActivity(activityId);
+    if (activity != null) {
+      for (final log in logs) {
+        if (log.date.difference(weekStart).inDays == day &&
+            !log.date.isBefore(weekStart) &&
+            (log.activityId == activityId ||
+                (log.activityId == null && log.title.trim().toLowerCase() == activity.name.trim().toLowerCase()))) {
+          return true;
+        }
+      }
+    }
+    return generated.any((item) => item.day == day && item.activityId == activityId);
+  }
+
+  /// Bloque les activités ordinaires uniquement pour les consignes obligatoires.
+  bool _nonSportRuleBlocks(Activity activity, int day, List<PlanItem> generated) {
+    for (final rule in _activeCoachRules()) {
+      if (!rule.must || !_ruleMatches(rule, activity)) continue;
+      if (rule.type == 'never_days' && rule.days.contains(day)) return true;
+      if (rule.type == 'cap' &&
+          _ruleCountSoFar(rule, excludeDay: day, generated: generated) >= rule.count) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Place en premier les consignes obligatoires « ces jours-là » des activités non sport.
+  int _placeForcedNonSportRuleActivities(
+    List<CoachRule> rules,
+    List<Activity> normalActivities,
+    List<PlanItem> generated,
+    int seq,
+    int startDay,
+    List<String> decisionDetails,
+  ) {
+    final dayRules = rules.where((r) {
+      if (!r.must || r.type != 'on_days' || r.targetKind != 'activity') return false;
+      final target = findActivity(r.targetId);
+      return target != null && !_isSportActivity(target) && !target.isSportProgram && !target.isDateRange;
+    }).toList();
+
+    for (final rule in dayRules) {
+      final matches = normalActivities.where((a) => _ruleMatches(rule, a)).toList();
+      if (matches.isEmpty) {
+        _coachRuleReport.add('⚠ « ${_ruleSentence(rule)} » : activité non sportive indisponible (supprimée, gelée ou à éviter).');
+        continue;
+      }
+      final activity = matches.first;
+      for (final day in (rule.days.toList()..sort())) {
+        if (day < startDay) {
+          if (_nonSportRuleActivityAlreadyOnDay(activity.id, day, generated)) continue;
+          _coachRuleReport.add('⚠ « ${_ruleSentence(rule)} » : ${_frWeekdaysLong[day]} est déjà passé ou protégé.');
+          continue;
+        }
+        if (_nonSportRuleActivityAlreadyOnDay(activity.id, day, generated)) {
+          _coachRuleReport.add('✔ ${activity.name} déjà présente ${_frWeekdaysLong[day]} : consigne respectée.');
+          continue;
+        }
+        if (_manualDayBlocked(activity, day)) {
+          _coachRuleReport.add('⚠ « ${_ruleSentence(rule)} » impossible ${_frWeekdaysLong[day]} : activité retirée manuellement de ce jour.');
+          continue;
+        }
+        if (_nonSportRuleBlocks(activity, day, generated)) {
+          _coachRuleReport.add('⚠ « ${_ruleSentence(rule)} » impossible ${_frWeekdaysLong[day]} : une autre consigne obligatoire (jour interdit ou plafond) s’y oppose.');
+          continue;
+        }
+
+        final duration = _learnedDurationForGeneration(activity);
+        generated.add(PlanItem(
+          id: 'coach_rule_${DateTime.now().microsecondsSinceEpoch}_$seq',
+          day: day,
+          period: _generationPeriod(activity, day),
+          timeLabel: null,
+          activityId: activity.id,
+          title: activity.name,
+          details: 'Consigne obligatoire du Coach : ${_ruleSentence(rule)}.',
+          duration: duration,
+          optional: false,
+          userAdded: false,
+          fixedInWeeklyTemplate: false,
+        ));
+        seq++;
+        _coachRuleReport.add('✔ ${activity.name} placée ${_frWeekdaysLong[day]} : consigne « ${_ruleSentence(rule)} ».');
+        if (decisionDetails.length < 30) {
+          decisionDetails.add('${dayNames[day]} · ${activity.name} — placée en priorité : consigne obligatoire « ${_ruleSentence(rule)} ».');
+        }
+      }
+    }
+    return seq;
+  }
+
+  /// Complète les fréquences minimales des activités non sport sur les jours futurs.
+  int _topUpNonSportRequireRules(
+    List<CoachRule> rules,
+    List<Activity> normalActivities,
+    List<PlanItem> generated,
+    int seq,
+    int startDay,
+    List<PlanItem> preservedPastAndToday,
+    List<PlanItem> preservedFutureManual,
+    List<String> decisionDetails,
+  ) {
+    final requires = rules.where((r) {
+      if (!r.must || r.type != 'require' || r.targetKind != 'activity') return false;
+      final target = findActivity(r.targetId);
+      return target != null && !_isSportActivity(target) && !target.isSportProgram && !target.isDateRange;
+    }).toList();
+
+    for (final rule in requires) {
+      final matching = normalActivities.where((a) => _ruleMatches(rule, a)).toList();
+      if (matching.isEmpty) {
+        _coachRuleReport.add('⚠ « ${_ruleSentence(rule)} » non tenue : activité non sportive indisponible (supprimée, gelée ou à éviter).');
+        continue;
+      }
+      final activity = matching.first;
+      var have = _ruleCountSoFar(rule, generated: generated);
+      final need = rule.count - have;
+      if (need <= 0) {
+        _coachRuleReport.add('✔ « ${_ruleSentence(rule)} » : déjà atteint ($have).');
+        continue;
+      }
+
+      final candidates = List<int>.generate(max(0, 7 - startDay).toInt(), (i) => startDay + i)
+          .where((day) =>
+              !_nonSportRuleActivityAlreadyOnDay(activity.id, day, generated) &&
+              !_manualDayBlocked(activity, day) &&
+              !_nonSportRuleBlocks(activity, day, generated))
+          .toList();
+      candidates.sort((a, b) {
+        final preference = _coachRulePreferenceScore(activity, b).compareTo(_coachRulePreferenceScore(activity, a));
+        if (preference != 0) return preference;
+        return _compareGenerationDays(
+          activity,
+          a,
+          b,
+          preservedPastAndToday: preservedPastAndToday,
+          preservedFutureManual: preservedFutureManual,
+          generated: generated,
+          usedDays: <int>{for (final item in generated.where((p) => p.activityId == activity.id)) item.day},
+          includeWeather: true,
+        );
+      });
+
+      var added = 0;
+      for (final day in candidates) {
+        if (added >= need) break;
+        // Une obligation explicite peut dépasser la fréquence de base, mais pas
+        // une suppression manuelle, un jour interdit ou un plafond contradictoire.
+        final duration = _learnedDurationForGeneration(activity);
+        generated.add(PlanItem(
+          id: 'coach_rule_${DateTime.now().microsecondsSinceEpoch}_$seq',
+          day: day,
+          period: _generationPeriod(activity, day),
+          timeLabel: null,
+          activityId: activity.id,
+          title: activity.name,
+          details: 'Consigne du Coach : ${_ruleSentence(rule)}.',
+          duration: duration,
+          optional: false,
+          userAdded: false,
+          fixedInWeeklyTemplate: false,
+        ));
+        seq++;
+        added++;
+        if (decisionDetails.length < 30) {
+          decisionDetails.add('${dayNames[day]} · ${activity.name} — ajoutée pour respecter « ${_ruleSentence(rule)} ».');
+        }
+      }
+
+      have += added;
+      if (have < rule.count) {
+        final warning = '⚠ « ${_ruleSentence(rule)} » non tenue : $have sur ${rule.count} (jours déjà réalisés ou protégés, suppression manuelle, autre consigne obligatoire ou activité indisponible).';
+        _coachRuleReport.add(warning);
+        if (decisionDetails.length < 30) decisionDetails.add(warning);
+      } else if (added > 0) {
+        _coachRuleReport.add('✔ « ${_ruleSentence(rule)} » respectée : $have sur ${rule.count}.');
+      }
+    }
+    return seq;
+  }
+
+  /// Ajoute une explication au bilan pour les plafonds et jours interdits non sportifs.
+  void _reportNonSportConstraintRules(
+    List<CoachRule> rules,
+    List<Activity> normalActivities,
+    List<PlanItem> generated,
+    int startDay,
+    List<String> decisionDetails,
+  ) {
+    for (final rule in rules.where((r) =>
+        r.must &&
+        r.targetKind == 'activity' &&
+        (r.type == 'cap' || r.type == 'never_days'))) {
+      final target = findActivity(rule.targetId);
+      if (target == null || _isSportActivity(target) || target.isSportProgram || target.isDateRange) continue;
+      if (!normalActivities.any((a) => a.id == target.id)) continue;
+
+      String? message;
+      if (rule.type == 'never_days') {
+        final futureForbiddenDays = rule.days.where((day) => day >= startDay).toList()..sort();
+        if (futureForbiddenDays.isNotEmpty) {
+          message = '✔ « ${_ruleSentence(rule)} » : aucune nouvelle occurrence générée les ${_joinDays(futureForbiddenDays)}. Les éléments déjà réalisés ou protégés restent inchangés.';
+        }
+      } else {
+        final count = _ruleCountSoFar(rule, generated: generated);
+        message = count <= rule.count
+            ? '✔ « ${_ruleSentence(rule)} » : plafond respecté ($count/${rule.count}).'
+            : '⚠ « ${_ruleSentence(rule)} » : plafond dépassé ($count/${rule.count}) par des séances déjà réalisées ou protégées, que le Coach ne déplace pas.';
+      }
+      if (message != null) {
+        _coachRuleReport.add(message);
+        if (decisionDetails.length < 30) decisionDetails.add(message);
+      }
+    }
   }
 
   Future<void> openCoachRules() async {
@@ -458,10 +789,10 @@ class _CoachRulesPageState extends State<_CoachRulesPage> {
             _AppCard(
               tone: _CardTone.tint,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                _SectionHeader(iconKey: 'coach', fallbackIcon: Icons.rule_rounded, title: 'Tes consignes pour le Sport'),
+                _SectionHeader(iconKey: 'coach', fallbackIcon: Icons.rule_rounded, title: 'Tes consignes pour tes activités'),
                 const SizedBox(height: AppSpace.s),
                 Text(
-                  'Le Coach les applique quand il organise la semaine. « Obligatoire » : respectée ou expliquée si impossible. « Préférence » : favorisée sans jamais surcharger.',
+                  'Le Coach les applique au Sport comme aux autres activités. « Obligatoire » : respectée ou expliquée si impossible. « Préférence » : favorisée sans jamais surcharger.',
                   style: TextStyle(fontSize: AppType.body, height: 1.35, color: _colors.textMuted),
                 ),
                 const SizedBox(height: AppSpace.m),
@@ -604,11 +935,14 @@ class _CoachRuleEditorState extends State<_CoachRuleEditor> {
     must = base?.must ?? true;
   }
 
-  List<Activity> get _sportActivities =>
+  List<Activity> get _ruleActivities =>
       _activityRegistry
-          .where((a) => a.category.toLowerCase() == 'sport' && !a.isSportProgram)
+          .where((a) => !a.isSportProgram && !a.isDateRange)
           .toList()
-        ..sort((x, y) => x.name.toLowerCase().compareTo(y.name.toLowerCase()));
+        ..sort((x, y) {
+          final category = x.category.toLowerCase().compareTo(y.category.toLowerCase());
+          return category != 0 ? category : x.name.toLowerCase().compareTo(y.name.toLowerCase());
+        });
 
   CoachRule? _build() {
     final target = targetId;
@@ -640,7 +974,9 @@ class _CoachRuleEditorState extends State<_CoachRuleEditor> {
   Widget build(BuildContext context) {
     final built = _build();
     final dayRule = type == 'on_days' || type == 'never_days';
-    final targets = targetKind == 'activity' ? _sportActivities.map((a) => (a.id, a.name)).toList() : kSportFamilies.map((f) => (f, f)).toList();
+    final targets = targetKind == 'activity'
+        ? _ruleActivities.map((a) => (a.id, '${a.category} · ${a.name}')).toList()
+        : kSportFamilies.map((f) => (f, f)).toList();
     if (targetId != null && !targets.any((t) => t.$1 == targetId)) {
       targets.insert(0, (targetId!, targetKind == 'activity' ? (_registeredActivity(id: targetId)?.name ?? 'activité supprimée') : targetId!));
     }
@@ -679,7 +1015,7 @@ class _CoachRuleEditorState extends State<_CoachRuleEditor> {
             key: ValueKey('target_$targetKind'),
             initialValue: targets.any((t) => t.$1 == targetId) ? targetId : null,
             isExpanded: true,
-            decoration: InputDecoration(labelText: targetKind == 'family' ? 'Famille' : 'Activité Sport'),
+            decoration: InputDecoration(labelText: targetKind == 'family' ? 'Famille Sport' : 'Activité'),
             items: [for (final t in targets) DropdownMenuItem<String>(value: t.$1, child: Text(t.$2, overflow: TextOverflow.ellipsis))],
             onChanged: (v) => setState(() => targetId = v),
           ),

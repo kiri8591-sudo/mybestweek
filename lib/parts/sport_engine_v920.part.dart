@@ -612,12 +612,19 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
   void _generateSportPart(List<PlanItem> generated, int seqStart,
       {int startDay = 0, List<String>? decisionDetails}) {
     _coachRuleReport.clear();
+    final rules = _activeCoachRules();
     final sportActivities = activities
-        .where((a) => _isSportActivity(a) && a.activeInSportRotation && !_generationShouldAvoid(a))
+        .where((a) =>
+            _isSportActivity(a) &&
+            (a.activeInSportRotation ||
+                rules.any((r) =>
+                    r.must &&
+                    (r.type == 'require' || r.type == 'on_days') &&
+                    _ruleMatches(r, a))) &&
+            !_generationShouldAvoid(a))
         .toList();
     if (sportActivities.isEmpty || _sportProgram == null) return;
     _coachRuleGenStart = startDay;
-    final rules = _activeCoachRules();
 
     // Après une réinitialisation complète (startDay == 0), le planning est
     // vierge : le Sport doit pouvoir reconstruire toute la semaine, y compris

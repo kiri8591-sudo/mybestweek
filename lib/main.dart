@@ -73,8 +73,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.20.0';
-  static const buildVersion = '12.20.0+58';
+  static const version = 'V12.21.1';
+  static const buildVersion = '12.21.1+61';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -168,7 +168,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   final Map<int, int> _regeneratedSportBudgets = {};
   bool _mondayRegenPromptDismissed = false;
   final Set<String> _coachDismissed = <String>{};
-  int? _coachRuleGenStart; // premier jour régénéré pendant une génération Sport (consignes)
+  int? _coachRuleGenStart; // premier jour régénéré pendant une génération Sport / activités (consignes)
   // Après une réinitialisation complète, la prochaine régénération repart
   // du lundi de la semaine courante au lieu de préserver le passé.
   bool _regenerateWholeWeekAfterReset = false;

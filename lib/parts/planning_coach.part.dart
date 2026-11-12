@@ -901,8 +901,23 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
     final normalActivities = activities
         .where((a) => !_isSportActivity(a) && !a.isSportProgram && !_generationShouldAvoid(a))
         .toList();
+    final activeRules = _activeCoachRules();
+    // Le moteur des règles compte maintenant les activités ordinaires également.
+    // Les anciennes séances automatiques futures sont ignorées, car elles seront remplacées.
+    _coachRuleGenStart = cutoffDay + 1;
+    seq = _placeForcedNonSportRuleActivities(
+      activeRules,
+      normalActivities,
+      generated,
+      seq,
+      cutoffDay + 1,
+      decisionDetails,
+    );
     final usedByActivity = <String, Set<int>>{
-      for (final a in normalActivities) a.id: <int>{},
+      for (final a in normalActivities)
+        a.id: <int>{
+          for (final item in generated.where((p) => p.activityId == a.id)) item.day,
+        },
     };
     final occurrencesByActivityDay = <String, Map<int, int>>{
       for (final a in normalActivities) a.id: <int, int>{},
@@ -917,6 +932,9 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
           final cmp = (rank[ar] ?? 2).compareTo(rank[br] ?? 2);
           if (cmp != 0) return cmp;
         }
+        final coachPreferenceCompare =
+            _coachRulePreferenceScore(b, today).compareTo(_coachRulePreferenceScore(a, today));
+        if (coachPreferenceCompare != 0) return coachPreferenceCompare;
         if (_generationRespectPriorities) {
           final priorityCompare = b.priority.compareTo(a.priority);
           if (priorityCompare != 0) return priorityCompare;
@@ -961,7 +979,8 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
       final alreadyRealisedDays = _currentWeekRealisedDaysCount(activity);
       final protectedFutureDays = _preservedFutureDaysCount(activity, preservedFutureManual);
       final targetDays = _generationWeeklyTarget(activity);
-      final remainingDays = max(0, targetDays - alreadyRealisedDays - protectedFutureDays);
+      final alreadyGeneratedDays = usedByActivity[activity.id]!.length;
+      final remainingDays = max(0, targetDays - alreadyRealisedDays - protectedFutureDays - alreadyGeneratedDays);
 
       if (remainingDays <= 0) {
         if (decisionDetails.length < 30 &&
@@ -977,21 +996,33 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
       final counts = occurrencesByActivityDay[activity.id]!;
 
       for (var dayIndex = 0; dayIndex < remainingDays; dayIndex++) {
+        final protectedActivityDays = preservedFutureManual
+            .where((item) => item.activityId == activity.id)
+            .map((item) => item.day)
+            .toSet();
         final availableDays = futureDays.where((day) =>
-            !usedDays.contains(day) && !_manualDayBlocked(activity, day)).toList();
+            !usedDays.contains(day) &&
+            !protectedActivityDays.contains(day) &&
+            !_manualDayBlocked(activity, day) &&
+            !_nonSportRuleBlocks(activity, day, generated)).toList();
         if (availableDays.isEmpty) break;
 
         final candidates = List<int>.from(availableDays)
-          ..sort((a, b) => _compareGenerationDays(
-            activity,
-            a,
-            b,
-            preservedPastAndToday: preservedPastAndToday,
-            preservedFutureManual: preservedFutureManual,
-            generated: generated,
-            usedDays: usedDays,
-            includeWeather: true,
-          ));
+          ..sort((a, b) {
+            final preference = _coachRulePreferenceScore(activity, b)
+                .compareTo(_coachRulePreferenceScore(activity, a));
+            if (preference != 0) return preference;
+            return _compareGenerationDays(
+              activity,
+              a,
+              b,
+              preservedPastAndToday: preservedPastAndToday,
+              preservedFutureManual: preservedFutureManual,
+              generated: generated,
+              usedDays: usedDays,
+              includeWeather: true,
+            );
+          });
 
         final chosenDay = candidates.first;
         final period = _generationPeriod(activity, chosenDay);
@@ -1049,6 +1080,25 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
         decisionDetails.add('${activity.name} — $left journée(s) n’ont pas été ajoutée(s) : il ne reste plus assez de jours futurs $limitText.');
       }
     }
+
+    seq = _topUpNonSportRequireRules(
+      activeRules,
+      normalActivities,
+      generated,
+      seq,
+      cutoffDay + 1,
+      preservedPastAndToday,
+      preservedFutureManual,
+      decisionDetails,
+    );
+    _reportNonSportConstraintRules(
+      activeRules,
+      normalActivities,
+      generated,
+      cutoffDay + 1,
+      decisionDetails,
+    );
+    _coachRuleGenStart = null;
 
     final newGeneratedSignature = _generatedPlanSignature(generated);
     final noChange = previousGeneratedSignature == newGeneratedSignature;
