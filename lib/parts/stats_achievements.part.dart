@@ -430,11 +430,9 @@ class _WeeksReviewPage extends StatelessWidget {
 
 String _cellMinutes(int minutes) => minutes < 60 ? '${minutes}m' : '${_hoursLabel(minutes)}h';
 
-Widget _calendarDayCell(int day, int minutes, bool isToday, {int count = 0}) {
+Widget _calendarDayCell(int day, int minutes, bool isToday, {int count = 0, VoidCallback? onTap}) {
   final active = minutes > 0 || count > 0;
-  return AspectRatio(
-    aspectRatio: .95,
-    child: Container(
+  final cell = Container(
       margin: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         color: active ? _colors.accentFill : _colors.surfaceSunken,
@@ -450,12 +448,15 @@ Widget _calendarDayCell(int day, int minutes, bool isToday, {int count = 0}) {
           ]),
         ),
       ),
-    ),
+    );
+  return AspectRatio(
+    aspectRatio: .95,
+    child: onTap == null ? cell : InkWell(onTap: onTap, borderRadius: BorderRadius.circular(AppRadius.xs), child: cell),
   );
 }
 
 /// Grille du mois (lundi en premier) : jour + minutes vécues les jours actifs.
-Widget _monthCalendarGrid(DateTime month, Map<int, int> perDay, {Map<int, int>? perDayCount}) {
+Widget _monthCalendarGrid(DateTime month, Map<int, int> perDay, {Map<int, int>? perDayCount, void Function(DateTime date)? onDayTap}) {
   final first = DateTime(month.year, month.month, 1);
   final days = DateTime(month.year, month.month + 1, 0).day;
   final lead = first.weekday - 1;
@@ -464,7 +465,8 @@ Widget _monthCalendarGrid(DateTime month, Map<int, int> perDay, {Map<int, int>? 
     for (var i = 0; i < lead; i++) const SizedBox.shrink(),
     for (var d = 1; d <= days; d++)
       _calendarDayCell(d, perDay[_dayKey(DateTime(month.year, month.month, d))] ?? 0, todayKey == _dayKey(DateTime(month.year, month.month, d)),
-          count: perDayCount?[_dayKey(DateTime(month.year, month.month, d))] ?? 0),
+          count: perDayCount?[_dayKey(DateTime(month.year, month.month, d))] ?? 0,
+          onTap: onDayTap == null ? null : () => onDayTap(DateTime(month.year, month.month, d))),
   ];
   while (cells.length % 7 != 0) {
     cells.add(const SizedBox.shrink());

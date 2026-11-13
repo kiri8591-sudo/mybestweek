@@ -392,7 +392,7 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
           icon: const Icon(Icons.chevron_right_rounded, size: 26),
         ),
       ]),
-      Text('Toucher un jour pour cocher ou décocher · appui long pour saisir le temps.', style: _hintStyle()),
+      Text('Toucher un jour pour voir le détail · appui long pour cocher ou décocher.', style: _hintStyle()),
       const SizedBox(height: AppSpace.s),
       _MonthActivityGrid(
         month: _month,
@@ -403,9 +403,28 @@ class _NonSportWeekPageState extends State<_NonSportWeekPage> {
           widget.onToggleDate(activity, date);
           if (mounted) setState(() {});
         },
-        onEditMinutes: (activity, date) async {
-          await widget.onEditMinutes(activity, date);
-          if (mounted) setState(() {});
+        onOpenDay: (activity, date) {
+          final dayLogs = logs.where((log) => _sameDate(log.date, date) && sameActivity(log, activity)).toList();
+          _showDayDetailSheet(
+            context,
+            date: date,
+            dayLogs: dayLogs,
+            activity: activity,
+            onToggle: () {
+              widget.onToggleDate(activity, date);
+              if (mounted) setState(() {});
+            },
+            onEditAmount: (activity.countOnly && !_isRepsActivity(activity))
+                ? null
+                : () async {
+                    await widget.onEditMinutes(activity, date);
+                    if (mounted) setState(() {});
+                  },
+            onEditLog: (log) async {
+              await widget.onEditLog(log);
+              if (mounted) setState(() {});
+            },
+          );
         },
         onOpenActivity: widget.onOpenActivity,
         emptyText: 'Aucune activité non-Sport ne correspond aux filtres.',

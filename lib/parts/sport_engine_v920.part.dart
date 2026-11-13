@@ -141,6 +141,7 @@ extension _SportEnginePart on _MaBelleSemaineAppState {
           onEditMinutes: editActivityMinutesOnDate,
           onEditItemReps: editItemReps,
           onOpenCoachRules: openCoachRules,
+          onEditLog: editHistoryLogMinutes,
           onEditItemMinutes: (item) {
             final a = item.activityId == null ? null : findActivity(item.activityId!);
             return a != null ? _editSportRealisedMinutes(item, a) : editItemRealisedMinutes(item);

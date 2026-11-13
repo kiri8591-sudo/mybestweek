@@ -142,9 +142,12 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
     );
   }
 
-  Widget _legendRow(String name, int minutes, int total, Color color) {
+  Widget _legendRow(String name, int minutes, int total, Color color, {VoidCallback? onTap}) {
     final share = total <= 0 ? 0.0 : minutes / total;
-    return Padding(
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.s),
+      onTap: onTap,
+      child: Padding(
       padding: const EdgeInsets.only(top: AppSpace.m),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -154,10 +157,12 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
           Text('${_hoursLabel(minutes)} h', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
           const SizedBox(width: 8),
           SizedBox(width: 40, child: Text('${(share * 100).round()} %', textAlign: TextAlign.right, style: TextStyle(fontSize: AppType.small, color: _colors.textMuted))),
+          if (onTap != null) Icon(Icons.chevron_right_rounded, size: 18, color: _colors.textMuted),
         ]),
         const SizedBox(height: 5),
         _MeterBar(value: share, color: color, height: 6),
       ]),
+    ),
     );
   }
 
@@ -183,6 +188,21 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
           _uiIcon('planOpen', Icons.chevron_right, size: 19, color: _colors.textMuted),
         ]),
       ),
+    );
+  }
+
+  /// Toutes les réalisations d'un jour (calendrier de la vue d'ensemble).
+  void _openDayDetail(DateTime date) {
+    final dayLogs = widget.logs.where((l) => l.realisedMinutes > 0 && _dayKey(l.date) == _dayKey(date)).toList();
+    _showDayDetailSheet(
+      context,
+      date: date,
+      dayLogs: dayLogs,
+      onEditLog: (log) async {
+        await widget.onEditLog(log);
+        if (mounted) setState(() {});
+      },
+      onOpenLog: (log) => _openActivity(_activityFor(log)),
     );
   }
 
@@ -219,7 +239,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
           ),
         ]),
         const SizedBox(height: AppSpace.s),
-        _monthCalendarGrid(_calMonth, perDay, perDayCount: perDayCount),
+        _monthCalendarGrid(_calMonth, perDay, perDayCount: perDayCount, onDayTap: _openDayDetail),
       ]),
     );
   }
@@ -246,6 +266,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
       }
     }
     if (other > 0) slices.add(MapEntry('Autres', other));
+    final otherCats = <String>[for (var i = 6; i < sorted.length; i++) sorted[i].key];
 
     DateTime? first;
     for (final l in widget.logs) {
@@ -349,7 +370,18 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
                   )
                 else
                   for (var i = 0; i < slices.length; i++)
-                    _legendRow(slices[i].key, slices[i].value, totalMinutes, _palette[i % _palette.length]),
+                    _legendRow(
+                      slices[i].key,
+                      slices[i].value,
+                      totalMinutes,
+                      _palette[i % _palette.length],
+                      onTap: () => _openCategoryDetail(slices[i].key, slices[i].key == 'Autres' ? otherCats : [slices[i].key], logs),
+                    ),
+                if (slices.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpace.m),
+                    child: Text('Touche une catégorie pour voir le détail.', style: _hintStyle()),
+                  ),
                 if (countLogs.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: AppSpace.m),
@@ -431,8 +463,24 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
 
   Widget _heatRow(DateTime month, Map<int, int> perDay) => _heatMonthRow(month, perDay);
 
-  Widget _calendar(Map<int, int> perDay, {bool count = false}) =>
-      count ? _monthCalendarGrid(_month, const <int, int>{}, perDayCount: perDay) : _monthCalendarGrid(_month, perDay);
+  /// Réalisations de cette activité un jour donné.
+  void _openDayDetail(DateTime date) {
+    final dayLogs = widget.logs.where((l) => l.realisedMinutes > 0 && _dayKey(l.date) == _dayKey(date) && _logIsOfActivity(l, widget.activity)).toList();
+    _showDayDetailSheet(
+      context,
+      date: date,
+      dayLogs: dayLogs,
+      activity: widget.activity,
+      onEditLog: (log) async {
+        await widget.onEditLog(log);
+        if (mounted) setState(() {});
+      },
+    );
+  }
+
+  Widget _calendar(Map<int, int> perDay, {bool count = false}) => count
+      ? _monthCalendarGrid(_month, const <int, int>{}, perDayCount: perDay, onDayTap: _openDayDetail)
+      : _monthCalendarGrid(_month, perDay, onDayTap: _openDayDetail);
 
   @override
   Widget build(BuildContext context) {

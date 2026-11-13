@@ -190,6 +190,7 @@ class _SportWeekPage extends StatefulWidget {
   final Future<void> Function(PlanItem item) onEditItemMinutes;
   final Future<void> Function(PlanItem item) onEditItemReps;
   final VoidCallback onOpenCoachRules;
+  final Future<void> Function(ActivityLog log) onEditLog;
   final void Function(int day, int minutes) onSetBudget;
   final DateTime Function() getNow;
   final bool Function(String?) isDailyPriority;
@@ -214,6 +215,7 @@ class _SportWeekPage extends StatefulWidget {
     required this.onEditItemMinutes,
     required this.onEditItemReps,
     required this.onOpenCoachRules,
+    required this.onEditLog,
     required this.onSetBudget,
     required this.getNow,
     required this.isDailyPriority,
@@ -944,7 +946,7 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           icon: const Icon(Icons.chevron_right_rounded, size: 26),
         ),
       ]),
-      Text('Toucher un jour pour cocher ou décocher · appui long pour saisir le temps.', style: _hintStyle()),
+      Text('Toucher un jour pour voir le détail · appui long pour cocher ou décocher.', style: _hintStyle()),
       const SizedBox(height: AppSpace.s),
       _MonthActivityGrid(
         month: _month,
@@ -955,9 +957,26 @@ class _SportWeekPageState extends State<_SportWeekPage> {
           widget.onToggleDate(activity, date);
           if (mounted) setState(() {});
         },
-        onEditMinutes: (activity, date) async {
-          await widget.onEditMinutes(activity, date);
-          if (mounted) setState(() {});
+        onOpenDay: (activity, date) {
+          final dayLogs = logs.where((log) => _sameDate(log.date, date) && sameActivity(log, activity)).toList();
+          _showDayDetailSheet(
+            context,
+            date: date,
+            dayLogs: dayLogs,
+            activity: activity,
+            onToggle: () {
+              widget.onToggleDate(activity, date);
+              if (mounted) setState(() {});
+            },
+            onEditAmount: () async {
+              await widget.onEditMinutes(activity, date);
+              if (mounted) setState(() {});
+            },
+            onEditLog: (log) async {
+              await widget.onEditLog(log);
+              if (mounted) setState(() {});
+            },
+          );
         },
         onOpenActivity: widget.onOpenActivity,
         emptyText: 'Aucune activité Sport ne correspond aux filtres.',

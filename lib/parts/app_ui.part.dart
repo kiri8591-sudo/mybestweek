@@ -699,14 +699,14 @@ class _InfoNote extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 /// Pour chaque activité : titre, bilan du mois et une case par jour
-/// (toucher = cocher / décocher, appui long = saisir le temps).
+/// (toucher = détail du jour et actions, appui long = cocher / décocher).
 class _MonthActivityGrid extends StatelessWidget {
   final DateTime month;
   final List<Activity> activities;
   final bool Function(Activity activity, DateTime date) doneOn;
   final int Function(Activity activity, DateTime date) minutesOn;
   final void Function(Activity activity, DateTime date) onToggle;
-  final Future<void> Function(Activity activity, DateTime date) onEditMinutes;
+  final void Function(Activity activity, DateTime date) onOpenDay;
   final ValueChanged<Activity> onOpenActivity;
   final String emptyText;
 
@@ -716,7 +716,7 @@ class _MonthActivityGrid extends StatelessWidget {
     required this.doneOn,
     required this.minutesOn,
     required this.onToggle,
-    required this.onEditMinutes,
+    required this.onOpenDay,
     required this.onOpenActivity,
     required this.emptyText,
   });
@@ -739,8 +739,8 @@ class _MonthActivityGrid extends StatelessWidget {
       final isToday = date.year * 10000 + date.month * 100 + date.day == todayKey;
       return InkWell(
         borderRadius: BorderRadius.circular(AppRadius.xs),
-        onTap: () => onToggle(activity, date),
-        onLongPress: () => onEditMinutes(activity, date),
+        onTap: () => onOpenDay(activity, date),
+        onLongPress: () => onToggle(activity, date),
         child: Container(
           width: 27,
           height: 27,
