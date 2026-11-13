@@ -29,6 +29,7 @@ part 'parts/main_screens_v925.part.dart';
 part 'parts/reusable_sheets_v921.part.dart';
 part 'parts/system_icons.part.dart';
 part 'parts/daily_coach_summary.part.dart';
+part 'parts/home_coach_dashboard.part.dart';
 part 'parts/planning_helpers.part.dart';
 part 'parts/plan_completion_v924.part.dart';
 part 'parts/date_range_navigation.part.dart';
@@ -74,8 +75,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.22.0';
-  static const buildVersion = '12.22.0+62';
+  static const version = 'V12.23.0';
+  static const buildVersion = '12.23.0+63';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -146,6 +147,9 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   int _persistenceGeneration = 0;
   final Set<String> _sportValidationInProgress = <String>{};
   bool _homeSportExpanded = false;
+  // V12.23.0 — Rendez-vous du Coach affiché en tête de l'accueil.
+  String _homeCoachView = 'yesterday'; // yesterday | week
+  bool _homeCoachExpanded = true;
   final Set<String> _homeExpandedPeriods = <String>{};
 
   // Critères utilisés uniquement pour les nouvelles occurrences générées.
