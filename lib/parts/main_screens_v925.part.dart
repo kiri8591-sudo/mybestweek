@@ -882,8 +882,17 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                           if (value == 'identity') _editHomeIdentity();
                           if (value == 'darkMode') _toggleDarkMode();
                           if (value == 'rules') openCoachRules();
+                          if (value == 'bestForm') _openMyBestForm();
                         },
                         itemBuilder: (context) => [
+                          PopupMenuItem<String>(
+                            value: 'bestForm',
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: const Icon(Icons.favorite_outline_rounded, size: 18),
+                              title: const Text('My Best Form · Suivi du poids'),
+                            ),
+                          ),
                           PopupMenuItem<String>(
                             value: 'rules',
                             child: ListTile(
@@ -1013,8 +1022,8 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
             ),
           ),
         ),
-        SliverToBoxAdapter(child: _homeCoachDashboard()),
         SliverToBoxAdapter(child: _myBestFormHomeCard()),
+        SliverToBoxAdapter(child: _homeCoachDashboard()),
         _homePlanningBanner(),
         SliverToBoxAdapter(
           child: Padding(

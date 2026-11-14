@@ -238,7 +238,12 @@ extension _MyBestForm on _MaBelleSemaineAppState {
   }
 
   Future<void> _openMyBestForm() async {
-    await Navigator.of(context).push<void>(MaterialPageRoute<void>(builder: (_) => _MyBestFormPageHost(owner: this)));
+    // Le State principal est situé au-dessus de MaterialApp : son context
+    // ne possède donc pas de Navigator ancêtre. Toujours utiliser la clé
+    // du Navigator installée sur MaterialApp.
+    final navigator = _navigatorKey.currentState;
+    if (navigator == null || !mounted) return;
+    await navigator.push<void>(MaterialPageRoute<void>(builder: (_) => _MyBestFormPageHost(owner: this)));
   }
 
   Widget _myBestFormHomeCard() {
@@ -307,7 +312,7 @@ extension _MyBestForm on _MaBelleSemaineAppState {
     );
   }
 
-  Widget _myBestFormPageContent() {
+  Widget _myBestFormPageContent(BuildContext pageContext) {
     final latest = _formLatestWeight;
     final sorted = _formWeightsSorted;
     final start = _weightStartKg;
@@ -327,9 +332,9 @@ extension _MyBestForm on _MaBelleSemaineAppState {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Best Form'),
-        leading: IconButton(tooltip: 'Retour', icon: const Icon(Icons.arrow_back_rounded), onPressed: () => Navigator.of(context).pop()),
+        leading: IconButton(tooltip: 'Retour', icon: const Icon(Icons.arrow_back_rounded), onPressed: () => Navigator.of(pageContext).pop()),
         actions: [
-          IconButton(tooltip: 'Définir mon objectif', onPressed: _openWeightGoalDialog, icon: const Icon(Icons.tune_rounded)),
+          IconButton(tooltip: 'Définir mon objectif', onPressed: () => _openWeightGoalDialog(pageContext), icon: const Icon(Icons.tune_rounded)),
         ],
       ),
       body: SafeArea(
@@ -355,7 +360,7 @@ extension _MyBestForm on _MaBelleSemaineAppState {
               borderColor: _colors.borderTint,
               padding: const EdgeInsets.all(13),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [Expanded(child: Text('MON OBJECTIF DE POIDS', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w900, letterSpacing: .5, color: _colors.accentStrongText))), TextButton.icon(onPressed: _openWeightGoalDialog, icon: const Icon(Icons.edit_outlined, size: 16), label: Text(goal == null ? 'Définir' : 'Modifier'))]),
+                Row(children: [Expanded(child: Text('MON OBJECTIF DE POIDS', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w900, letterSpacing: .5, color: _colors.accentStrongText))), TextButton.icon(onPressed: () => _openWeightGoalDialog(pageContext), icon: const Icon(Icons.edit_outlined, size: 16), label: Text(goal == null ? 'Définir' : 'Modifier'))]),
                 Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                   Expanded(child: _formBigMetric(latestWeightText, 'Dernière mesure')),
                   const SizedBox(width: 8),
@@ -375,7 +380,7 @@ extension _MyBestForm on _MaBelleSemaineAppState {
                   Text('Enregistre une première pesée et définis un objectif réaliste pour démarrer ton suivi.', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
                 ],
                 const SizedBox(height: 11),
-                SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _openWeightEntryDialog(), icon: const Icon(Icons.add_rounded), label: const Text('Enregistrer une pesée'))),
+                SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => _openWeightEntryDialog(pageContext), icon: const Icon(Icons.add_rounded), label: const Text('Enregistrer une pesée'))),
               ]),
             ),
             const SizedBox(height: 11),
@@ -457,11 +462,11 @@ extension _MyBestForm on _MaBelleSemaineAppState {
               borderColor: _colors.borderTint,
               padding: const EdgeInsets.all(13),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [Expanded(child: Text('MON HISTORIQUE DE PESÉES', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w900, letterSpacing: .5, color: _colors.accentStrongText))), TextButton.icon(onPressed: () => _openWeightEntryDialog(), icon: const Icon(Icons.add, size: 16), label: const Text('Ajouter'))]),
+                Row(children: [Expanded(child: Text('MON HISTORIQUE DE PESÉES', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w900, letterSpacing: .5, color: _colors.accentStrongText))), TextButton.icon(onPressed: () => _openWeightEntryDialog(pageContext), icon: const Icon(Icons.add, size: 16), label: const Text('Ajouter'))]),
                 if (sorted.isEmpty)
                   Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text('Aucune mesure enregistrée pour le moment.', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted)))
                 else
-                  ...sorted.reversed.take(20).map((entry) => _weightEntryRow(entry, sorted)),
+                  ...sorted.reversed.take(20).map((entry) => _weightEntryRow(entry, sorted, pageContext)),
                 if (sorted.length > 20) Padding(padding: const EdgeInsets.only(top: 6), child: Text('Les 20 mesures les plus récentes sont affichées ici. Toutes restent conservées dans tes données.', style: TextStyle(fontSize: AppType.caption, color: _colors.textMuted))),
               ]),
             ),
@@ -487,7 +492,7 @@ extension _MyBestForm on _MaBelleSemaineAppState {
     Text(label, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.caption, fontWeight: FontWeight.w700, color: _colors.textMuted)),
   ]);
 
-  Widget _weightEntryRow(WeightEntry entry, List<WeightEntry> sorted) {
+  Widget _weightEntryRow(WeightEntry entry, List<WeightEntry> sorted, BuildContext pageContext) {
     final index = sorted.indexWhere((candidate) => candidate.id == entry.id);
     final previous = index > 0 ? sorted[index - 1] : null;
     final delta = previous == null ? null : entry.weightKg - previous.weightKg;
@@ -505,8 +510,8 @@ extension _MyBestForm on _MaBelleSemaineAppState {
           Text(weightAndWaistText, style: TextStyle(fontSize: AppType.body, color: _colors.textStrong, fontWeight: FontWeight.w900)),
         ])),
         if (deltaText.isNotEmpty) Padding(padding: const EdgeInsets.only(right: 3), child: Text(deltaText, style: TextStyle(fontSize: AppType.caption, color: (delta ?? 0) < 0 ? _colors.accentStrongText : _colors.textMuted, fontWeight: FontWeight.w800))),
-        IconButton(tooltip: 'Modifier la pesée', visualDensity: VisualDensity.compact, onPressed: () => _openWeightEntryDialog(existing: entry), icon: Icon(Icons.edit_outlined, size: 18, color: _colors.accentIcon)),
-        IconButton(tooltip: 'Supprimer la pesée', visualDensity: VisualDensity.compact, onPressed: () => _deleteWeightEntry(entry), icon: Icon(Icons.delete_outline_rounded, size: 18, color: _colors.textMuted)),
+        IconButton(tooltip: 'Modifier la pesée', visualDensity: VisualDensity.compact, onPressed: () => _openWeightEntryDialog(pageContext, existing: entry), icon: Icon(Icons.edit_outlined, size: 18, color: _colors.accentIcon)),
+        IconButton(tooltip: 'Supprimer la pesée', visualDensity: VisualDensity.compact, onPressed: () => _deleteWeightEntry(pageContext, entry), icon: Icon(Icons.delete_outline_rounded, size: 18, color: _colors.textMuted)),
       ]),
     );
   }
@@ -526,11 +531,11 @@ extension _MyBestForm on _MaBelleSemaineAppState {
     _formPageRefresh?.call();
   }
 
-  Future<void> _openWeightGoalDialog() async {
+  Future<void> _openWeightGoalDialog(BuildContext pageContext) async {
     final controller = TextEditingController(text: _weightGoalKg?.toStringAsFixed(1).replaceAll('.', ',') ?? '');
     final formKey = GlobalKey<FormState>();
     final result = await showDialog<double>(
-      context: context,
+      context: pageContext,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Mon objectif de poids'),
         content: Form(
@@ -571,14 +576,14 @@ extension _MyBestForm on _MaBelleSemaineAppState {
     _formPageRefresh?.call();
   }
 
-  Future<void> _openWeightEntryDialog({WeightEntry? existing}) async {
+  Future<void> _openWeightEntryDialog(BuildContext pageContext, {WeightEntry? existing}) async {
     final weightController = TextEditingController(text: existing?.weightKg.toStringAsFixed(1).replaceAll('.', ',') ?? '');
     final waistController = TextEditingController(text: existing?.waistCm?.toStringAsFixed(1).replaceAll('.', ',') ?? '');
     final noteController = TextEditingController(text: existing?.note ?? '');
     final formKey = GlobalKey<FormState>();
     var selectedDate = existing?.date ?? DateTime.now();
     final result = await showDialog<_WeightDialogResult>(
-      context: context,
+      context: pageContext,
       builder: (dialogContext) => StatefulBuilder(builder: (dialogContext, setDialogState) => AlertDialog(
         title: Text(existing == null ? 'Enregistrer une pesée' : 'Modifier la pesée'),
         content: Form(
@@ -664,9 +669,9 @@ extension _MyBestForm on _MaBelleSemaineAppState {
     _showFormSnack(existing == null ? 'Pesée enregistrée.' : 'Pesée mise à jour.');
   }
 
-  Future<void> _deleteWeightEntry(WeightEntry entry) async {
+  Future<void> _deleteWeightEntry(BuildContext pageContext, WeightEntry entry) async {
     final confirmed = await showDialog<bool>(
-      context: context,
+      context: pageContext,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Supprimer cette pesée ?'),
         content: Text('La mesure du ${_formDateLabel(entry.date)} sera retirée de ton historique.'),
@@ -715,7 +720,7 @@ class _MyBestFormPageHostState extends State<_MyBestFormPageHost> {
   @override
   Widget build(BuildContext context) {
     widget.owner._formPageRefresh = _refresh;
-    return widget.owner._myBestFormPageContent();
+    return widget.owner._myBestFormPageContent(context);
   }
 
   @override
