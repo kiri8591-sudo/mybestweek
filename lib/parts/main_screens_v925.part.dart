@@ -1014,6 +1014,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
           ),
         ),
         SliverToBoxAdapter(child: _homeCoachDashboard()),
+        SliverToBoxAdapter(child: _myBestFormHomeCard()),
         _homePlanningBanner(),
         SliverToBoxAdapter(
           child: Padding(

@@ -234,6 +234,8 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         'logs': logs.length,
         'dailySummaries': dailySummaries.length,
         'moves': activityMoveLogs.length,
+        'weightEntries': _weightEntries.length,
+        'formHabitDays': _formHabitChecks.length,
       },
       'appVersion': _MaBelleSemaineAppState.version,
       'darkMode': _darkMode,
@@ -263,6 +265,20 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         'createdAt': g.createdAt.toIso8601String(),
         'rewardedPeriodKeys': [...g.rewardedPeriodKeys],
       }).toList(),
+      // V12.24.0 — les données de forme suivent les sauvegardes locales et fichiers.
+      'weightStartKg': _weightStartKg,
+      'weightGoalKg': _weightGoalKg,
+      'weightGoalStartedAt': _weightGoalStartedAt?.toIso8601String(),
+      'weightEntries': _weightEntries.map((entry) => {
+        'id': entry.id,
+        'date': entry.date.toIso8601String(),
+        'weightKg': entry.weightKg,
+        'waistCm': entry.waistCm,
+        'note': entry.note,
+      }).toList(),
+      'formHabitChecks': {
+        for (final entry in _formHabitChecks.entries) entry.key: [...entry.value],
+      },
       'customActivityEmojis': _customActivityEmojis.map((e) => e.value).toList(),
       'customActivityIcons': _customActivityIcons.map((e) => {
         'id': e.id,
@@ -679,6 +695,55 @@ extension _StatePersistence on _MaBelleSemaineAppState {
               })
               .where((g) => restoredActivities.any((a) => a.id == g.activityId))
               .take(12));
+        // V12.24.0 — restauration rétrocompatible : les anciennes sauvegardes
+        // ne possèdent pas ces clés et démarrent donc avec un suivi vide.
+        _weightStartKg = root['weightStartKg'] is num
+            ? (root['weightStartKg'] as num).toDouble()
+            : double.tryParse('${root['weightStartKg'] ?? ''}'.replaceAll(',', '.'));
+        _weightGoalKg = root['weightGoalKg'] is num
+            ? (root['weightGoalKg'] as num).toDouble()
+            : double.tryParse('${root['weightGoalKg'] ?? ''}'.replaceAll(',', '.'));
+        final rawGoalStartedAt = _asString(root['weightGoalStartedAt']);
+        _weightGoalStartedAt = rawGoalStartedAt == null ? null : DateTime.tryParse(rawGoalStartedAt);
+        if (_weightStartKg != null && (!_weightStartKg!.isFinite || _weightStartKg! < 25 || _weightStartKg! > 300)) _weightStartKg = null;
+        if (_weightGoalKg != null && (!_weightGoalKg!.isFinite || _weightGoalKg! < 25 || _weightGoalKg! > 300)) _weightGoalKg = null;
+        _weightEntries.clear();
+        final rawWeightEntries = root['weightEntries'];
+        if (rawWeightEntries is List) {
+          for (final rawEntry in rawWeightEntries) {
+            if (rawEntry is! Map) continue;
+            final rawDate = _asString(rawEntry['date']);
+            final date = rawDate == null ? null : DateTime.tryParse(rawDate);
+            final rawWeight = rawEntry['weightKg'];
+            final weight = rawWeight is num
+                ? rawWeight.toDouble()
+                : double.tryParse('$rawWeight'.replaceAll(',', '.'));
+            if (date == null || weight == null || !weight.isFinite || weight <= 0 || weight > 500) continue;
+            final rawWaist = rawEntry['waistCm'];
+            final waist = rawWaist == null
+                ? null
+                : (rawWaist is num ? rawWaist.toDouble() : double.tryParse('$rawWaist'.replaceAll(',', '.')));
+            _weightEntries.add(WeightEntry(
+              id: _asString(rawEntry['id']) ?? 'weight_${date.microsecondsSinceEpoch}',
+              date: DateTime(date.year, date.month, date.day),
+              weightKg: weight,
+              waistCm: waist != null && waist > 0 && waist < 300 ? waist : null,
+              note: _asString(rawEntry['note']) ?? '',
+            ));
+          }
+        }
+        _weightEntries.sort((a, b) => a.date.compareTo(b.date));
+        _formHabitChecks.clear();
+        final rawHabitChecks = root['formHabitChecks'];
+        final validHabitIds = _kFormHabits.map((habit) => habit.id).toSet();
+        if (rawHabitChecks is Map) {
+          for (final entry in rawHabitChecks.entries) {
+            final dateKey = '${entry.key}';
+            if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(dateKey) || entry.value is! List) continue;
+            final ids = (entry.value as List).map((v) => '$v').where((v) => validHabitIds.contains(v)).toSet();
+            if (ids.isNotEmpty) _formHabitChecks[dateKey] = ids;
+          }
+        }
         _customActivityEmojis
           ..clear()
           ..addAll(((root['customActivityEmojis'] is List) ? (root['customActivityEmojis'] as List) : const [])
@@ -874,6 +939,11 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _priorityRewardText = 'un moment plaisir';
       // Une réinitialisation complète repart aussi sans objectifs de réalisation.
       _realizationGoals.clear();
+      _weightEntries.clear();
+      _weightStartKg = null;
+      _weightGoalKg = null;
+      _weightGoalStartedAt = null;
+      _formHabitChecks.clear();
       _systemIconOverrides.clear();
       _systemUiIconOverrides.clear();
       _customCategories.clear();
