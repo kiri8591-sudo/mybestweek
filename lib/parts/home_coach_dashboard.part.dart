@@ -244,7 +244,7 @@ extension _HomeCoachDashboardPart on _MaBelleSemaineAppState {
     );
   }
 
-  Widget _homeCoachDashboard() {
+  Widget _homeCoachDashboardLegacy() {
     final weekly = _homeCoachView == 'week';
     final todayDate = _coachDateOnly(DateTime.now());
     final yesterday = _addDays(todayDate, -1);

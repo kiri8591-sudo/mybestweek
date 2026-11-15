@@ -59,7 +59,7 @@ part 'parts/tracking_mode.part.dart';
 part 'parts/reps_tracking.part.dart';
 part 'parts/coach_rules.part.dart';
 part 'parts/day_detail.part.dart';
-part 'parts/my_best_form.part.dart';
+part 'parts/home_coach_motivation.part.dart';
 
 void main() {
   if (kIsWeb) _installMascotBrowserIcon();
@@ -76,8 +76,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.24.1';
-  static const buildVersion = '12.24.1+65';
+  static const version = 'V12.24.0';
+  static const buildVersion = '12.24.0+64';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -149,7 +149,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   final Set<String> _sportValidationInProgress = <String>{};
   bool _homeSportExpanded = false;
   // V12.23.0 — Rendez-vous du Coach affiché en tête de l'accueil.
-  String _homeCoachView = 'yesterday'; // yesterday | week
+  String _homeCoachView = 'today'; // today | yesterday | week
+  String _coachTone = 'motivant'; // doux | motivant | direct
   bool _homeCoachExpanded = true;
   final Set<String> _homeExpandedPeriods = <String>{};
 
@@ -221,15 +222,6 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   String _priorityRewardText = 'un moment plaisir';
   // V9.29 — Objectifs de réalisation et streak Sport.
   final List<RealizationGoal> _realizationGoals = <RealizationGoal>[];
-
-  // V12.24.0 — espace My Best Form : pesées, objectif et habitudes santé.
-  final List<WeightEntry> _weightEntries = <WeightEntry>[];
-  double? _weightStartKg;
-  double? _weightGoalKg;
-  DateTime? _weightGoalStartedAt;
-  final Map<String, Set<String>> _formHabitChecks = <String, Set<String>>{};
-  int _formChartMonths = 6;
-  VoidCallback? _formPageRefresh;
 
   // Icônes personnalisables de l'interface (en-têtes, navigation et boutons).
   // La valeur peut être un emoji ou un token customicon:// existant.
