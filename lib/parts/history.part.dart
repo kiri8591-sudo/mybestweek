@@ -6,6 +6,7 @@ part of '../main.dart';
 class _HistorySheet extends StatefulWidget {
   final List<ActivityLog> logs;
   final List<Activity> activities;
+  final List<RealizationGoal> goals;
   final List<String> dayNames;
   final VoidCallback onOpenGenerationCriteria;
   final Future<void> Function(ActivityLog log) onEditLog;
@@ -17,6 +18,7 @@ class _HistorySheet extends StatefulWidget {
   const _HistorySheet({
     required this.logs,
     required this.activities,
+    required this.goals,
     required this.dayNames,
     required this.onOpenGenerationCriteria,
     required this.onEditLog,
@@ -850,7 +852,7 @@ class _HistorySheetState extends State<_HistorySheet> {
   void _openStats() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _StatsOverviewPage(logs: widget.logs, activities: widget.activities, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity, onRecreate: widget.onRecreate, onRelink: widget.onRelink),
+        builder: (_) => _StatsOverviewPage(logs: widget.logs, activities: widget.activities, goals: widget.goals, onEditLog: widget.onEditLog, onAddForActivity: widget.onAddForActivity, onRecreate: widget.onRecreate, onRelink: widget.onRelink),
       ),
     );
   }

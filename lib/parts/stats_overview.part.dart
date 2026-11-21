@@ -84,13 +84,14 @@ class _ActivityTotal {
 class _StatsOverviewPage extends StatefulWidget {
   final List<ActivityLog> logs;
   final List<Activity> activities;
+  final List<RealizationGoal> goals;
 
   final Future<void> Function(ActivityLog log) onEditLog;
   final Future<void> Function(Activity activity) onAddForActivity;
   final Future<void> Function(Activity activity) onRecreate;
   final Future<void> Function(Activity activity) onRelink;
 
-  const _StatsOverviewPage({required this.logs, required this.activities, required this.onEditLog, required this.onAddForActivity, required this.onRecreate, required this.onRelink});
+  const _StatsOverviewPage({required this.logs, required this.activities, required this.goals, required this.onEditLog, required this.onAddForActivity, required this.onRecreate, required this.onRelink});
 
   @override
   State<_StatsOverviewPage> createState() => _StatsOverviewPageState();
@@ -115,10 +116,28 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
     DateTime? cutoff;
     if (_period == '30 jours') cutoff = now.subtract(const Duration(days: 30));
     if (_period == '1 an') cutoff = now.subtract(const Duration(days: 365));
-    return widget.logs.where((l) => l.realisedMinutes > 0 && (cutoff == null || !l.date.isBefore(cutoff))).toList();
+    return widget.logs.where((l) => (l.realisedMinutes > 0 || (l.reps ?? 0) > 0 || _logIsCount(l)) && (cutoff == null || !l.date.isBefore(cutoff))).toList();
   }
 
   Activity _activityFor(ActivityLog log) => _resolveActivity(log, widget.activities);
+
+  /// Activités distinctes réalisées par jour, séparées entre suivi en durée et occurrences.
+  /// Chaque icône n'apparaît qu'une fois par jour, même si l'activité a plusieurs entrées.
+  Map<int, List<Activity>> _activitiesPerDay(Iterable<ActivityLog> source, {required bool count}) {
+    final grouped = <int, Map<String, Activity>>{};
+    for (final log in source) {
+      final isCount = _logIsCount(log);
+      if (isCount != count) continue;
+      if (!isCount && log.realisedMinutes <= 0) continue;
+      final activity = _activityFor(log);
+      final key = _dayKey(log.date);
+      grouped.putIfAbsent(key, () => <String, Activity>{})[activity.id] = activity;
+    }
+    return {
+      for (final entry in grouped.entries)
+        entry.key: (entry.value.values.toList()..sort((a, b) => a.name.compareTo(b.name))),
+    };
+  }
 
   List<_ActivityTotal> _activityTotals(List<ActivityLog> logs) {
     final minutes = <String, int>{};
@@ -166,6 +185,30 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
     );
   }
 
+  Widget _countCategoryRow(String name, int count, int total, Color color, {VoidCallback? onTap}) {
+    final share = total <= 0 ? 0.0 : count / total;
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadius.s),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(top: AppSpace.m),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+            const SizedBox(width: 8),
+            Expanded(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong))),
+            Text('$count fois', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
+            const SizedBox(width: 8),
+            SizedBox(width: 40, child: Text('${(share * 100).round()} %', textAlign: TextAlign.right, style: TextStyle(fontSize: AppType.small, color: _colors.textMuted))),
+            if (onTap != null) Icon(Icons.chevron_right_rounded, size: 18, color: _colors.textMuted),
+          ]),
+          const SizedBox(height: 5),
+          _MeterBar(value: share, color: color, height: 6),
+        ]),
+      ),
+    );
+  }
+
   Widget _activityRow(_ActivityTotal item) {
     return InkWell(
       onTap: () => _openActivity(item.activity),
@@ -193,7 +236,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
 
   /// Toutes les réalisations d'un jour (calendrier de la vue d'ensemble).
   void _openDayDetail(DateTime date) {
-    final dayLogs = widget.logs.where((l) => l.realisedMinutes > 0 && _dayKey(l.date) == _dayKey(date)).toList();
+    final dayLogs = widget.logs.where((l) => (l.realisedMinutes > 0 || _logIsCount(l) || (l.reps ?? 0) > 0) && _dayKey(l.date) == _dayKey(date)).toList();
     _showDayDetailSheet(
       context,
       date: date,
@@ -206,7 +249,12 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
     );
   }
 
-  Widget _calendarCard(Map<int, int> perDay, Map<int, int> perDayCount) {
+  Widget _calendarCard(
+    Map<int, int> perDay,
+    Map<int, int> perDayCount, {
+    required Map<int, List<Activity>> perDayTimeActivities,
+    required Map<int, List<Activity>> perDayCountActivities,
+  }) {
     var monthMinutes = 0;
     var monthCount = 0;
     perDay.forEach((key, value) {
@@ -239,7 +287,14 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
           ),
         ]),
         const SizedBox(height: AppSpace.s),
-        _monthCalendarGrid(_calMonth, perDay, perDayCount: perDayCount, onDayTap: _openDayDetail),
+        _monthCalendarGrid(
+          _calMonth,
+          perDay,
+          perDayCount: perDayCount,
+          perDayTimeActivities: perDayTimeActivities,
+          perDayCountActivities: perDayCountActivities,
+          onDayTap: _openDayDetail,
+        ),
       ]),
     );
   }
@@ -250,27 +305,47 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
     final totalMinutes = _timeMinutesOf(logs);
 
     final countLogs = logs.where(_logIsCount).toList();
+    // La répartition en heures conserve uniquement les activités suivies en temps.
+    // Toutes les catégories sont affichées : aucune n'est masquée dans un groupe « Autres ».
     final byCategory = <String, int>{};
+    // Amorcer les catégories depuis les activités elles-mêmes permet aussi
+    // d'afficher Nutrition (et les autres catégories) lorsqu'aucune occurrence
+    // n'a encore été enregistrée sur la période sélectionnée.
+    for (final activity in widget.activities.where((a) => !a.countOnly)) {
+      final category = activity.category.trim().isEmpty ? 'Autre' : activity.category.trim();
+      byCategory.putIfAbsent(category, () => 0);
+    }
     for (final l in logs.where((l) => !_logIsCount(l))) {
-      final c = l.category.trim().isEmpty ? 'Autre' : l.category.trim();
+      final resolved = _activityFor(l);
+      final rawCategory = l.category.trim().isEmpty ? resolved.category : l.category.trim();
+      final c = rawCategory.trim().isEmpty ? 'Autre' : rawCategory.trim();
       byCategory[c] = (byCategory[c] ?? 0) + l.realisedMinutes;
     }
     final sorted = byCategory.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-    final slices = <MapEntry<String, int>>[];
-    var other = 0;
-    for (var i = 0; i < sorted.length; i++) {
-      if (i < 6) {
-        slices.add(sorted[i]);
-      } else {
-        other += sorted[i].value;
-      }
+    // Une tranche nulle est omise du dessin du donut, mais la catégorie reste
+    // visible dans la légende et son total à 0 h.
+    final slices = sorted.where((entry) => entry.value > 0).toList();
+
+    // Les activités suivies en occurrences (notamment Nutrition) sont suivies
+    // séparément des heures afin de ne pas mélanger des unités différentes.
+    final byCountCategory = <String, int>{};
+    for (final activity in widget.activities.where((a) => a.countOnly)) {
+      final category = activity.category.trim().isEmpty ? 'Autre' : activity.category.trim();
+      byCountCategory.putIfAbsent(category, () => 0);
     }
-    if (other > 0) slices.add(MapEntry('Autres', other));
-    final otherCats = <String>[for (var i = 6; i < sorted.length; i++) sorted[i].key];
+    for (final l in countLogs) {
+      final resolved = _activityFor(l);
+      final rawCategory = l.category.trim().isEmpty ? resolved.category : l.category.trim();
+      final c = rawCategory.trim().isEmpty ? 'Autre' : rawCategory.trim();
+      byCountCategory[c] = (byCountCategory[c] ?? 0) + 1;
+    }
+    final sortedCountCategories = byCountCategory.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final totalCountOccurrences = countLogs.length;
 
     DateTime? first;
     for (final l in widget.logs) {
-      if (l.realisedMinutes <= 0) continue;
+      if (l.realisedMinutes <= 0 && !_logIsCount(l) && (l.reps ?? 0) <= 0) continue;
       if (first == null || l.date.isBefore(first)) first = l.date;
     }
     final today = DateTime.now();
@@ -323,6 +398,28 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
                 ),
               ),
             ]),
+            if (widget.activities.any((a) => a.category.trim().toLowerCase() == 'nutrition') || widget.logs.any((l) => l.category.trim().toLowerCase() == 'nutrition')) ...[
+              const SizedBox(height: AppSpace.s),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.tonalIcon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => _NutritionTrackingPage(
+                        activities: widget.activities,
+                        logs: widget.logs,
+                        goals: widget.goals,
+                        onEditLog: widget.onEditLog,
+                        onAddForActivity: widget.onAddForActivity,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.restaurant_menu_rounded, size: 19),
+                  label: const Text('Ouvrir le suivi Nutrition'),
+                  style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+                ),
+              ),
+            ],
             const SizedBox(height: AppSpace.m),
             _AppCard(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -363,40 +460,62 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
                     ]),
                   ),
                 ),
-                if (slices.isEmpty)
+                if (sorted.isEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: AppSpace.l),
-                    child: Center(child: Text('Aucune réalisation sur cette période.', style: TextStyle(color: _colors.textMuted))),
+                    child: Center(
+                      child: Text(
+                        countLogs.isEmpty
+                            ? 'Aucune catégorie de durée enregistrée.'
+                            : 'Aucune durée enregistrée ; les occurrences sont détaillées ci-dessous.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: _colors.textMuted),
+                      ),
+                    ),
                   )
                 else
-                  for (var i = 0; i < slices.length; i++)
+                  for (var i = 0; i < sorted.length; i++)
                     _legendRow(
-                      slices[i].key,
-                      slices[i].value,
+                      sorted[i].key,
+                      sorted[i].value,
                       totalMinutes,
                       _palette[i % _palette.length],
-                      onTap: () => _openCategoryDetail(slices[i].key, slices[i].key == 'Autres' ? otherCats : [slices[i].key], logs),
+                      onTap: () => _openCategoryDetail(sorted[i].key, [sorted[i].key], logs),
                     ),
-                if (slices.isNotEmpty)
+                if (sorted.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: AppSpace.m),
                     child: Text('Touche une catégorie pour voir le détail.', style: _hintStyle()),
                   ),
-                if (countLogs.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: AppSpace.m),
-                    child: Row(children: [
-                      Icon(Icons.task_alt_rounded, size: 18, color: _colors.accentIcon),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text('${countLogs.length} occurrence${countLogs.length > 1 ? 's' : ''} sans durée (hors total d’heures)', style: _hintStyle())),
-                    ]),
-                  ),
+                if (sortedCountCategories.isNotEmpty) ...[
+                  const SizedBox(height: AppSpace.l),
+                  Divider(height: 1, color: _colors.border),
+                  const SizedBox(height: AppSpace.m),
+                  Row(children: [
+                    Icon(Icons.task_alt_rounded, size: 19, color: _colors.accentIcon),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text('Catégories suivies en occurrences', style: _sectionTitleStyle(context))),
+                    Text('$totalCountOccurrences', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
+                  ]),
+                  const SizedBox(height: AppSpace.xs),
+                  Text('Ces réalisations sont comptées en fois, séparément des heures.', style: _hintStyle()),
+                  for (var i = 0; i < sortedCountCategories.length; i++)
+                    _countCategoryRow(
+                      sortedCountCategories[i].key,
+                      sortedCountCategories[i].value,
+                      totalCountOccurrences,
+                      _palette[i % _palette.length],
+                      onTap: () => _openCategoryDetail(sortedCountCategories[i].key, [sortedCountCategories[i].key], logs),
+                    ),
+                ],
               ]),
             ),
             const SizedBox(height: AppSpace.m),
             _calendarCard(
               _minutesPerDay(widget.logs.where((l) => l.realisedMinutes > 0 && !_logIsCount(l))),
-              _countsPerDay(widget.logs.where((l) => l.realisedMinutes > 0 && _logIsCount(l))),
+              _countsPerDay(widget.logs.where(_logIsCount)),
+              perDayTimeActivities: _activitiesPerDay(widget.logs, count: false),
+              perDayCountActivities: _activitiesPerDay(widget.logs, count: true),
             ),
             if (totals.isNotEmpty) ...[
               const SizedBox(height: AppSpace.m),
@@ -465,7 +584,7 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
 
   /// Réalisations de cette activité un jour donné.
   void _openDayDetail(DateTime date) {
-    final dayLogs = widget.logs.where((l) => l.realisedMinutes > 0 && _dayKey(l.date) == _dayKey(date) && _logIsOfActivity(l, widget.activity)).toList();
+    final dayLogs = widget.logs.where((l) => (l.realisedMinutes > 0 || widget.activity.countOnly || (l.reps ?? 0) > 0) && _dayKey(l.date) == _dayKey(date) && _logIsOfActivity(l, widget.activity)).toList();
     _showDayDetailSheet(
       context,
       date: date,
@@ -478,14 +597,30 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
     );
   }
 
-  Widget _calendar(Map<int, int> perDay, {bool count = false}) => count
-      ? _monthCalendarGrid(_month, const <int, int>{}, perDayCount: perDay, onDayTap: _openDayDetail)
-      : _monthCalendarGrid(_month, perDay, onDayTap: _openDayDetail);
+  Widget _calendar(Map<int, int> perDay, {bool count = false}) {
+    final iconsByDay = <int, List<Activity>>{
+      for (final key in perDay.keys) key: <Activity>[widget.activity],
+    };
+    return count
+        ? _monthCalendarGrid(
+            _month,
+            const <int, int>{},
+            perDayCount: perDay,
+            perDayCountActivities: iconsByDay,
+            onDayTap: _openDayDetail,
+          )
+        : _monthCalendarGrid(
+            _month,
+            perDay,
+            perDayTimeActivities: iconsByDay,
+            onDayTap: _openDayDetail,
+          );
+  }
 
   @override
   Widget build(BuildContext context) {
     final activity = widget.activity;
-    final logs = widget.logs.where((l) => l.realisedMinutes > 0 && _logIsOfActivity(l, activity)).toList()
+    final logs = widget.logs.where((l) => (l.realisedMinutes > 0 || activity.countOnly || (l.reps ?? 0) > 0) && _logIsOfActivity(l, activity)).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
     final isCount = activity.countOnly;
     final isReps = _isRepsOnly(activity);

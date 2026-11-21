@@ -35,6 +35,125 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
         reps: log.reps,
       );
 
+  ActivityLog _logWithDate(ActivityLog log, DateTime date, {String? planItemId, int? plannedMinutes}) => ActivityLog(
+        date: DateTime(date.year, date.month, date.day, 12),
+        title: log.title,
+        emoji: log.emoji,
+        category: log.category,
+        period: log.period,
+        day: date.weekday - 1,
+        plannedMinutes: plannedMinutes ?? log.plannedMinutes,
+        realisedMinutes: log.realisedMinutes,
+        feeling: log.feeling,
+        unplanned: planItemId == null,
+        planItemId: planItemId,
+        activityId: log.activityId,
+        reps: log.reps,
+      );
+
+  /// Déplace une réalisation historisée à une autre date et resynchronise la semaine courante.
+  Future<void> _moveHistoryLogDate(ActivityLog log) async {
+    final index = logs.indexOf(log);
+    if (!mounted || index < 0) return;
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: _navigatorKey.currentContext!,
+      initialDate: DateTime(log.date.year, log.date.month, log.date.day),
+      firstDate: DateTime(min(now.year - 5, log.date.year), 1, 1),
+      lastDate: DateTime(now.year, now.month, now.day),
+      helpText: 'Nouvelle date de réalisation',
+      cancelText: 'Annuler',
+      confirmText: 'Déplacer',
+    );
+    if (picked == null || !mounted) return;
+    final newDate = DateTime(picked.year, picked.month, picked.day);
+    final oldDate = DateTime(log.date.year, log.date.month, log.date.day);
+    if (newDate == oldDate) return;
+    final todayDate = DateTime(now.year, now.month, now.day);
+    final affectsToday = oldDate == todayDate || newDate == todayDate;
+
+    final day = newDate.weekday - 1;
+    final currentWeek = _sameDateOnlyNonSport(newDate, _addDays(_startOfCurrentWeek(), day));
+    final activity = log.activityId == null
+        ? _registeredActivity(title: log.title)
+        : _registeredActivity(id: log.activityId);
+    var newPlanItemId = '';
+    var planned = log.plannedMinutes;
+
+    _prepareUndoSnapshot();
+    setState(() {
+      final previousPlanId = log.planItemId;
+      if (previousPlanId != null) {
+        final previousIndex = plan.indexWhere((item) => item.id == previousPlanId);
+        if (previousIndex >= 0) {
+          final previous = plan[previousIndex];
+          if (previous.id.startsWith('history_') || previous.id.startsWith('extra_')) {
+            plan.removeAt(previousIndex);
+          } else {
+            previous.done = false;
+            previous.realisedMinutes = null;
+            previous.feeling = null;
+          }
+        }
+      }
+
+      if (currentWeek && activity != null) {
+        PlanItem? target;
+        for (final item in plan) {
+          if (item.activityId == activity.id && item.day == day && !item.done && !_isDateRangePlanItem(item)) {
+            target = item;
+            break;
+          }
+        }
+        if (target != null) {
+          target.done = true;
+          target.realisedMinutes = log.realisedMinutes;
+          target.feeling = log.feeling.isEmpty ? 'Bien' : log.feeling;
+          newPlanItemId = target.id;
+          planned = target.duration;
+        } else {
+          final newItem = PlanItem(
+            id: 'history_move_${activity.id}_${DateTime.now().microsecondsSinceEpoch}',
+            day: day,
+            period: _periodForActivity(activity, day),
+            timeLabel: null,
+            title: activity.name,
+            details: 'Réalisation déplacée depuis le suivi Nutrition.',
+            activityId: activity.id,
+            duration: max(1, activity.duration),
+            optional: false,
+            userAdded: true,
+            fixedInWeeklyTemplate: false,
+            manualPlacement: true,
+            done: true,
+            realisedMinutes: log.realisedMinutes,
+            feeling: log.feeling.isEmpty ? 'Bien' : log.feeling,
+          );
+          plan.add(newItem);
+          newPlanItemId = newItem.id;
+          planned = 0;
+          _sortPlan();
+        }
+      }
+      logs[index] = _logWithDate(
+        log,
+        newDate,
+        planItemId: newPlanItemId.isEmpty ? null : newPlanItemId,
+        plannedMinutes: planned,
+      );
+    });
+    if (affectsToday) {
+      if (_todayIsCompleted()) {
+        _upsertTodayDailySummary(persist: false);
+      } else {
+        dailySummaries.removeWhere((summary) => summary.dateKey == _todayDateKey());
+      }
+    }
+    _queueLocalStatePersist();
+    _refreshGoalsAfterRealization();
+    _showFeedback('✓ Réalisation déplacée au ${_shortDate(newDate)}.');
+  }
+
   /// Applique un temps réalisé à un moment déjà validé (moment + ligne de journal).
   void _applyRealisedMinutes(PlanItem item, int actual) {
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
@@ -195,18 +314,52 @@ extension _TimeEditingPart on _MaBelleSemaineAppState {
       return;
     }
     if (_logIsCount(log)) {
-      final remove = await showDialog<bool>(
+      final action = await showModalBottomSheet<String>(
         context: _navigatorKey.currentContext!,
-        builder: (context) => AlertDialog(
-          title: const Text('Supprimer cette occurrence ?'),
-          content: Text('« ${log.title} » est suivie en occurrences : il n’y a pas de durée à modifier. Supprimer cette fois de l’historique ?'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Garder')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Supprimer')),
-          ],
+        showDragHandle: true,
+        builder: (sheetContext) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(AppSpace.l, 0, AppSpace.l, AppSpace.l),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              _SheetHeader(
+                leading: _uiIcon('edit', Icons.edit_outlined, size: 24, color: _colors.accentIcon),
+                title: 'Modifier cette réalisation',
+                subtitle: '${log.title} · ${_shortDate(log.date)}',
+              ),
+              const SizedBox(height: AppSpace.m),
+              _SheetPickRow(
+                leading: const Icon(Icons.event_outlined),
+                title: 'Changer la date',
+                subtitle: 'Déplacer cette occurrence vers un autre jour',
+                onTap: () => Navigator.pop(sheetContext, 'date'),
+              ),
+              _SheetPickRow(
+                leading: Icon(Icons.delete_outline_rounded, color: _colors.danger),
+                title: 'Supprimer cette occurrence',
+                subtitle: 'Retirer cette réalisation de l’historique',
+                onTap: () => Navigator.pop(sheetContext, 'delete'),
+              ),
+            ]),
+          ),
         ),
       );
-      if (remove == true && mounted) _deleteHistoryLog(log);
+      if (!mounted || action == null) return;
+      if (action == 'date') {
+        await _moveHistoryLogDate(log);
+      } else if (action == 'delete') {
+        final remove = await showDialog<bool>(
+          context: _navigatorKey.currentContext!,
+          builder: (context) => AlertDialog(
+            title: const Text('Supprimer cette occurrence ?'),
+            content: Text('« ${log.title} » sera retirée de l’historique et des statistiques.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Garder')),
+              FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Supprimer')),
+            ],
+          ),
+        );
+        if (remove == true && mounted) _deleteHistoryLog(log);
+      }
       return;
     }
     final minutes = await _askMinutes(

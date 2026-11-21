@@ -246,6 +246,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
   Color _pastelFor(String category) {
     switch (category) {
       case 'Sport': return _darkMode ? const Color(0xFF2A3C32) : const Color(0xFFE3ECE7);
+      case 'Nutrition': return _darkMode ? const Color(0xFF343C2D) : const Color(0xFFE8EFDF);
       case 'Bien-être': return _darkMode ? const Color(0xFF2B3638) : const Color(0xFFE7EAEA);
       case 'Loisir': return _darkMode ? const Color(0xFF38342C) : const Color(0xFFE9E5DD);
       case 'Culture': return _darkMode ? const Color(0xFF3A3524) : const Color(0xFFF0E9D8);

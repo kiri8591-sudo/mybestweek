@@ -32,6 +32,7 @@ extension _AdaptiveHomeV927Part on _MaBelleSemaineAppState {
       final activity = item.activityId == null ? null : findActivity(item.activityId!);
       return item.period == period &&
           !_isDateRangePlanItem(item) &&
+          !_isNutritionPlanItem(item) &&
           !item.done &&
           !(activity != null && _isSportActivity(activity));
     });

@@ -15,6 +15,7 @@ class RealizationGoal {
   int target;
   String rewardText;
   DateTime createdAt;
+  bool isMaximum; // false = au moins ; true = au plus
   final Set<String> rewardedPeriodKeys;
 
   RealizationGoal({
@@ -24,6 +25,7 @@ class RealizationGoal {
     required this.target,
     required this.rewardText,
     required this.createdAt,
+    this.isMaximum = false,
     Set<String>? rewardedPeriodKeys,
   }) : rewardedPeriodKeys = rewardedPeriodKeys == null ? <String>{} : {...rewardedPeriodKeys};
 }
@@ -33,6 +35,7 @@ class _GoalDraft {
   final String cadence;
   final int target;
   final String rewardText;
+  final bool isMaximum;
   final bool delete;
 
   const _GoalDraft({
@@ -40,6 +43,7 @@ class _GoalDraft {
     required this.cadence,
     required this.target,
     required this.rewardText,
+    this.isMaximum = false,
     this.delete = false,
   });
 }
@@ -61,6 +65,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
   late String activityId;
   late String cadence;
   late int target;
+  late bool isMaximum;
   late final TextEditingController targetController;
   late final TextEditingController rewardController;
 
@@ -71,6 +76,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
     activityId = widget.existing?.activityId ?? firstSelectable?.id ?? widget.activities.first.id;
     cadence = widget.existing?.cadence ?? 'semaine';
     target = widget.existing?.target ?? (cadence == 'jour' ? 1 : cadence == 'mois' ? 8 : 3);
+    isMaximum = widget.existing?.isMaximum ?? false;
     targetController = TextEditingController(text: '$target');
     rewardController = TextEditingController(
       text: widget.existing?.rewardText ?? 'un petit plaisir',
@@ -110,6 +116,7 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
         rewardText: rewardController.text.trim().isEmpty
             ? 'un petit plaisir'
             : rewardController.text.trim(),
+        isMaximum: isMaximum,
       ),
     );
   }
@@ -196,11 +203,18 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
               },
             ),
             const SizedBox(height: 12),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Objectif plafond'),
+              subtitle: Text(isMaximum ? 'Ne pas dépasser cette fréquence' : 'Atteindre au moins cette fréquence'),
+              value: isMaximum,
+              onChanged: (value) => setState(() => isMaximum = value),
+            ),
             TextField(
               controller: targetController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Nombre de réalisations',
+                labelText: isMaximum ? 'Maximum de réalisations' : 'Nombre minimal de réalisations',
                 suffixText: _cadenceLabel(cadence),
               ),
               onChanged: (value) {
@@ -310,14 +324,25 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
       final start = _goalPeriodStart(goal, ref);
       final end = _goalPeriodEnd(goal, ref);
       var count = 0;
+      final goalActivity = findActivity(goal.activityId);
+      final isCountOnlyActivity = goalActivity?.countOnly ?? false;
+      final activityName = goalActivity?.name.trim().toLowerCase() ?? '';
       for (final log in logs) {
-        if (log.activityId != goal.activityId) continue;
-        if (log.realisedMinutes <= 0) continue;
-        // Un objectif mensuel porte sur le mois en cours : les réalisations
-        // déjà faites avant la création de l'objectif restent comptabilisées.
-        // Pour jour/semaine, on conserve le point de départ à la création.
-        if (goal.cadence != 'mois' && log.date.isBefore(goal.createdAt)) continue;
-        if (log.date.isBefore(start) || !log.date.isBefore(end)) continue;
+        final matchesActivity = log.activityId == goal.activityId ||
+            (log.activityId == null && activityName.isNotEmpty &&
+                log.title.trim().toLowerCase() == activityName);
+        if (!matchesActivity) continue;
+        if (log.realisedMinutes <= 0 && !isCountOnlyActivity && (log.reps ?? 0) <= 0) continue;
+        // Les objectifs hebdomadaires portent sur la semaine calendaire
+        // entière : une réalisation faite avant la création de l'objectif,
+        // mais dans cette même semaine, doit compter. Sinon le compteur peut
+        // afficher « encore 1 » alors que l'activité a déjà été réalisée.
+        // Pour les objectifs quotidiens, la période est déjà limitée au jour ;
+        // les objectifs mensuels sont également évalués sur le mois complet.
+        final logDay = _goalDateOnly(log.date);
+        if (goal.cadence == 'jour' && logDay.isBefore(_goalDateOnly(goal.createdAt))) continue;
+        if (logDay.isBefore(_goalDateOnly(start)) ||
+            !logDay.isBefore(_goalDateOnly(end))) continue;
         count++;
       }
       return count;
@@ -330,6 +355,10 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
   double _goalProgressRatio(RealizationGoal goal) =>
       (_goalProgress(goal) / max(1, goal.target)).clamp(0.0, 1.0).toDouble();
 
+  bool _goalIsSatisfied(RealizationGoal goal) => goal.isMaximum
+      ? _goalProgress(goal) <= goal.target
+      : _goalProgress(goal) >= goal.target;
+
   int _goalRewardCount(RealizationGoal goal) => goal.rewardedPeriodKeys.length;
 
   void _refreshGoalsAfterRealization() {
@@ -340,6 +369,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     var newlyWon = 0;
 
     for (final goal in _realizationGoals) {
+      if (goal.isMaximum) continue; // un plafond ne déclenche pas de récompense automatique
       final key = _goalPeriodKey(goal, now);
       if (_goalProgress(goal, now) >= goal.target &&
           !goal.rewardedPeriodKeys.contains(key)) {
@@ -377,7 +407,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     }
   }
 
-  Future<void> _addOrEditGoal({RealizationGoal? existing}) async {
+  Future<void> _addOrEditGoal({required BuildContext context, RealizationGoal? existing}) async {
     if (!mounted) return;
 
     // Un objectif peut être créé pour toute activité réellement présente
@@ -413,7 +443,9 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     }
 
     final draft = await showModalBottomSheet<_GoalDraft>(
-      context: _navigatorKey.currentContext!,
+      // Utiliser le contexte descendant du Navigator fourni par l'écran,
+      // et non State.context (qui se trouve au-dessus du MaterialApp).
+      context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (_) => _GoalEditorSheet(
@@ -488,6 +520,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
           target: safeTarget,
           rewardText: draft.rewardText,
           createdAt: now,
+          isMaximum: draft.isMaximum,
         );
 
     setState(() {
@@ -498,6 +531,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
         existing.cadence = draft.cadence;
         existing.target = safeTarget;
         existing.rewardText = draft.rewardText;
+        existing.isMaximum = draft.isMaximum;
       }
     });
 
@@ -562,19 +596,20 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     return best;
   }
 
-  Widget _goalCard(RealizationGoal goal) {
+  Widget _goalCard(BuildContext context, RealizationGoal goal) {
     final activity = findActivity(goal.activityId);
     if (activity == null) return const SizedBox.shrink();
 
     final progress = _goalProgress(goal);
     final ratio = _goalProgressRatio(goal);
-    final complete = progress >= goal.target;
+    final complete = _goalIsSatisfied(goal);
+    final exceeded = goal.isMaximum && progress > goal.target;
     final rewardCount = _goalRewardCount(goal);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: _AppCard(
-        onTap: () => _addOrEditGoal(existing: goal),
+        onTap: () => _addOrEditGoal(context: context, existing: goal),
         tone: complete ? _CardTone.tint : _CardTone.plain,
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
         child: Column(
@@ -619,7 +654,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${goal.target} ${_goalCadenceLabel(goal.cadence)}',
+                          '${goal.isMaximum ? 'Au plus' : 'Au moins'} ${goal.target} ${_goalCadenceLabel(goal.cadence)}',
                           style: TextStyle(
                             fontSize: AppType.small,
                             fontWeight: FontWeight.w700,
@@ -642,7 +677,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '$progress/${goal.target}',
+                    '${goal.isMaximum ? '$progress/${goal.target} max' : '$progress/${goal.target}'}',
                     style: TextStyle(
                       fontSize: AppType.label,
                       fontWeight: FontWeight.w700,
@@ -656,7 +691,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                 children: [
                   Expanded(
                     child: Text(
-                      complete ? '🎁 Récompense gagnée · ${goal.rewardText}' : '🎁 ${goal.rewardText}',
+                      goal.isMaximum ? (exceeded ? '⚠️ Plafond dépassé · repartir sereinement' : '✓ Dans la limite fixée') : (complete ? '🎁 Récompense gagnée · ${goal.rewardText}' : '🎁 ${goal.rewardText}'),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -765,6 +800,302 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     );
   }
 
+
+  String _weightDateLabel(DateTime? d) => d == null ? 'À définir' : '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+  double get _latestWeightKg {
+    final validEntries = _weightEntries
+        .where((entry) => entry['kg'] is num && DateTime.tryParse('${entry['date']}') != null)
+        .toList()
+      ..sort((a, b) => DateTime.parse('${a['date']}').compareTo(DateTime.parse('${b['date']}')));
+    if (validEntries.isEmpty) return _weightStartKg;
+    return (validEntries.last['kg'] as num).toDouble();
+  }
+
+  Widget _weightTrackingCard(BuildContext context) {
+    final latest = _latestWeightKg;
+    final lost = _weightStartKg - latest;
+    final remaining = latest - _weightTargetKg;
+    final sorted = _weightEntries
+        .where((entry) => entry['kg'] is num && DateTime.tryParse('${entry['date']}') != null)
+        .toList()
+      ..sort((a, b) => DateTime.parse('${a['date']}').compareTo(DateTime.parse('${b['date']}')));
+    final lastRecordedDate = sorted.isEmpty ? null : DateTime.tryParse('${sorted.last['date']}');
+    final weeklyReference = sorted.where((entry) {
+      final date = DateTime.tryParse('${entry['date']}');
+      return date != null && lastRecordedDate != null && lastRecordedDate.difference(date).inDays >= 6;
+    }).toList();
+    final weeklyDelta = weeklyReference.isEmpty ? null : latest - (weeklyReference.last['kg'] as num).toDouble();
+    final firstDate = sorted.isEmpty ? null : DateTime.tryParse('${sorted.first['date']}');
+    final lastDate = sorted.isEmpty ? null : DateTime.tryParse('${sorted.last['date']}');
+    final weeklyRate = (firstDate == null || lastDate == null || lastDate.difference(firstDate).inDays < 7) ? null : (latest - (sorted.first['kg'] as num).toDouble()) / (lastDate.difference(firstDate).inDays / 7);
+    final projectedDate = weeklyRate != null && weeklyRate < -.03 && remaining > 0 ? DateTime.now().add(Duration(days: (remaining / -weeklyRate * 7).round())) : null;
+    return _AppCard(tone: _CardTone.tint, padding: const EdgeInsets.all(14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [const Text('⚖️', style: TextStyle(fontSize: 24)), const SizedBox(width: 9), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Suivi du poids', style: _sectionTitleStyle(context)), Text('Une tendance, pas un jugement', style: TextStyle(color: _colors.textMuted, fontSize: AppType.small))])), TextButton(onPressed: () => _editWeightSettings(context), child: const Text('Réglages'))]),
+      Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Text(latest.toStringAsFixed(1).replaceAll('.', ',') + ' kg', style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: _colors.textStrong)), const SizedBox(width: 12), Padding(padding: const EdgeInsets.only(bottom: 5), child: Text('${lost >= 0 ? '−' : '+'}${lost.abs().toStringAsFixed(1).replaceAll('.', ',')} kg depuis le départ', style: TextStyle(color: _colors.textMuted, fontWeight: FontWeight.w600)))]),
+      const SizedBox(height: 4), Text('Départ ${_weightStartKg.toStringAsFixed(1)} kg  ·  Cible ${_weightTargetKg.toStringAsFixed(1)} kg  ·  ${_weightTargetDate == null ? 'Date à définir' : _weightDateLabel(_weightTargetDate)}', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
+      const SizedBox(height: 10), ClipRRect(borderRadius: BorderRadius.circular(20), child: LinearProgressIndicator(value: ((_weightStartKg - latest) / max(.1, _weightStartKg - _weightTargetKg)).clamp(0.0, 1.0).toDouble(), minHeight: 9)),
+      const SizedBox(height: 5), Text(remaining <= 0 ? 'Objectif atteint : bravo !' : '${remaining.toStringAsFixed(1).replaceAll('.', ',')} kg restant${remaining > 1 ? 's' : ''} · avancez à votre rythme', style: TextStyle(color: _colors.textMuted, fontSize: AppType.small)),
+      if (sorted.length >= 2) ...[const SizedBox(height: 12), SizedBox(height: 62, width: double.infinity, child: CustomPaint(painter: _WeightSparkline(sorted.map((e)=>(e['kg'] as num).toDouble()).toList(), _colors.accentFill)))],
+      if (weeklyDelta != null) Text('Évolution sur environ une semaine : ${weeklyDelta <= 0 ? '−' : '+'}${weeklyDelta.abs().toStringAsFixed(1).replaceAll('.', ',')} kg', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
+      if (projectedDate != null) Text('Projection indicative au rythme observé : ${_weightDateLabel(projectedDate)}', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
+      if (sorted.isNotEmpty) Text('${sorted.length} pesée${sorted.length>1?'s':''} enregistrée${sorted.length>1?'s':''} · dernière le ${_weightDateLabel(DateTime.tryParse('${sorted.last['date']}'))}', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
+      const SizedBox(height: 8), Align(alignment: Alignment.centerRight, child: FilledButton.tonalIcon(onPressed: () => _addWeightEntry(context), icon: const Icon(Icons.add), label: const Text('Ajouter une pesée'))),
+    ]));
+  }
+
+  Future<void> _editWeightSettings(BuildContext context) async {
+    final startController = TextEditingController(
+      text: _weightStartKg.toStringAsFixed(1).replaceAll('.', ','),
+    );
+    final targetController = TextEditingController(
+      text: _weightTargetKg.toStringAsFixed(1).replaceAll('.', ','),
+    );
+    DateTime? targetDate = _weightTargetDate;
+    final today = DateUtils.dateOnly(DateTime.now());
+    final minDate = today.subtract(const Duration(days: 365));
+    final maxDate = DateTime(2035, 12, 31);
+
+    try {
+      // Utiliser explicitement la route permet d'attendre la fin de son
+      // animation de fermeture avant de reconstruire MaterialApp/Navigator.
+      final navigator = Navigator.of(context);
+      final dialogRoute = DialogRoute<Map<String, Object?>>(
+        context: context,
+        themes: InheritedTheme.capture(from: context, to: navigator.context),
+        barrierDismissible: false,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, refreshDialog) => AlertDialog(
+            title: const Text('Réglages du suivi du poids'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: startController,
+                    autofocus: true,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Poids de départ (kg)',
+                      hintText: 'Ex. 95,6',
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: targetController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Poids cible (kg)',
+                      hintText: 'Ex. 90',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.calendar_month),
+                    title: const Text('Date visée'),
+                    subtitle: Text(_weightDateLabel(targetDate)),
+                    trailing: const Icon(Icons.edit_calendar_outlined),
+                    onTap: () async {
+                      final proposed = targetDate ?? DateTime(2027, 3, 1);
+                      final initial = proposed.isBefore(minDate)
+                          ? minDate
+                          : proposed.isAfter(maxDate)
+                              ? maxDate
+                              : proposed;
+                      final picked = await showDatePicker(
+                        context: dialogContext,
+                        initialDate: DateUtils.dateOnly(initial),
+                        firstDate: minDate,
+                        lastDate: maxDate,
+                      );
+                      if (picked != null) {
+                        refreshDialog(() => targetDate = DateUtils.dateOnly(picked));
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Ces réglages ne modifient pas l’historique de vos pesées.',
+                    style: TextStyle(fontSize: AppType.small, color: _colors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Annuler'),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  final startValue = double.tryParse(
+                    startController.text.trim().replaceAll(',', '.'),
+                  );
+                  final targetValue = double.tryParse(
+                    targetController.text.trim().replaceAll(',', '.'),
+                  );
+                  if (startValue == null || targetValue == null ||
+                      !startValue.isFinite || !targetValue.isFinite ||
+                      startValue < 30 || startValue > 300 ||
+                      targetValue < 30 || targetValue > 300) {
+                    _showFeedback('Saisissez deux poids valides, entre 30 et 300 kg.');
+                    return;
+                  }
+                  Navigator.of(dialogContext).pop(<String, Object?>{
+                    'start': startValue,
+                    'target': targetValue,
+                    'date': targetDate,
+                  });
+                },
+                icon: const Icon(Icons.save_outlined),
+                label: const Text('Enregistrer'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final resultFuture = navigator.push(dialogRoute);
+      final result = await resultFuture;
+      await dialogRoute.completed;
+      if (result == null || !mounted) return;
+
+      final startValue = result['start'];
+      final targetValue = result['target'];
+      final savedTargetDate = result['date'];
+      if (startValue is! double || targetValue is! double ||
+          (savedTargetDate != null && savedTargetDate is! DateTime)) {
+        return;
+      }
+
+      // La mutation globale intervient seulement une fois le dialogue retiré
+      // de l'Overlay : le Navigator n'est jamais reconstruit pendant son pop.
+      setState(() {
+        _weightStartKg = startValue;
+        _weightTargetKg = targetValue;
+        _weightTargetDate = savedTargetDate as DateTime?;
+      });
+      _queueLocalStatePersist();
+      _showFeedback('Réglages du poids enregistrés.');
+    } finally {
+      startController.dispose();
+      targetController.dispose();
+    }
+  }
+
+  Future<void> _addWeightEntry(BuildContext context) async {
+    final controller = TextEditingController(
+      text: _latestWeightKg.toStringAsFixed(1).replaceAll('.', ','),
+    );
+    DateTime selectedDate = DateUtils.dateOnly(DateTime.now());
+
+    try {
+      final navigator = Navigator.of(context);
+      final dialogRoute = DialogRoute<Map<String, Object?>>(
+        context: context,
+        themes: InheritedTheme.capture(from: context, to: navigator.context),
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, refreshDialog) => AlertDialog(
+            title: const Text('Enregistrer une pesée'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Poids mesuré (kg)',
+                      hintText: 'Ex. 95,2',
+                    ),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.calendar_month),
+                    title: const Text('Date de la pesée'),
+                    subtitle: Text(_weightDateLabel(selectedDate)),
+                    trailing: const Icon(Icons.edit_calendar_outlined),
+                    onTap: () async {
+                      final today = DateUtils.dateOnly(DateTime.now());
+                      final picked = await showDatePicker(
+                        context: dialogContext,
+                        initialDate: selectedDate.isAfter(today) ? today : selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: today,
+                      );
+                      if (picked != null) {
+                        refreshDialog(() => selectedDate = DateUtils.dateOnly(picked));
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Annuler'),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  final value = double.tryParse(
+                    controller.text.trim().replaceAll(',', '.'),
+                  );
+                  if (value == null || !value.isFinite || value < 30 || value > 300) {
+                    _showFeedback('Saisissez un poids valide, entre 30 et 300 kg.');
+                    return;
+                  }
+                  Navigator.of(dialogContext).pop(<String, Object?>{
+                    'kg': value,
+                    'date': DateUtils.dateOnly(selectedDate),
+                  });
+                },
+                icon: const Icon(Icons.check),
+                label: const Text('Enregistrer'),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final resultFuture = navigator.push(dialogRoute);
+      final result = await resultFuture;
+      await dialogRoute.completed;
+      if (result == null || !mounted) return;
+
+      final value = result['kg'];
+      final recordedDate = result['date'];
+      if (value is! double || recordedDate is! DateTime) return;
+
+      // Une seule pesée par date : une nouvelle saisie remplace proprement
+      // celle déjà enregistrée pour cette journée. Le dialogue est déjà fermé.
+      setState(() {
+        _weightEntries.removeWhere((entry) {
+          final parsed = DateTime.tryParse('${entry['date']}');
+          return parsed != null &&
+              parsed.year == recordedDate.year &&
+              parsed.month == recordedDate.month &&
+              parsed.day == recordedDate.day;
+        });
+        _weightEntries.add({
+          'date': recordedDate.toIso8601String(),
+          'kg': value,
+        });
+        _weightEntries.sort((a, b) {
+          final da = DateTime.tryParse('${a['date']}') ?? DateTime(2000);
+          final db = DateTime.tryParse('${b['date']}') ?? DateTime(2000);
+          return da.compareTo(db);
+        });
+      });
+      _queueLocalStatePersist();
+      _showFeedback('Pesée du ${_weightDateLabel(recordedDate)} enregistrée.');
+    } finally {
+      controller.dispose();
+    }
+  }
+
   Widget buildObjectives() {
     final goals = [..._realizationGoals]
       ..sort((a, b) {
@@ -789,12 +1120,21 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
 
-    final completedGoals = goals.where((g) => _goalProgress(g) >= g.target).length;
+    final completedGoals = goals.where(_goalIsSatisfied).length;
     final totalRewards = goals.fold<int>(0, (sum, goal) => sum + _goalRewardCount(goal));
 
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(child: pageTitle('Objectifs', goals.isEmpty ? 'Une habitude concrète, une cible simple.' : '$completedGoals sur ${goals.length} atteint${goals.length > 1 ? 's' : ''} sur la période.')),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Builder(
+              // Le contexte du Builder est bien sous le Navigator de MaterialApp.
+              builder: (screenContext) => _weightTrackingCard(screenContext),
+            ),
+          ),
+        ),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
@@ -844,20 +1184,22 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 7),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    goals.isEmpty ? 'Objectifs' : 'Objectifs · ${goals.length} actif${goals.length > 1 ? 's' : ''}',
-                    style: _sectionTitleStyle(context),
+            child: Builder(
+              builder: (screenContext) => Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      goals.isEmpty ? 'Objectifs' : 'Objectifs · ${goals.length} actif${goals.length > 1 ? 's' : ''}',
+                      style: _sectionTitleStyle(screenContext),
+                    ),
                   ),
-                ),
-                TextButton.icon(
-                  onPressed: () => _addOrEditGoal(),
-                  icon: _uiIcon('add', Icons.add_circle_outline, size: 18),
-                  label: const Text('Nouvel objectif'),
-                ),
-              ],
+                  TextButton.icon(
+                    onPressed: () => _addOrEditGoal(context: screenContext),
+                    icon: _uiIcon('add', Icons.add_circle_outline, size: 18),
+                    label: const Text('Nouvel objectif'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -892,7 +1234,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
-                (context, index) => _goalCard(goals[index]),
+                (context, index) => _goalCard(context, goals[index]),
                 childCount: goals.length,
               ),
             ),
@@ -951,4 +1293,27 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
       ],
     );
   }
+}
+
+
+class _WeightSparkline extends CustomPainter {
+  final List<double> values;
+  final Color color;
+  _WeightSparkline(this.values, this.color);
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.length < 2) return;
+    final minV = values.reduce(min); final maxV = values.reduce(max);
+    final range = max(.2, maxV - minV);
+    final path = Path();
+    for (var i=0;i<values.length;i++) {
+      final x = size.width * i / (values.length - 1);
+      final smooth = i == 0 ? values[i] : i == values.length-1 ? values[i] : (values[i-1]+values[i]+values[i+1])/3;
+      final y = size.height - 5 - ((smooth-minV)/range) * (size.height-10);
+      if (i==0) path.moveTo(x,y); else path.lineTo(x,y);
+    }
+    canvas.drawPath(path, Paint()..color=color..strokeWidth=2.5..style=PaintingStyle.stroke..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round);
+  }
+  @override
+  bool shouldRepaint(covariant _WeightSparkline old) => old.values != values || old.color != color;
 }

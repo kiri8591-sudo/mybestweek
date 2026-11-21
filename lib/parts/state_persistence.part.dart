@@ -254,6 +254,10 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       'priorityBonusAwarded': _priorityBonusAwarded,
       'priorityBonusTotal': _priorityBonusTotal,
       'priorityRewardText': _priorityRewardText,
+      'weightStartKg': _weightStartKg,
+      'weightTargetKg': _weightTargetKg,
+      'weightTargetDate': _weightTargetDate?.toIso8601String(),
+      'weightEntries': _weightEntries.map((e) => {...e}).toList(),
       'realizationGoals': _realizationGoals.map((g) => {
         'id': g.id,
         'activityId': g.activityId,
@@ -262,6 +266,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         'rewardText': g.rewardText,
         'createdAt': g.createdAt.toIso8601String(),
         'rewardedPeriodKeys': [...g.rewardedPeriodKeys],
+        'isMaximum': g.isMaximum,
       }).toList(),
       'customActivityEmojis': _customActivityEmojis.map((e) => e.value).toList(),
       'customActivityIcons': _customActivityIcons.map((e) => {
@@ -657,6 +662,17 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         _priorityBonusTotal = max(0, _asInt(root['priorityBonusTotal']));
         _priorityRewardText = (_asString(root['priorityRewardText']) ?? 'un moment plaisir').trim();
         if (_priorityRewardText.isEmpty) _priorityRewardText = 'un moment plaisir';
+        _weightStartKg = (root['weightStartKg'] is num ? (root['weightStartKg'] as num).toDouble() : 95.6);
+        _weightTargetKg = (root['weightTargetKg'] is num ? (root['weightTargetKg'] as num).toDouble() : 90.0);
+        final weightDateRaw = _asString(root['weightTargetDate']);
+        _weightTargetDate = weightDateRaw == null ? DateTime(2027, 3, 1) : DateTime.tryParse(weightDateRaw);
+        _weightEntries
+          ..clear()
+          ..addAll((root['weightEntries'] is List ? root['weightEntries'] as List : const [])
+              .whereType<Map>()
+              .where((e) => e['date'] != null && e['kg'] is num)
+              .map((e) => <String, dynamic>{'date': '${e['date']}', 'kg': (e['kg'] as num).toDouble()})
+              .toList());
         _realizationGoals
           ..clear()
           ..addAll((root['realizationGoals'] is List ? root['realizationGoals'] as List : const [])
@@ -673,6 +689,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
                   target: max(1, min(99, _asInt(rawGoal['target'], 1))),
                   rewardText: (_asString(rawGoal['rewardText']) ?? 'un petit plaisir').trim().isEmpty ? 'un petit plaisir' : (_asString(rawGoal['rewardText']) ?? 'un petit plaisir').trim(),
                   createdAt: createdAt,
+                  isMaximum: rawGoal['isMaximum'] == true,
                   rewardedPeriodKeys: rawGoal['rewardedPeriodKeys'] is List
                       ? (rawGoal['rewardedPeriodKeys'] as List).map((v) => '$v').where((v) => v.trim().isNotEmpty).toSet()
                       : <String>{},
@@ -876,6 +893,10 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _priorityRewardText = 'un moment plaisir';
       // Une réinitialisation complète repart aussi sans objectifs de réalisation.
       _realizationGoals.clear();
+      _weightEntries.clear();
+      _weightStartKg = 95.6;
+      _weightTargetKg = 90.0;
+      _weightTargetDate = null;
       _systemIconOverrides.clear();
       _systemUiIconOverrides.clear();
       _customCategories.clear();

@@ -630,7 +630,10 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
   Widget buildHome() {
     final todayItems = itemsForDay(today);
     final todaySportItems = _sportItemsForDay(today);
+    final todayNutritionItems = _nutritionItemsForDay(today);
+    final hasNutritionActivities = activities.any(_isNutritionActivity);
     final todayOtherItems = todayItems.where((item) {
+      if (_isNutritionPlanItem(item)) return false;
       if (item.activityId == null) return true;
       final activity = findActivity(item.activityId!);
       return activity == null || !_isSportActivity(activity);
@@ -680,7 +683,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
     Widget todayPeriod(String period) {
       final periodItems = todayItems.where((item) {
         if (item.period != period) return false;
-        if (_isDateRangePlanItem(item)) return false;
+        if (_isDateRangePlanItem(item) || _isNutritionPlanItem(item)) return false;
         if (item.activityId != null) {
           final activity = findActivity(item.activityId!);
           if (activity != null && _isSportActivity(activity)) return false;
@@ -1080,7 +1083,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 ...const ['Matin', 'Après-midi', 'Soir']
                     .where((period) {
                       final periodItems = todayItems.where((item) {
-                        if (item.period != period || _isDateRangePlanItem(item)) return false;
+                        if (item.period != period || _isDateRangePlanItem(item) || _isNutritionPlanItem(item)) return false;
                         if (item.activityId != null) {
                           final activity = findActivity(item.activityId!);
                           if (activity != null && _isSportActivity(activity)) return false;
@@ -1093,6 +1096,11 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                 if (sportBudget > 0 || todaySportItems.isNotEmpty) ...[
                   const SizedBox(height: 7),
                   _sportDayCard(today, compactHome: true),
+                  const SizedBox(height: 1),
+                ],
+                if (hasNutritionActivities || todayNutritionItems.isNotEmpty) ...[
+                  const SizedBox(height: 7),
+                  _nutritionDayCard(today, compactHome: true),
                   const SizedBox(height: 1),
                 ],
                 const SizedBox(height: 2),

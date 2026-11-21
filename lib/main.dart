@@ -60,6 +60,8 @@ part 'parts/reps_tracking.part.dart';
 part 'parts/coach_rules.part.dart';
 part 'parts/day_detail.part.dart';
 part 'parts/home_coach_motivation.part.dart';
+part 'parts/nutrition_home.part.dart';
+part 'parts/nutrition_tracking.part.dart';
 
 void main() {
   if (kIsWeb) _installMascotBrowserIcon();
@@ -76,8 +78,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.24.0';
-  static const buildVersion = '12.24.0+64';
+  static const version = 'V12.26.3';
+  static const buildVersion = '12.26.3+72';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -148,6 +150,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   int _persistenceGeneration = 0;
   final Set<String> _sportValidationInProgress = <String>{};
   bool _homeSportExpanded = false;
+  bool _homeNutritionExpanded = false;
   // V12.23.0 — Rendez-vous du Coach affiché en tête de l'accueil.
   String _homeCoachView = 'today'; // today | yesterday | week
   String _coachTone = 'motivant'; // doux | motivant | direct
@@ -222,6 +225,11 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   String _priorityRewardText = 'un moment plaisir';
   // V9.29 — Objectifs de réalisation et streak Sport.
   final List<RealizationGoal> _realizationGoals = <RealizationGoal>[];
+  // Suivi pondéral indépendant des activités.
+  double _weightStartKg = 95.6;
+  double _weightTargetKg = 90.0;
+  DateTime? _weightTargetDate = DateTime(2027, 3, 1);
+  final List<Map<String, dynamic>> _weightEntries = <Map<String, dynamic>>[];
 
   // Icônes personnalisables de l'interface (en-têtes, navigation et boutons).
   // La valeur peut être un emoji ou un token customicon:// existant.

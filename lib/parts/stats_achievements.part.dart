@@ -430,33 +430,70 @@ class _WeeksReviewPage extends StatelessWidget {
 
 String _cellMinutes(int minutes) => minutes < 60 ? '${minutes}m' : '${_hoursLabel(minutes)}h';
 
-Widget _calendarDayCell(int day, int minutes, bool isToday, {int count = 0, VoidCallback? onTap}) {
-  final active = minutes > 0 || count > 0;
-  final cell = Container(
-      margin: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: active ? _colors.accentFill : _colors.surfaceSunken,
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        border: isToday ? Border.all(color: _colors.accentText, width: 1.5) : null,
-      ),
-      child: Center(
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text('$day', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: active ? _colors.card : _colors.textMuted, height: 1.1)),
-            if (active) Text(minutes > 0 ? _cellMinutes(minutes) : '$count×', style: TextStyle(fontSize: AppType.micro, color: _colors.card, height: 1.1)),
-          ]),
+Widget _calendarMetricLine(List<Activity> activities, String value, {required Color color}) {
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      for (final activity in activities)
+        Padding(
+          padding: const EdgeInsets.only(right: 1),
+          child: Tooltip(
+            message: activity.name,
+            child: _activityIconWidget(activity.emoji, size: 10),
+          ),
         ),
+      if (activities.isNotEmpty) const SizedBox(width: 1),
+      Text(value, style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: color, height: 1.05)),
+    ],
+  );
+}
+
+Widget _calendarDayCell(
+  int day,
+  int minutes,
+  bool isToday, {
+  int count = 0,
+  List<Activity> timeActivities = const <Activity>[],
+  List<Activity> countActivities = const <Activity>[],
+  VoidCallback? onTap,
+}) {
+  final active = minutes > 0 || count > 0;
+  final contentColor = active ? _colors.card : _colors.textMuted;
+  final cell = Container(
+    margin: const EdgeInsets.all(2),
+    decoration: BoxDecoration(
+      color: active ? _colors.accentFill : _colors.surfaceSunken,
+      borderRadius: BorderRadius.circular(AppRadius.xs),
+      border: isToday ? Border.all(color: _colors.accentText, width: 1.5) : null,
+    ),
+    child: Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('$day', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: contentColor, height: 1.1)),
+          if (minutes > 0) _calendarMetricLine(timeActivities, _cellMinutes(minutes), color: contentColor),
+          if (count > 0) _calendarMetricLine(countActivities, '$count×', color: contentColor),
+        ]),
       ),
-    );
+    ),
+  );
   return AspectRatio(
     aspectRatio: .95,
     child: onTap == null ? cell : InkWell(onTap: onTap, borderRadius: BorderRadius.circular(AppRadius.xs), child: cell),
   );
 }
 
-/// Grille du mois (lundi en premier) : jour + minutes vécues les jours actifs.
-Widget _monthCalendarGrid(DateTime month, Map<int, int> perDay, {Map<int, int>? perDayCount, void Function(DateTime date)? onDayTap}) {
+/// Grille du mois (lundi en premier) : jour, durée et occurrences, avec les
+/// icônes des activités correspondant à chaque type de réalisation.
+Widget _monthCalendarGrid(
+  DateTime month,
+  Map<int, int> perDay, {
+  Map<int, int>? perDayCount,
+  Map<int, List<Activity>>? perDayTimeActivities,
+  Map<int, List<Activity>>? perDayCountActivities,
+  void Function(DateTime date)? onDayTap,
+}) {
   final first = DateTime(month.year, month.month, 1);
   final days = DateTime(month.year, month.month + 1, 0).day;
   final lead = first.weekday - 1;
@@ -464,9 +501,15 @@ Widget _monthCalendarGrid(DateTime month, Map<int, int> perDay, {Map<int, int>? 
   final cells = <Widget>[
     for (var i = 0; i < lead; i++) const SizedBox.shrink(),
     for (var d = 1; d <= days; d++)
-      _calendarDayCell(d, perDay[_dayKey(DateTime(month.year, month.month, d))] ?? 0, todayKey == _dayKey(DateTime(month.year, month.month, d)),
-          count: perDayCount?[_dayKey(DateTime(month.year, month.month, d))] ?? 0,
-          onTap: onDayTap == null ? null : () => onDayTap(DateTime(month.year, month.month, d))),
+      _calendarDayCell(
+        d,
+        perDay[_dayKey(DateTime(month.year, month.month, d))] ?? 0,
+        todayKey == _dayKey(DateTime(month.year, month.month, d)),
+        count: perDayCount?[_dayKey(DateTime(month.year, month.month, d))] ?? 0,
+        timeActivities: perDayTimeActivities?[_dayKey(DateTime(month.year, month.month, d))] ?? const <Activity>[],
+        countActivities: perDayCountActivities?[_dayKey(DateTime(month.year, month.month, d))] ?? const <Activity>[],
+        onTap: onDayTap == null ? null : () => onDayTap(DateTime(month.year, month.month, d)),
+      ),
   ];
   while (cells.length % 7 != 0) {
     cells.add(const SizedBox.shrink());

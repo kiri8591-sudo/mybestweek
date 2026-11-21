@@ -132,8 +132,14 @@ Future<void> _showDayDetailSheet(
 extension _CategoryDetailPart on _StatsOverviewPageState {
   /// Détail d'une catégorie de l'anneau « Total investi » : activités, parts, dernières réalisations.
   void _openCategoryDetail(String title, List<String> categories, List<ActivityLog> periodLogs) {
-    final catSet = categories.toSet();
-    final inCat = periodLogs.where((l) => catSet.contains(l.category.trim().isEmpty ? 'Autre' : l.category.trim())).toList();
+    final catSet = categories.map((category) => category.trim().toLowerCase()).toSet();
+    final inCat = periodLogs.where((log) {
+      final storedCategory = log.category.trim();
+      final resolvedCategory = storedCategory.isNotEmpty
+          ? storedCategory
+          : (_activityFor(log).category.trim().isEmpty ? 'Autre' : _activityFor(log).category.trim());
+      return catSet.contains(resolvedCategory.trim().toLowerCase());
+    }).toList();
     if (inCat.isEmpty) return;
     final totals = _activityTotals(inCat);
     final timeTotal = _timeMinutesOf(inCat);
