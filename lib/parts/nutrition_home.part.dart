@@ -5,14 +5,53 @@
 part of '../main.dart';
 
 extension _NutritionHomePart on _MaBelleSemaineAppState {
-  bool _isNutritionActivity(Activity activity) =>
-      activity.category.trim().toLowerCase() == 'nutrition';
+  String _nutritionCategoryKey(String? value) => (value ?? '')
+      .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF]'), '')
+      .trim()
+      .toLowerCase();
+
+  bool _isNutritionCategory(String? value) {
+    final key = _nutritionCategoryKey(value);
+    return key == 'alimentation' || key.contains('nutrition');
+  }
+
+  bool _isNutritionActivity(Activity activity) {
+    if (_isNutritionCategory(activity.category)) return true;
+
+    // Compatibilité avec les anciennes fiches rangées dans une catégorie
+    // générique : leur nom ou leur icône Nutrition reste reconnaissable.
+    final name = activity.name.trim().toLowerCase();
+    final nutritionName = RegExp(
+      r'poisson|saumon|thon|sardine|truite|l[ée]gumineuse|lentille|haricot|pois.?chiche|f[eè]ve|carnet.?calorique|journal.?alimentaire|noter.*repas|pes[eé]e|fromage|brocoli|carotte',
+    ).hasMatch(name);
+    final icon = activity.emoji.trim().toLowerCase();
+    final nutritionIcon = <String>{
+      'pack://balanced_meal',
+      'pack://carrot',
+      'pack://broccoli',
+      'pack://fish',
+      'pack://beans',
+      'pack://apple',
+      'pack://cheese',
+      'pack://water_glass',
+      'pack://scale',
+    }.contains(icon);
+    return nutritionName || nutritionIcon;
+  }
 
   bool _isNutritionPlanItem(PlanItem item) {
+    // Le customCategory reste prioritaire pour les anciennes entrées créées
+    // avant que l'activité liée soit correctement catégorisée.
+    if (_isNutritionCategory(item.customCategory)) return true;
     final activity = item.activityId == null ? null : findActivity(item.activityId!);
-    if (activity != null) return _isNutritionActivity(activity);
-    return (item.customCategory ?? '').trim().toLowerCase() == 'nutrition';
+    return activity != null && _isNutritionActivity(activity);
   }
+
+  bool _hasNutritionSection() =>
+      _allCategoryNames().any(_isNutritionCategory) ||
+      activities.any(_isNutritionActivity) ||
+      plan.any(_isNutritionPlanItem) ||
+      logs.any((log) => _isNutritionCategory(log.category));
 
   List<PlanItem> _nutritionItemsForDay(int day) => plan
       .where((item) => item.day == day && _isNutritionPlanItem(item))
@@ -50,10 +89,87 @@ extension _NutritionHomePart on _MaBelleSemaineAppState {
     );
   }
 
+  List<Activity> _nutritionActivitiesForChecklist() {
+    // Inclure toutes les activités Nutrition, même si une ancienne fiche a
+    // conservé un indicateur dateRange / programme. Ces indicateurs ne doivent
+    // jamais faire disparaître une habitude de la liste quotidienne.
+    final linkedIds = <String>{};
+    final legacyTitles = <String>{};
+
+    for (final item in plan) {
+      if (_isNutritionPlanItem(item) && item.activityId != null) {
+        linkedIds.add(item.activityId!);
+      }
+    }
+    for (final log in logs) {
+      if (!_isNutritionCategory(log.category)) continue;
+      if (log.activityId != null) {
+        linkedIds.add(log.activityId!);
+      } else if (log.title.trim().isNotEmpty) {
+        legacyTitles.add(log.title.trim().toLowerCase());
+      }
+    }
+
+    final result = activities.where((activity) =>
+        _isNutritionActivity(activity) ||
+        linkedIds.contains(activity.id) ||
+        legacyTitles.contains(activity.name.trim().toLowerCase())).toList();
+    result.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return result;
+  }
+
+  DateTime _nutritionDateForDay(int day) {
+    final monday = _startOfCurrentWeek();
+    final date = DateTime(monday.year, monday.month, monday.day + day);
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  bool _nutritionLogMatchesActivityDay(ActivityLog log, Activity activity, int day) {
+    final date = _nutritionDateForDay(day);
+    final sameDate = log.date.year == date.year &&
+        log.date.month == date.month &&
+        log.date.day == date.day;
+    if (!sameDate) return false;
+    if (log.activityId == activity.id) return true;
+    return log.activityId == null &&
+        log.title.trim().toLowerCase() == activity.name.trim().toLowerCase() &&
+        (_isNutritionCategory(log.category) || _isNutritionActivity(activity));
+  }
+
+  bool _nutritionActivityDoneForDay(Activity activity, int day) {
+    final plannedDone = plan.any((item) =>
+        item.day == day && item.activityId == activity.id && item.done);
+    if (plannedDone) return true;
+    return logs.any((log) => _nutritionLogMatchesActivityDay(log, activity, day));
+  }
+
   Widget _nutritionDayCard(int day, {bool compactHome = false}) {
     final items = _nutritionItemsForDay(day);
-    final done = items.where((item) => item.done).length;
-    final allDone = items.isNotEmpty && items.every((item) => item.done);
+    final checklistActivities = _nutritionActivitiesForChecklist();
+    // Sur l'écran Semaine, les habitudes restent visibles chaque jour, même
+    // lorsqu'elles n'ont pas été préalablement placées dans le planning.
+    // Sur l'accueil compact, on conserve la liste des seules activités planifiées.
+    // Sur l'écran Semaine, le bloc Nutrition est une véritable grille
+    // hebdomadaire : une ligne par activité et sept cases (lundi à dimanche).
+    // Le compteur du bloc reflète donc les cases de toute la semaine, pas
+    // uniquement le jour actuellement sélectionné.
+    final weeklyChecklistDone = checklistActivities.fold<int>(
+      0,
+      (count, activity) => count + List<int>.generate(7, (d) => d)
+          .where((d) => _nutritionActivityDoneForDay(activity, d))
+          .length,
+    );
+    final done = compactHome
+        ? items.where((item) => item.done).length
+        : checklistActivities.isNotEmpty
+            ? weeklyChecklistDone
+            : items.where((item) => item.done).length;
+    final total = compactHome
+        ? items.length
+        : checklistActivities.isNotEmpty
+            ? checklistActivities.length * 7
+            : items.length;
+    final allDone = total > 0 && done >= total;
     final collapsed = compactHome && allDone && !_homeNutritionExpanded;
     final background = _darkMode
         ? const Color(0xFF30392C)
@@ -99,9 +215,11 @@ extension _NutritionHomePart on _MaBelleSemaineAppState {
                         ),
                       ),
                       Text(
-                        items.isEmpty
-                            ? 'Aucune habitude prévue aujourd’hui'
-                            : '$done/${items.length} habitudes réalisées',
+                        total == 0
+                            ? 'Aucune habitude Nutrition créée'
+                            : compactHome
+                                ? '$done/$total habitudes réalisées aujourd’hui'
+                                : '$done/$total cases cochées cette semaine',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -141,7 +259,7 @@ extension _NutritionHomePart on _MaBelleSemaineAppState {
                 ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Ajouter une activité Nutrition',
+                  tooltip: 'Ajouter une habitude Nutrition',
                   onPressed: () => _addNutritionActivityToDay(day),
                   icon: Icon(
                     Icons.add_circle_outline,
@@ -177,20 +295,313 @@ extension _NutritionHomePart on _MaBelleSemaineAppState {
           ),
           if (!collapsed) ...[
             const SizedBox(height: 3),
-            if (items.isEmpty)
+            if (!compactHome && checklistActivities.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 2, 4, 5),
+                child: Text(
+                  'Une ligne par habitude · coche le jour où tu l’as réalisée.',
+                  style: TextStyle(fontSize: AppType.caption, color: _colors.textMuted),
+                ),
+              ),
+              _nutritionWeeklyMatrix(checklistActivities),
+            ]
+            else if (items.isNotEmpty)
+              ...items.map(_nutritionItemRow)
+            else
               Padding(
                 padding: const EdgeInsets.fromLTRB(4, 7, 4, 3),
-                child: Text(
-                  'Aucune activité Nutrition proposée ce jour.',
-                  style: TextStyle(fontSize: AppType.small, color: _colors.textMuted),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Aucune habitude Nutrition détectée. Vérifie la catégorie de tes activités ou ajoute-en une.',
+                      style: TextStyle(fontSize: AppType.small, color: _colors.textMuted),
+                    ),
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: _createNutritionActivityFromWeek,
+                        icon: const Icon(Icons.add_rounded, size: 17),
+                        label: const Text('Créer une habitude Nutrition'),
+                      ),
+                    ),
+                  ],
                 ),
-              )
-            else
-              ...items.map(_nutritionItemRow),
+              ),
           ],
         ],
       ),
     );
+  }
+
+  /// Résout toujours l'élément depuis le planning courant avant de le valider.
+  /// La carte Semaine est reconstruite lors des changements de jour ; retrouver
+  /// l'élément par son identifiant évite d'utiliser une ancienne référence.
+  void _setNutritionPlanItemDone(PlanItem displayedItem, bool checked) {
+    if (!mounted) return;
+    final index = plan.indexWhere((candidate) => candidate.id == displayedItem.id);
+    if (index < 0) {
+      _showFeedback('Cette habitude n’est plus présente dans le planning.');
+      return;
+    }
+    final currentItem = plan[index];
+    if (currentItem.done == checked) return;
+    if (_isDateRangePlanItem(currentItem)) {
+      _showFeedback('Une activité sur plusieurs jours ne se valide pas.');
+      return;
+    }
+    HapticFeedback.selectionClick();
+    togglePlanItemDone(currentItem, checked);
+  }
+
+  Widget _nutritionCheckControl({
+    required bool checked,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: Center(
+        child: Checkbox(
+          value: checked,
+          onChanged: (value) {
+            if (value == null) return;
+            HapticFeedback.selectionClick();
+            onChanged(value);
+          },
+          activeColor: _colors.accentFill,
+          checkColor: Colors.white,
+          side: BorderSide(color: _colors.accentIcon, width: 2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          materialTapTargetSize: MaterialTapTargetSize.padded,
+          visualDensity: VisualDensity.standard,
+        ),
+      ),
+    );
+  }
+
+  /// Grille hebdomadaire Nutrition : une ligne par habitude et une case
+  /// indépendante pour chacun des sept jours, sur le modèle de Semaine Sport.
+  Widget _nutritionWeeklyMatrix(List<Activity> source) {
+    const dayLabels = ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.of(context).size.width - 48;
+        final dayWidth = ((availableWidth - 102) / 7)
+            .clamp(23.0, 31.0)
+            .toDouble();
+        final activityWidth = availableWidth - (dayWidth * 7);
+
+        Widget dayHeading(int index) {
+          final isToday = index == today;
+          return SizedBox(
+            width: dayWidth,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isToday ? _colors.tintStrong : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  dayLabels[index],
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: isToday ? FontWeight.w900 : FontWeight.w700,
+                    color: isToday ? _colors.accentText : _colors.textMuted,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        Widget activityDayCheckbox(Activity activity, int index) {
+          final checked = _nutritionActivityDoneForDay(activity, index);
+          return SizedBox(
+            width: dayWidth,
+            height: 38,
+            child: Center(
+              child: Tooltip(
+                message: '${activity.name} · ${dayNames[index]}',
+                // FittedBox remplace Checkbox.constraints, absent des versions
+                // Flutter utilisées par le projet. La case reste visuellement
+                // compacte dans chaque colonne sans provoquer d'overflow.
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Checkbox(
+                    value: checked,
+                    onChanged: (value) {
+                      if (value == null) return;
+                      _setNutritionActivityDoneForDay(activity, index, value);
+                    },
+                    semanticLabel: '${activity.name}, ${dayNames[index]}',
+                    activeColor: _colors.accentFill,
+                    checkColor: Colors.white,
+                    side: BorderSide(
+                      color: checked ? _colors.accentFillBorder : _colors.accentIcon,
+                      width: 1.6,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            Row(
+              children: [
+                SizedBox(
+                  width: activityWidth,
+                  child: Text(
+                    'Habitude',
+                    style: TextStyle(
+                      fontSize: AppType.micro,
+                      fontWeight: FontWeight.w800,
+                      color: _colors.textMuted,
+                    ),
+                  ),
+                ),
+                ...List<Widget>.generate(7, dayHeading),
+              ],
+            ),
+            Divider(height: 5, thickness: 0.8, color: borderForNutrition()),
+            ...source.map((activity) {
+              return Column(
+                children: [
+                  SizedBox(
+                    height: 42,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: activityWidth,
+                          child: Row(
+                            children: [
+                              _activityIconWidget(activity.emoji, size: 22),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  activity.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: AppType.small,
+                                    fontWeight: FontWeight.w700,
+                                    color: _colors.textStrong,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ...List<Widget>.generate(
+                          7,
+                          (index) => activityDayCheckbox(activity, index),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(height: 1, thickness: 0.6, color: borderForNutrition()),
+                ],
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }
+
+  void _setNutritionActivityDoneForDay(Activity displayedActivity, int day, bool checked) {
+    if (!mounted) return;
+    final activity = findActivity(displayedActivity.id);
+    if (activity == null || !_isNutritionActivity(activity)) return;
+    final date = _nutritionDateForDay(day);
+    final dayItems = plan.where((item) =>
+        item.day == day && item.activityId == activity.id).toList();
+    final hasMatchingLog = logs.any((log) => _nutritionLogMatchesActivityDay(log, activity, day));
+
+    if (checked) {
+      if (dayItems.any((item) => item.done) || hasMatchingLog) return;
+      final pendingItems = dayItems.where((item) => !item.done).toList();
+      if (pendingItems.isNotEmpty) {
+        togglePlanItemDone(pendingItems.first, true);
+        return;
+      }
+
+      _prepareUndoSnapshot();
+      final now = DateTime.now();
+      final duration = max(1, activity.duration);
+      final item = PlanItem(
+        id: 'nutrition_done_${activity.id}_${day}_${now.microsecondsSinceEpoch}',
+        day: day,
+        period: _periodForActivity(activity, day),
+        timeLabel: null,
+        activityId: activity.id,
+        title: activity.name,
+        details: 'Nutrition · réalisation enregistrée depuis l’écran Semaine.',
+        duration: duration,
+        optional: false,
+        userAdded: true,
+        fixedInWeeklyTemplate: false,
+        manualPlacement: true,
+        done: true,
+        realisedMinutes: activity.countOnly ? 1 : duration,
+        feeling: 'Bien',
+      );
+      setState(() {
+        _clearManualDayRemoval(activity.id, day);
+        plan.add(item);
+        logs.removeWhere((log) => _nutritionLogMatchesActivityDay(log, activity, day));
+        logs.add(ActivityLog(
+          date: DateTime(date.year, date.month, date.day, now.hour, now.minute, now.second),
+          title: activity.name,
+          emoji: activity.emoji,
+          category: activity.category,
+          period: item.period,
+          day: day,
+          plannedMinutes: duration,
+          realisedMinutes: activity.countOnly ? 1 : duration,
+          feeling: 'Bien',
+          unplanned: false,
+          planItemId: item.id,
+          activityId: activity.id,
+        ));
+        _sortPlan();
+      });
+      if (day == today && _todayIsCompleted()) _upsertTodayDailySummary(persist: false);
+      _queueLocalStatePersist();
+      _refreshGoalsAfterRealization();
+      _maybeAwardDailyPriorityBonus();
+      _showFeedback('✓ « ${activity.name} » enregistré dans Nutrition.');
+      return;
+    }
+
+    final completed = dayItems.where((item) => item.done).toList();
+    if (completed.isEmpty && !hasMatchingLog) return;
+    _prepareUndoSnapshot();
+    setState(() {
+      for (final item in completed) {
+        item.done = false;
+        item.realisedMinutes = null;
+        item.feeling = null;
+      }
+      logs.removeWhere((log) => _nutritionLogMatchesActivityDay(log, activity, day));
+      if (day == today) dailySummaries.removeWhere((summary) => summary.dateKey == _todayDateKey());
+    });
+    _queueLocalStatePersist();
+    _refreshGoalsAfterRealization();
+    _showFeedback('Réalisation de « ${activity.name} » annulée.');
   }
 
   Widget _nutritionItemRow(PlanItem item) {
@@ -216,12 +627,9 @@ extension _NutritionHomePart on _MaBelleSemaineAppState {
         ),
         child: Row(
           children: [
-            Checkbox(
-              value: item.done,
-              onChanged: (_) => openPlanItem(item),
-              visualDensity: VisualDensity.compact,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.xs)),
+            _nutritionCheckControl(
+              checked: item.done,
+              onChanged: (value) => _setNutritionPlanItemDone(item, value),
             ),
             const SizedBox(width: 3),
             _activityIconWidget(_planItemIconValue(item, activities), size: 27),
@@ -278,11 +686,24 @@ extension _NutritionHomePart on _MaBelleSemaineAppState {
       ? const Color(0xFF46513F)
       : const Color(0xFFDDE5D5);
 
+  void _createNutritionActivityFromWeek() {
+    final now = DateTime.now().microsecondsSinceEpoch;
+    addOrEditActivity(
+      prefill: Activity(
+        id: 'nutrition_new_$now',
+        name: '',
+        emoji: '🥗',
+        category: 'Nutrition',
+        duration: 1,
+        frequency: 1,
+        priority: 3,
+        countOnly: true,
+      ),
+    );
+  }
+
   Future<void> _addNutritionActivityToDay(int day) async {
-    final available = activities
-        .where((activity) => _isNutritionActivity(activity) && !activity.isDateRange && !activity.isSportProgram)
-        .toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final available = _nutritionActivitiesForChecklist();
 
     if (available.isEmpty) {
       _showFeedback('Crée d’abord une activité dans la catégorie « Nutrition » depuis Activités.');

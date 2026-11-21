@@ -631,7 +631,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
     final todayItems = itemsForDay(today);
     final todaySportItems = _sportItemsForDay(today);
     final todayNutritionItems = _nutritionItemsForDay(today);
-    final hasNutritionActivities = activities.any(_isNutritionActivity);
+    final hasNutritionActivities = _hasNutritionSection();
     final todayOtherItems = todayItems.where((item) {
       if (_isNutritionPlanItem(item)) return false;
       if (item.activityId == null) return true;
@@ -1652,8 +1652,12 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                       const SizedBox(height: 8),
                       _sportDayCard(selectedDay),
                     ],
+                    if (_hasNutritionSection() || _nutritionItemsForDay(selectedDay).isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _nutritionDayCard(selectedDay),
+                    ],
                     const SizedBox(height: 8),
-                    if (selectedActionItems.any(_isGenericActivityItem))
+                    if (selectedActionItems.where((item) => !_isNutritionPlanItem(item)).any(_isGenericActivityItem))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
@@ -1664,7 +1668,9 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                     ...periods.map((period) {
                       final periodItems = selectedItems.where((item) {
                         if (item.period != period) return false;
-                        if (_isDateRangePlanItem(item)) return false;
+                        // Sport et Nutrition disposent chacun de leur bloc dédié
+                        // dans l'écran Semaine : ne pas les mélanger aux créneaux.
+                        if (_isDateRangePlanItem(item) || _isNutritionPlanItem(item)) return false;
                         if (item.activityId != null) {
                           final activity = findActivity(item.activityId!);
                           if (activity != null && _isSportActivity(activity)) return false;
