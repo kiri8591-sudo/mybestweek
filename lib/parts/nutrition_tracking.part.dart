@@ -496,7 +496,11 @@ class _NutritionTrackingPageState extends State<_NutritionTrackingPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Suivi Nutrition'),
+        title: Row(children: [
+          _activityIconWidget('pack://balanced_meal', size: 24),
+          const SizedBox(width: 7),
+          const Text('Suivi Nutrition'),
+        ]),
         leading: const BackButton(),
       ),
       body: SafeArea(
@@ -507,7 +511,7 @@ class _NutritionTrackingPageState extends State<_NutritionTrackingPage> {
               tone: _CardTone.tint,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  _activityIconWidget('🥗', size: 31),
+                  _activityIconWidget('pack://balanced_meal', size: 35),
                   const SizedBox(width: 9),
                   Expanded(child: Text('Tes habitudes alimentaires', style: _sheetTitleStyle(context))),
                 ]),

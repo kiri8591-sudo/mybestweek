@@ -1,4 +1,4 @@
-// V12.4.2 — Pack d'icônes MyBestWeek (52 illustrations PNG dans assets/icons/pack/).
+// V12.26.4 — Pack d’icônes illustrées MyBestWeek dans assets/icons/pack/.
 // Une icône du pack est stockée comme valeur texte « pack://<id> », exactement comme un emoji ou
 // « customicon://… » : aucune modification de la sauvegarde, de l'export ou de l'import.
 // Régénération : python3 tools/make_pack.py
@@ -50,6 +50,15 @@ const List<_PackIcon> _packIcons = [
   _PackIcon('bulb', 'Idée', 'idee astuce conseil coach lumiere conseil symboles'),
   _PackIcon('gift', 'Cadeau', 'cadeau anniversaire surprise fete present social   famille'),
   _PackIcon('cake', 'Gourmandise', 'gateau dessert gourmandise cupcake anniversaire patisserie sucre repas   marche'),
+  _PackIcon('carrot', 'Carotte', 'carotte carottes legumes legume crudites potager cuisine nutrition alimentation repas'),
+  _PackIcon('broccoli', 'Brocoli', 'brocoli broccoli legumes legume chou vert vegetal nutrition alimentation repas'),
+  _PackIcon('fish', 'Poisson', 'poisson poissons saumon truite thon sardine peche mer nutrition alimentation repas'),
+  _PackIcon('beans', 'Légumineuses', 'legumineuse legumineuses lentilles haricots pois chiches pois chiche feves beans nutrition alimentation repas'),
+  _PackIcon('apple', 'Pomme', 'pomme pommes fruit fruits collation dessert nutrition alimentation repas'),
+  _PackIcon('cheese', 'Fromage', 'fromage fromages laitier laitage emmental comte nutrition alimentation repas'),
+  _PackIcon('balanced_meal', 'Assiette équilibrée', 'assiette repas poisson legumes legumes verts equilibre cuisine nutrition alimentation repas'),
+  _PackIcon('water_glass', 'Verre d’eau', 'verre eau hydratation boisson boire nutrition alimentation repas'),
+  _PackIcon('scale', 'Balance', 'balance pesee poids mesure suivi poids nutrition alimentation bien etre'),
   _PackIcon('watering', 'Arrosage', 'arrosage jardin arroser plantes jardinage potager maison   jardin'),
   _PackIcon('sprout', 'Pousse', 'pousse plante semis potager planter jardin croissance maison   jardin'),
   _PackIcon('bear', 'Nounours', 'nounours ours mascotte peluche doudou coach social   famille'),

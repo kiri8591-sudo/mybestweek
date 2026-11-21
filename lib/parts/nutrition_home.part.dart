@@ -80,7 +80,7 @@ extension _NutritionHomePart on _MaBelleSemaineAppState {
                 : null,
             child: Row(
               children: [
-                _activityIconWidget('🥗', size: 21),
+                _activityIconWidget('pack://balanced_meal', size: 25),
                 const SizedBox(width: 7),
                 Expanded(
                   child: Column(

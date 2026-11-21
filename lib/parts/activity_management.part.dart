@@ -52,6 +52,24 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
     if (RegExp(r'restaurant|repas|cuisine|cuisiner').hasMatch(text)) {
       addAll(['🍽️', '🥐', '🍵', '🍰']);
     }
+    if (RegExp(r'poisson|saumon|thon|sardine|truite').hasMatch(text)) {
+      addAll(['pack://fish', '🐟', '🍋', '🥗']);
+    }
+    if (RegExp(r'l[ée]gumineuse|lentille|haricot|pois.?chiche|f[eè]ve').hasMatch(text)) {
+      addAll(['pack://beans', '🫘', '🥣', '🌱']);
+    }
+    if (RegExp(r'fromage|emmental|comt[eé]|laitage').hasMatch(text)) {
+      addAll(['pack://cheese', '🧀', '🥛', '🍽️']);
+    }
+    if (RegExp(r'fruit|pomme|collation|go[uû]ter').hasMatch(text)) {
+      addAll(['pack://apple', '🍎', '🍓', '🍐']);
+    }
+    if (RegExp(r'pes[eé]e|poids|balance').hasMatch(text)) {
+      addAll(['pack://scale', '⚖️', '💚', '📊']);
+    }
+    if (RegExp(r'carnet calorique|noter mes repas|journal alimentaire').hasMatch(text)) {
+      addAll(['pack://balanced_meal', '📓', '📝', '🍎']);
+    }
     if (RegExp(r'amis|famille|convivial|anniversaire|fête|fete').hasMatch(text)) {
       addAll(['🥂', '🎁', '💌', '🫶']);
     }
@@ -59,6 +77,10 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
       addAll(['🌿', '🕯️', '🛀', '🌸']);
     }
     if (RegExp(r'ours|ourson|mascotte').hasMatch(text)) addAll(['🧸']);
+
+    if (category.trim().toLowerCase() == 'nutrition') {
+      addAll(['pack://balanced_meal', 'pack://carrot', 'pack://broccoli', 'pack://fish', 'pack://beans', 'pack://apple', 'pack://cheese', 'pack://water_glass', 'pack://scale', '🥗', '🥕', '🥦', '🐟', '🫘', '🧀', '🍎', '🥣']);
+    }
 
     switch (category) {
       case 'Sport': addAll(['🏃', '🚶', '🧘', '🥾']); break;
@@ -433,7 +455,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
       '⭐', '🌟', '✨', '💫', '🌈', '☁️', '❄️', '🔥', '💧',
       // Bien-être / nature
       '🍎', '🍐', '🍊', '🍋', '🍓', '🍒', '🍇', '🍉', '🥑', '🥗',
-      '🍵', '☕', '🫖', '🥐', '🍞', '🍯', '🛀', '🧴', '🕯️', '🌿',
+      '🍵', '☕', '🫖', '🥐', '🍞', '🍯', '🥕', '🥦', '🐟', '🫘', '🧀', '🥚', '🥜', '🥣', '🥛', '🍽️', '⚖️', '🍌', '🫐', '🛀', '🧴', '🕯️', '🌿',
       '🌱', '🌸', '🌷', '🌻', '🌼', '🌺', '🪻', '🍀', '🪴', '🌵',
       // Culture / loisirs
       '🎹', '🎸', '🎻', '🎺', '🥁', '🎵', '🎶', '🎤', '🎨', '🖌️',
@@ -786,7 +808,7 @@ extension _ActivityManagementPart on _MaBelleSemaineAppState {
       '⭐', '🌟', '✨', '💫', '🌈', '☁️', '❄️', '🔥', '💧',
       // 🍎 Bien-être / quotidien
       '🍎', '🍐', '🍊', '🍋', '🍓', '🍒', '🍇', '🍉', '🥑', '🥗',
-      '🍵', '☕', '🫖', '🥐', '🍞', '🍯', '🛀', '🧴', '🕯️', '🌿',
+      '🍵', '☕', '🫖', '🥐', '🍞', '🍯', '🥕', '🥦', '🐟', '🫘', '🧀', '🥚', '🥜', '🥣', '🥛', '🍽️', '⚖️', '🍌', '🫐', '🛀', '🧴', '🕯️', '🌿',
       '🌱', '🌸', '🌷', '🌻', '🌼', '🌺', '🪻', '🍀', '🪴', '🌵',
       // 🎨 Loisirs / culture
       '🎹', '🎸', '🎻', '🎺', '🥁', '🎵', '🎶', '🎤', '🎨', '🖌️',

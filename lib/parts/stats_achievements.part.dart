@@ -430,21 +430,39 @@ class _WeeksReviewPage extends StatelessWidget {
 
 String _cellMinutes(int minutes) => minutes < 60 ? '${minutes}m' : '${_hoursLabel(minutes)}h';
 
-Widget _calendarMetricLine(List<Activity> activities, String value, {required Color color}) {
+Widget _calendarMetricLine(
+  List<Activity> activities,
+  String value, {
+  required Color color,
+  double iconSize = 13,
+}) {
+  final effectiveIconSize = activities.length >= 3
+      ? iconSize * .82
+      : activities.length == 2
+          ? iconSize * .92
+          : iconSize;
   return Row(
     mainAxisSize: MainAxisSize.min,
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
       for (final activity in activities)
         Padding(
-          padding: const EdgeInsets.only(right: 1),
+          padding: const EdgeInsets.only(right: 1.5),
           child: Tooltip(
             message: activity.name,
-            child: _activityIconWidget(activity.emoji, size: 10),
+            child: _activityIconWidget(activity.emoji, size: effectiveIconSize),
           ),
         ),
       if (activities.isNotEmpty) const SizedBox(width: 1),
-      Text(value, style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: color, height: 1.05)),
+      Text(
+        value,
+        style: TextStyle(
+          fontSize: AppType.small,
+          fontWeight: FontWeight.w800,
+          color: color,
+          height: 1.05,
+        ),
+      ),
     ],
   );
 }
@@ -457,30 +475,43 @@ Widget _calendarDayCell(
   List<Activity> timeActivities = const <Activity>[],
   List<Activity> countActivities = const <Activity>[],
   VoidCallback? onTap,
+  double cellAspectRatio = .84,
+  double metricIconSize = 13,
 }) {
   final active = minutes > 0 || count > 0;
   final contentColor = active ? _colors.card : _colors.textMuted;
   final cell = Container(
-    margin: const EdgeInsets.all(2),
+    margin: const EdgeInsets.all(1.5),
+    padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 1),
     decoration: BoxDecoration(
       color: active ? _colors.accentFill : _colors.surfaceSunken,
-      borderRadius: BorderRadius.circular(AppRadius.xs),
+      borderRadius: BorderRadius.circular(AppRadius.s),
       border: isToday ? Border.all(color: _colors.accentText, width: 1.5) : null,
     ),
     child: Center(
       child: FittedBox(
         fit: BoxFit.scaleDown,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('$day', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: contentColor, height: 1.1)),
-          if (minutes > 0) _calendarMetricLine(timeActivities, _cellMinutes(minutes), color: contentColor),
-          if (count > 0) _calendarMetricLine(countActivities, '$count×', color: contentColor),
+          Text(
+            '$day',
+            style: TextStyle(
+              fontSize: AppType.bodyL,
+              fontWeight: FontWeight.w800,
+              color: contentColor,
+              height: 1.1,
+            ),
+          ),
+          if (minutes > 0)
+            _calendarMetricLine(timeActivities, _cellMinutes(minutes), color: contentColor, iconSize: metricIconSize),
+          if (count > 0)
+            _calendarMetricLine(countActivities, '$count×', color: contentColor, iconSize: metricIconSize),
         ]),
       ),
     ),
   );
   return AspectRatio(
-    aspectRatio: .95,
-    child: onTap == null ? cell : InkWell(onTap: onTap, borderRadius: BorderRadius.circular(AppRadius.xs), child: cell),
+    aspectRatio: cellAspectRatio,
+    child: onTap == null ? cell : InkWell(onTap: onTap, borderRadius: BorderRadius.circular(AppRadius.s), child: cell),
   );
 }
 
@@ -494,33 +525,42 @@ Widget _monthCalendarGrid(
   Map<int, List<Activity>>? perDayCountActivities,
   void Function(DateTime date)? onDayTap,
 }) {
-  final first = DateTime(month.year, month.month, 1);
-  final days = DateTime(month.year, month.month + 1, 0).day;
-  final lead = first.weekday - 1;
-  final todayKey = _dayKey(DateTime.now());
-  final cells = <Widget>[
-    for (var i = 0; i < lead; i++) const SizedBox.shrink(),
-    for (var d = 1; d <= days; d++)
-      _calendarDayCell(
-        d,
-        perDay[_dayKey(DateTime(month.year, month.month, d))] ?? 0,
-        todayKey == _dayKey(DateTime(month.year, month.month, d)),
-        count: perDayCount?[_dayKey(DateTime(month.year, month.month, d))] ?? 0,
-        timeActivities: perDayTimeActivities?[_dayKey(DateTime(month.year, month.month, d))] ?? const <Activity>[],
-        countActivities: perDayCountActivities?[_dayKey(DateTime(month.year, month.month, d))] ?? const <Activity>[],
-        onTap: onDayTap == null ? null : () => onDayTap(DateTime(month.year, month.month, d)),
-      ),
-  ];
-  while (cells.length % 7 != 0) {
-    cells.add(const SizedBox.shrink());
-  }
-  return Column(children: [
-    Row(children: [
-      for (final l in const ['L', 'M', 'M', 'J', 'V', 'S', 'D'])
-        Expanded(child: Center(child: Text(l, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted)))),
-    ]),
-    const SizedBox(height: 4),
-    for (var r = 0; r < cells.length ~/ 7; r++)
-      Row(children: [for (var c = 0; c < 7; c++) Expanded(child: cells[r * 7 + c])]),
-  ]);
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final isNarrow = constraints.maxWidth < 480;
+      final cellRatio = isNarrow ? .86 : .94;
+      final iconSize = isNarrow ? 13.5 : 12.5;
+      final first = DateTime(month.year, month.month, 1);
+      final days = DateTime(month.year, month.month + 1, 0).day;
+      final lead = first.weekday - 1;
+      final todayKey = _dayKey(DateTime.now());
+      final cells = <Widget>[
+        for (var i = 0; i < lead; i++) const SizedBox.shrink(),
+        for (var d = 1; d <= days; d++)
+          _calendarDayCell(
+            d,
+            perDay[_dayKey(DateTime(month.year, month.month, d))] ?? 0,
+            todayKey == _dayKey(DateTime(month.year, month.month, d)),
+            count: perDayCount?[_dayKey(DateTime(month.year, month.month, d))] ?? 0,
+            timeActivities: perDayTimeActivities?[_dayKey(DateTime(month.year, month.month, d))] ?? const <Activity>[],
+            countActivities: perDayCountActivities?[_dayKey(DateTime(month.year, month.month, d))] ?? const <Activity>[],
+            onTap: onDayTap == null ? null : () => onDayTap(DateTime(month.year, month.month, d)),
+            cellAspectRatio: cellRatio,
+            metricIconSize: iconSize,
+          ),
+      ];
+      while (cells.length % 7 != 0) {
+        cells.add(const SizedBox.shrink());
+      }
+      return Column(children: [
+        Row(children: [
+          for (final label in const ['L', 'M', 'M', 'J', 'V', 'S', 'D'])
+            Expanded(child: Center(child: Text(label, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.textMuted)))),
+        ]),
+        const SizedBox(height: 5),
+        for (var r = 0; r < cells.length ~/ 7; r++)
+          Row(children: [for (var c = 0; c < 7; c++) Expanded(child: cells[r * 7 + c])]),
+      ]);
+    },
+  );
 }
