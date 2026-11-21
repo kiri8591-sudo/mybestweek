@@ -30,6 +30,12 @@ class RealizationGoal {
   }) : rewardedPeriodKeys = rewardedPeriodKeys == null ? <String>{} : {...rewardedPeriodKeys};
 }
 
+class _GoalCategoryHeadingData {
+  final String category;
+  final int count;
+  const _GoalCategoryHeadingData(this.category, this.count);
+}
+
 class _GoalDraft {
   final String activityId;
   final String cadence;
@@ -105,6 +111,82 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
     }
   }
 
+  Map<String, List<Activity>> _activitiesGroupedByCategory() {
+    final grouped = <String, List<Activity>>{};
+    for (final activity in widget.activities) {
+      final rawCategory = activity.category.trim();
+      final category = rawCategory.isEmpty ? 'Sans catégorie' : rawCategory;
+      grouped.putIfAbsent(category, () => <Activity>[]).add(activity);
+    }
+    final names = grouped.keys.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return {
+      for (final name in names)
+        name: (grouped[name]!..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()))),
+    };
+  }
+
+  Widget _activityCategoryHeader(String category, int count) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 7, bottom: 5),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: _colors.surfaceSoft,
+          borderRadius: BorderRadius.circular(AppRadius.m),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.folder_open_rounded, size: 16, color: _colors.accentIcon),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                category,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: AppType.label,
+                  fontWeight: FontWeight.w800,
+                  color: _colors.textStrong,
+                ),
+              ),
+            ),
+            Text(
+              '$count',
+              style: TextStyle(
+                fontSize: AppType.caption,
+                fontWeight: FontWeight.w800,
+                color: _colors.textMuted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _activityPickRow(Activity activity) {
+    final selected = activity.id == activityId;
+    final frozen = activity.isFrozen;
+    final frozenLinkedToExisting = frozen &&
+        widget.existing != null &&
+        widget.existing!.activityId == activity.id;
+    final selectable = !frozen || frozenLinkedToExisting;
+    return _SheetPickRow(
+      leading: _activityIconWidget(activity.emoji, size: 24),
+      title: activity.name,
+      subtitle: frozen
+          ? (frozenLinkedToExisting
+              ? 'Gelée · liée à cet objectif'
+              : 'Gelée · non sélectionnable pour un nouvel objectif')
+          : _durationOrCount(activity),
+      selected: selected,
+      enabled: selectable,
+      badge: frozen ? const _Pill('Gelée') : null,
+      onTap: selectable ? () => setState(() => activityId = activity.id) : null,
+    );
+  }
+
   void _save() {
     final parsed = int.tryParse(targetController.text.trim());
     final safeTarget = max(1, min(_maxTarget(cadence), parsed ?? target));
@@ -155,28 +237,17 @@ class _GoalEditorSheetState extends State<_GoalEditorSheet> {
             Text('Activité', style: _sectionTitleStyle(context)),
             const SizedBox(height: AppSpace.s),
             ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 280),
-              child: ListView.builder(
+              constraints: const BoxConstraints(maxHeight: 300),
+              child: ListView(
                 shrinkWrap: true,
-                itemCount: widget.activities.length,
-                itemBuilder: (context, index) {
-                  final activity = widget.activities[index];
-                  final selected = activity.id == activityId;
-                  final frozen = activity.isFrozen;
-                  final frozenLinkedToExisting = frozen && widget.existing != null && widget.existing!.activityId == activity.id;
-                  final selectable = !frozen || frozenLinkedToExisting;
-                  return _SheetPickRow(
-                    leading: _activityIconWidget(activity.emoji, size: 24),
-                    title: activity.name,
-                    subtitle: frozen
-                        ? (frozenLinkedToExisting ? 'Gelée · liée à cet objectif' : 'Gelée · non sélectionnable pour un nouvel objectif')
-                        : '${activity.category} · ${_durationOrCount(activity)}',
-                    selected: selected,
-                    enabled: selectable,
-                    badge: frozen ? const _Pill('Gelée') : null,
-                    onTap: () => setState(() => activityId = activity.id),
-                  );
-                },
+                padding: EdgeInsets.zero,
+                children: [
+                  for (final entry in _activitiesGroupedByCategory().entries) ...[
+                    _activityCategoryHeader(entry.key, entry.value.length),
+                    for (final activity in entry.value)
+                      _activityPickRow(activity),
+                  ],
+                ],
               ),
             ),
             const SizedBox(height: 12),
@@ -410,16 +481,14 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
   Future<void> _addOrEditGoal({required BuildContext context, RealizationGoal? existing}) async {
     if (!mounted) return;
 
-    // Un objectif peut être créé pour toute activité réellement présente
-    // dans Mes activités, y compris Sport, activités gelées et activités
-    // multi-jours. Le gel agit sur le Coach, pas sur le suivi des objectifs.
-    // Pour un nouvel objectif, toutes les activités non gelées sont proposées.
-    // Une activité gelée reste visible dans Mes activités et peut être ajoutée
-    // manuellement à une journée, mais elle n’est pas sélectionnable lors de
-    // la création d’un nouvel objectif.
-    // Lors de la modification d'un objectif existant, l'activité actuellement
-    // liée reste visible même si elle est désormais gelée, afin de pouvoir
-    // consulter ou modifier l'objectif sans perdre son lien.
+    // Un nouvel objectif est proposé uniquement pour une activité qui n'a
+    // encore aucun objectif enregistré, quel que soit le rythme de cet
+    // objectif. Cela évite de proposer une activité déjà suivie dans la liste
+    // « Nouvel objectif ».
+    // Les activités gelées sans objectif restent visibles en grisé dès lors
+    // qu'il existe au moins une autre activité sélectionnable.
+    // En modification, on conserve la liste complète pour ne jamais perdre
+    // le lien vers l'activité déjà associée à l'objectif édité.
     final byId = <String, Activity>{};
     for (final activity in activities) {
       byId.putIfAbsent(activity.id, () => activity);
@@ -427,14 +496,24 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     final editableActivities = byId.values.toList()
       ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
-    final selectableForNewGoal = editableActivities.where((a) => !a.isFrozen).toList();
-    // Pour un nouvel objectif, on affiche aussi les activités gelées : elles
-    // doivent rester visibles dans le sélecteur, grisées et non sélectionnables.
-    // La vraie sélection reste limitée aux activités actives dans _GoalEditorSheet.
-    final availableForEditor = editableActivities;
+    final activityIdsWithGoal = _realizationGoals
+        .map((goal) => goal.activityId)
+        .toSet();
+    final activitiesWithoutGoal = existing == null
+        ? editableActivities
+            .where((activity) => !activityIdsWithGoal.contains(activity.id))
+            .toList()
+        : editableActivities;
+    final selectableForNewGoal = activitiesWithoutGoal
+        .where((activity) => !activity.isFrozen)
+        .toList();
+    final availableForEditor = activitiesWithoutGoal;
 
     if (existing == null && selectableForNewGoal.isEmpty) {
-      _showFeedback('Aucune activité disponible pour créer un objectif : toutes les activités sont gelées.');
+      final message = activitiesWithoutGoal.isEmpty
+          ? 'Toutes les activités possèdent déjà un objectif enregistré.'
+          : 'Aucune activité disponible pour créer un objectif : les activités restantes sont gelées.';
+      _showFeedback(message);
       return;
     }
     if (availableForEditor.isEmpty) {
@@ -490,14 +569,22 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
       ),
     );
 
+    // Garde-fou supplémentaire : même si la liste a changé pendant que le
+    // formulaire était ouvert, une création ne peut pas ajouter un second
+    // objectif pour une activité déjà suivie. En édition, on préserve les
+    // règles historiques de doublon activité + cadence.
     final duplicate = _realizationGoals.any(
       (goal) =>
           goal.id != existing?.id &&
           goal.activityId == draft.activityId &&
-          goal.cadence == draft.cadence,
+          (existing == null || goal.cadence == draft.cadence),
     );
     if (duplicate) {
-      _showFeedback('Cet objectif existe déjà pour cette activité et ce rythme.');
+      _showFeedback(
+        existing == null
+            ? 'Cette activité possède déjà un objectif enregistré.'
+            : 'Cet objectif existe déjà pour cette activité et ce rythme.',
+      );
       return;
     }
 
@@ -1096,16 +1183,87 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     }
   }
 
-  Widget buildObjectives() {
-    final goals = [..._realizationGoals]
-      ..sort((a, b) {
-        const order = {'jour': 0, 'semaine': 1, 'mois': 2};
-        final cadenceCompare = (order[a.cadence] ?? 9).compareTo(order[b.cadence] ?? 9);
+  Map<String, List<RealizationGoal>> _goalsGroupedByCategory(List<RealizationGoal> source) {
+    final grouped = <String, List<RealizationGoal>>{};
+    for (final goal in source) {
+      final activity = findActivity(goal.activityId);
+      final rawCategory = activity?.category.trim() ?? '';
+      final category = rawCategory.isEmpty ? 'Activité indisponible' : rawCategory;
+      grouped.putIfAbsent(category, () => <RealizationGoal>[]).add(goal);
+    }
+    final categories = grouped.keys.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    for (final goals in grouped.values) {
+      goals.sort((a, b) {
+        const cadenceOrder = {'jour': 0, 'semaine': 1, 'mois': 2};
+        final cadenceCompare = (cadenceOrder[a.cadence] ?? 9)
+            .compareTo(cadenceOrder[b.cadence] ?? 9);
         if (cadenceCompare != 0) return cadenceCompare;
         final aa = findActivity(a.activityId)?.name.toLowerCase() ?? '';
         final bb = findActivity(b.activityId)?.name.toLowerCase() ?? '';
         return aa.compareTo(bb);
       });
+    }
+    return {
+      for (final category in categories) category: grouped[category]!,
+    };
+  }
+
+  Widget _goalCategoryHeader(String category, int count) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 9, 0, 6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: _colors.surfaceSoft,
+          borderRadius: BorderRadius.circular(AppRadius.m),
+          border: Border.all(color: _colors.border),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.folder_rounded, size: 17, color: _colors.accentIcon),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                category,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: AppType.label,
+                  fontWeight: FontWeight.w800,
+                  color: _colors.textStrong,
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: _colors.card,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: AppType.caption,
+                  fontWeight: FontWeight.w800,
+                  color: _colors.textMuted,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildObjectives() {
+    final goals = [..._realizationGoals];
+    final goalsByCategory = _goalsGroupedByCategory(goals);
+    final goalDisplayRows = <Object>[];
+    for (final entry in goalsByCategory.entries) {
+      goalDisplayRows.add(_GoalCategoryHeadingData(entry.key, entry.value.length));
+      goalDisplayRows.addAll(entry.value);
+    }
 
     final sportActivities = activities
         .where((a) =>
@@ -1234,8 +1392,14 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
-                (context, index) => _goalCard(context, goals[index]),
-                childCount: goals.length,
+                (screenContext, index) {
+                  final item = goalDisplayRows[index];
+                  if (item is _GoalCategoryHeadingData) {
+                    return _goalCategoryHeader(item.category, item.count);
+                  }
+                  return _goalCard(screenContext, item as RealizationGoal);
+                },
+                childCount: goalDisplayRows.length,
               ),
             ),
           ),
