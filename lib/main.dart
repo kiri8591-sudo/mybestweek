@@ -60,6 +60,7 @@ part 'parts/reps_tracking.part.dart';
 part 'parts/coach_rules.part.dart';
 part 'parts/day_detail.part.dart';
 part 'parts/home_coach_motivation.part.dart';
+part 'parts/coach_remobilization.part.dart';
 part 'parts/nutrition_home.part.dart';
 part 'parts/nutrition_tracking.part.dart';
 
@@ -78,8 +79,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.26.14';
-  static const buildVersion = '12.26.14+83';
+  static const version = 'V12.26.17';
+  static const buildVersion = '12.26.17+86';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -225,6 +226,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   String _priorityRewardText = 'un moment plaisir';
   // V9.29 — Objectifs de réalisation et streak Sport.
   final List<RealizationGoal> _realizationGoals = <RealizationGoal>[];
+  // Freins déclarés au Coach, mémorisés par activité pour personnaliser les relances.
+  final Map<String, String> _coachRemobilizationReasons = <String, String>{};
   // Suivi pondéral indépendant des activités.
   double _weightStartKg = 95.6;
   double _weightTargetKg = 90.0;

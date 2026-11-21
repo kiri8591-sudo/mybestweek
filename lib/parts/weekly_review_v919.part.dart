@@ -17,6 +17,8 @@ class _WeeklyReviewPage extends StatefulWidget {
   final List<String> coachInsights;
   final VoidCallback onOpenCoachDecisions;
   final DateTime referenceNow;
+  final List<_CoachRemobilizationItem> Function() getRemobilizationItems;
+  final Future<void> Function(_CoachRemobilizationItem) onOpenRemobilization;
 
   const _WeeklyReviewPage({
     required this.plan,
@@ -31,6 +33,8 @@ class _WeeklyReviewPage extends StatefulWidget {
     required this.coachInsights,
     required this.onOpenCoachDecisions,
     required this.referenceNow,
+    required this.getRemobilizationItems,
+    required this.onOpenRemobilization,
   });
 
   @override
@@ -114,6 +118,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
     final good = weekLogs.where((log) => _normalizeFeeling(log.feeling) == 'Bien').length;
     final difficult = weekLogs.where((log) => _normalizeFeeling(log.feeling) == 'Difficile').length;
     final feelingTotal = veryGood + good + difficult;
+    final remobilizationItems = widget.getRemobilizationItems();
 
     // Rythme sur 4 semaines calendaires (index 0 = semaine en cours).
     final fourWeekRows = List.generate(4, (index) {
@@ -269,6 +274,67 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                 ),
               ]),
             ),
+            if (remobilizationItems.isNotEmpty) ...[
+              const SizedBox(height: AppSpace.m),
+              _AppCard(
+                tone: _CardTone.soft,
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const _SectionHeader(
+                    iconKey: 'coach',
+                    fallbackIcon: Icons.favorite_outline_rounded,
+                    title: 'Coach Motivation & Progression',
+                    subtitle: 'Des solutions concrètes pour retrouver ton rythme, sans culpabiliser.',
+                  ),
+                  const SizedBox(height: AppSpace.m),
+                  for (var index = 0; index < remobilizationItems.length && index < 4; index++) ...[
+                    if (index > 0) Divider(height: AppSpace.l, color: _colors.borderTint),
+                    Builder(builder: (context) {
+                      final item = remobilizationItems[index];
+                      return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _activityIconWidget(item.activity.emoji, size: 27),
+                        const SizedBox(width: 9),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Row(children: [
+                            Expanded(child: Text(item.activity.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w800, color: _colors.textStrong))),
+                            if (item.level == _CoachRemobilizationLevel.pattern)
+                              OutlinedButton.icon(
+                                onPressed: () => widget.onOpenRemobilization(item),
+                                icon: const Icon(Icons.autorenew_rounded, size: 14),
+                                label: const Text('Changer de méthode'),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size(0, 32),
+                                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                                  visualDensity: VisualDensity.compact,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  textStyle: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w800),
+                                ),
+                              )
+                            else
+                              _Pill(item.levelLabel),
+                          ]),
+                          const SizedBox(height: 3),
+                          Text(item.progressLabel, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+                          const SizedBox(height: 4),
+                          Text(item.message, style: TextStyle(fontSize: AppType.body, height: 1.35, color: _colors.textStrong)),
+                          if (item.level != _CoachRemobilizationLevel.pattern)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton.icon(
+                                onPressed: () async {
+                                  await widget.onOpenRemobilization(item);
+                                  if (mounted) setState(() {});
+                                },
+                                icon: const Icon(Icons.lightbulb_outline_rounded, size: 17),
+                                label: const Text('Trouver une solution'),
+                              ),
+                            ),
+                        ])),
+                      ]);
+                    }),
+                  ],
+                ]),
+              ),
+            ],
             const SizedBox(height: AppSpace.m),
 
             // 3. Rythme sur 4 semaines

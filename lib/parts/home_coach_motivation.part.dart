@@ -516,6 +516,7 @@ extension _HomeCoachMotivation on _MaBelleSemaineAppState {
       final progress = items.isEmpty ? 0.0 : doneToday / items.length;
       final badges = _coachBadges(streak, trend);
       final goals = _coachProgressItems();
+      final remobilization = _coachRemobilizationItems();
       final hour = DateTime.now().hour;
       body = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
@@ -556,6 +557,10 @@ extension _HomeCoachMotivation on _MaBelleSemaineAppState {
           const SizedBox(height: 6),
           for (final p in goals) _coachProgressRow(p),
         ],
+        if (remobilization.isNotEmpty) ...[
+          const SizedBox(height: AppSpace.m),
+          _coachRemobilizationCard(source: remobilization),
+        ],
         if (badges.isNotEmpty) ...[
           const SizedBox(height: AppSpace.s),
           _coachBadgeRow(badges),
@@ -575,6 +580,7 @@ extension _HomeCoachMotivation on _MaBelleSemaineAppState {
       final weekly = view == 'week';
       final snapshot = weekly ? _coachSnapshotForWeek() : _coachSnapshotForDate(_addDays(today0, -1));
       final badges = weekly ? _coachBadges(streak, trend) : const <_CoachBadge>[];
+      final remobilization = weekly ? _coachRemobilizationItems() : const <_CoachRemobilizationItem>[];
       body = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
           weekly ? _coachWeekHeadline(tone, snapshot, trend) : _coachYesterdayHeadline(tone, snapshot),
@@ -606,6 +612,10 @@ extension _HomeCoachMotivation on _MaBelleSemaineAppState {
                 ),
               ]),
             ),
+        ],
+        if (remobilization.isNotEmpty) ...[
+          const SizedBox(height: AppSpace.m),
+          _coachRemobilizationCard(source: remobilization),
         ],
         if (badges.isNotEmpty) ...[
           const SizedBox(height: AppSpace.s),

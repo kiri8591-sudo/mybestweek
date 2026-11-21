@@ -188,6 +188,7 @@ extension _ActivityDeletionPart on _MaBelleSemaineAppState {
       plan.removeWhere((p) => p.activityId == activity.id);
       _dailyPriorityActivityIds.remove(activity.id);
       _realizationGoals.removeWhere((g) => g.activityId == activity.id);
+      _coachRemobilizationReasons.remove(activity.id);
       if (deleteHistory) logs.removeWhere((l) => _logIsOfActivity(l, activity));
     });
     _queueLocalStatePersist();

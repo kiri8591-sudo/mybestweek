@@ -277,6 +277,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       'systemIconOverrides': {..._systemIconOverrides},
       'customCategories': [..._customCategories],
       'coachTone': _coachTone,
+      'coachRemobilizationReasons': {..._coachRemobilizationReasons},
       'coachRules': [for (final r in _coachRules) r.toJson()],
       'todayNameday': _todayNameday,
       'todayNamedayDateKey': _todayNamedayDateKey,
@@ -728,6 +729,15 @@ extension _StatePersistence on _MaBelleSemaineAppState {
           ..clear()
           ..addAll(_systemIconOverrides);
         _coachTone = const {'doux', 'motivant', 'direct'}.contains('${root['coachTone']}') ? '${root['coachTone']}' : 'motivant';
+        _coachRemobilizationReasons
+          ..clear()
+          ..addEntries(((root['coachRemobilizationReasons'] is Map)
+                  ? Map<String, dynamic>.from(root['coachRemobilizationReasons'])
+                  : <String, dynamic>{})
+              .entries
+              .map((entry) => MapEntry(entry.key, '${entry.value}'))
+              .where((entry) => restoredActivities.any((activity) => activity.id == entry.key) &&
+                  kCoachRemobilizationReasons.any((reason) => reason.$1 == entry.value)));
         _coachRules
           ..clear()
           ..addAll((root['coachRules'] is List ? List<dynamic>.from(root['coachRules']) : <dynamic>[])
@@ -893,6 +903,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _priorityRewardText = 'un moment plaisir';
       // Une réinitialisation complète repart aussi sans objectifs de réalisation.
       _realizationGoals.clear();
+      _coachRemobilizationReasons.clear();
       _weightEntries.clear();
       _weightStartKg = 95.6;
       _weightTargetKg = 90.0;

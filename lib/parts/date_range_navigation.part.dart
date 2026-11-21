@@ -155,6 +155,8 @@ extension _DateRangeNavigationPart on _MaBelleSemaineAppState {
         coachInsights: _coachWeeklyInsights(),
         onOpenCoachDecisions: openPlanningCoachDecisions,
         referenceNow: _clockNow,
+        getRemobilizationItems: _coachRemobilizationItems,
+        onOpenRemobilization: (item) => _openCoachRemobilization(item),
       )),
     );
   }
