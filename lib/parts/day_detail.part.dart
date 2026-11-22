@@ -131,15 +131,17 @@ Future<void> _showDayDetailSheet(
 
 extension _CategoryDetailPart on _StatsOverviewPageState {
   /// Détail d'une catégorie de l'anneau « Total investi » : activités, parts, dernières réalisations.
-  void _openCategoryDetail(String title, List<String> categories, List<ActivityLog> periodLogs) {
+  void _openCategoryDetail(String title, List<String> categories, List<ActivityLog> periodLogs, {bool? onlyCount}) {
     final catSet = categories.map((category) => category.trim().toLowerCase()).toSet();
-    final inCat = periodLogs.where((log) {
+    final inCatAll = periodLogs.where((log) {
       final storedCategory = log.category.trim();
       final resolvedCategory = storedCategory.isNotEmpty
           ? storedCategory
           : (_activityFor(log).category.trim().isEmpty ? 'Autre' : _activityFor(log).category.trim());
       return catSet.contains(resolvedCategory.trim().toLowerCase());
     }).toList();
+    // Depuis la section Temps on ne voit que du temps ; depuis Occurrences, que des occurrences.
+    final inCat = onlyCount == null ? inCatAll : inCatAll.where((log) => _logIsCount(log) == onlyCount).toList();
     if (inCat.isEmpty) return;
     final totals = _activityTotals(inCat);
     final timeTotal = _timeMinutesOf(inCat);
@@ -160,7 +162,7 @@ extension _CategoryDetailPart on _StatsOverviewPageState {
               _SheetHeader(
                 leading: _uiIcon('insights', Icons.donut_large_rounded, size: 24, color: _colors.accentIcon),
                 title: title,
-                subtitle: _period == 'Tout' ? 'Toute la période' : _period,
+                subtitle: '${_period == 'Tout' ? 'Toute la période' : _period}${onlyCount == null ? '' : (onlyCount ? ' · occurrences' : ' · temps')}',
               ),
               const SizedBox(height: AppSpace.m),
               Wrap(spacing: AppSpace.s, runSpacing: 6, children: [

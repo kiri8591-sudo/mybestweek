@@ -152,6 +152,25 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
     );
   }
 
+  /// Cartes par activité : temps, puis occurrences, puis répétitions, avec un titre quand plusieurs types coexistent.
+  List<Widget> _groupCardsWithHeadings(List<_ActivityGroup> groups) {
+    final multiple = groups.map((g) => _activityKindRank(g.activity)).toSet().length > 1;
+    final widgets = <Widget>[];
+    int? lastRank;
+    for (final g in groups) {
+      final rank = _activityKindRank(g.activity);
+      if (multiple && rank != lastRank) {
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(bottom: AppSpace.s, top: AppSpace.xs),
+          child: Text(rank == 0 ? 'Temps' : (rank == 1 ? 'Occurrences' : 'Répétitions'), style: _sectionTitleStyle(context)),
+        ));
+      }
+      lastRank = rank;
+      widgets.add(_groupCard(g));
+    }
+    return widgets;
+  }
+
   Widget _groupCard(_ActivityGroup g) {
     final sorted = [...g.logs]..sort((a, b) => a.date.compareTo(b.date));
     final first = sorted.first.date;
@@ -202,7 +221,7 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
 
   @override
   Widget build(BuildContext context) {
-    final all = widget.logs.where((l) => l.realisedMinutes > 0).toList();
+    final all = widget.logs.where(_logIsRealised).toList();
     final years = (all.map((l) => l.date.year).toSet().toList()..sort((a, b) => b.compareTo(a)));
     final scopes = ['Tout', ...years.map((y) => '$y')];
     if (!scopes.contains(_scope)) _scope = 'Tout';
@@ -220,8 +239,8 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
     }
     final ordered = groups.values.toList()
       ..sort((a, b) {
-        if (a.activity.countOnly != b.activity.countOnly) return a.activity.countOnly ? 1 : -1;
-        return b.minutes.compareTo(a.minutes);
+        final byKind = _activityKindRank(a.activity).compareTo(_activityKindRank(b.activity));
+        return byKind != 0 ? byKind : b.minutes.compareTo(a.minutes);
       });
     final timeOrdered = ordered.where((g) => !g.activity.countOnly).toList();
     final countTotal = ordered.where((g) => g.activity.countOnly).fold<int>(0, (s, g) => s + g.logs.length);
@@ -281,13 +300,13 @@ class _AchievementReportPageState extends State<_AchievementReportPage> {
                   Divider(height: 1, color: _colors.borderTint),
                   Padding(
                     padding: const EdgeInsets.only(top: AppSpace.s),
-                    child: Text('Année $heatYear', style: _hintStyle()),
+                    child: Text('Année $heatYear · jours avec au moins une réalisation (temps ou occurrence)', style: _hintStyle()),
                   ),
                   for (var m = 1; m <= 12; m++) _heatMonthRow(DateTime(heatYear, m), yearPerDay),
                 ]),
               ),
               const SizedBox(height: AppSpace.m),
-              for (final g in ordered) _groupCard(g),
+              ..._groupCardsWithHeadings(ordered),
             ],
           ],
         ),
@@ -328,9 +347,13 @@ class _WeeksReviewPage extends StatelessWidget {
       final a = _resolveActivity(l, activities);
       final g = groups.putIfAbsent(a.id, () => _ActivityGroup(a));
       g.logs.add(l);
-      g.minutes += l.realisedMinutes;
+      g.minutes += a.countOnly ? 1 : l.realisedMinutes;
     }
-    final ordered = groups.values.toList()..sort((a, b) => b.minutes.compareTo(a.minutes));
+    final ordered = groups.values.toList()
+      ..sort((a, b) {
+        final byKind = _activityKindRank(a.activity).compareTo(_activityKindRank(b.activity));
+        return byKind != 0 ? byKind : b.minutes.compareTo(a.minutes);
+      });
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpace.m),
@@ -387,7 +410,7 @@ class _WeeksReviewPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final done = logs.where((l) => l.realisedMinutes > 0).toList();
+    final done = logs.where(_logIsRealised).toList();
     final now = DateTime.now();
     final currentMonday = _mondayOf(now);
     DateTime? firstMonday;

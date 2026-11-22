@@ -16,6 +16,13 @@ String _hoursLabel(int minutes) {
   return h.round().toString();
 }
 
+/// Une réalisation compte dans les statistiques : du temps, des répétitions ou une occurrence.
+/// (Une occurrence est enregistrée avec 1 minute de pure convention : ne jamais l'additionner aux heures.)
+bool _logIsRealised(ActivityLog l) => l.realisedMinutes > 0 || (l.reps ?? 0) > 0 || _logIsCount(l);
+
+/// Rang d'affichage d'une activité : 0 = temps, 1 = occurrences, 2 = répétitions seules.
+int _activityKindRank(Activity a) => !a.countOnly ? 0 : (_isRepsOnly(a) ? 2 : 1);
+
 const List<int> _milestonesHours = [5, 10, 25, 50, 100, 250, 500, 750, 1000, 2500, 5000, 10000];
 
 int? _nextMilestoneMinutes(int minutes) {
@@ -72,9 +79,13 @@ class _DonutPainter extends CustomPainter {
 
 class _ActivityTotal {
   final Activity activity;
-  final int minutes; // minutes, ou nombre d'occurrences si l'activité est suivie en occurrences
-  const _ActivityTotal(this.activity, this.minutes);
+  final int minutes; // minutes (temps), fois (occurrences) ou répétitions (répétitions seules) selon [kind]
+  final int sessions; // nombre de réalisations
+  const _ActivityTotal(this.activity, this.minutes, {this.sessions = 0});
   bool get isCount => activity.countOnly;
+  bool get isReps => _isRepsOnly(activity);
+  /// 0 = temps, 1 = occurrences, 2 = répétitions seules.
+  int get kind => _activityKindRank(activity);
 }
 
 // ---------------------------------------------------------------------------
@@ -116,7 +127,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
     DateTime? cutoff;
     if (_period == '30 jours') cutoff = now.subtract(const Duration(days: 30));
     if (_period == '1 an') cutoff = now.subtract(const Duration(days: 365));
-    return widget.logs.where((l) => (l.realisedMinutes > 0 || (l.reps ?? 0) > 0 || _logIsCount(l)) && (cutoff == null || !l.date.isBefore(cutoff))).toList();
+    return widget.logs.where((l) => _logIsRealised(l) && (cutoff == null || !l.date.isBefore(cutoff))).toList();
   }
 
   Activity _activityFor(ActivityLog log) => _resolveActivity(log, widget.activities);
@@ -141,19 +152,60 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
 
   List<_ActivityTotal> _activityTotals(List<ActivityLog> logs) {
     final minutes = <String, int>{};
+    final sessions = <String, int>{};
     final activities = <String, Activity>{};
     for (final log in logs) {
       final a = _activityFor(log);
       minutes[a.id] = (minutes[a.id] ?? 0) + (_isRepsOnly(a) ? (log.reps ?? 0) : (a.countOnly ? 1 : log.realisedMinutes));
+      sessions[a.id] = (sessions[a.id] ?? 0) + 1;
       activities[a.id] = a;
     }
-    final result = [for (final e in minutes.entries) _ActivityTotal(activities[e.key]!, e.value)];
+    final result = [for (final e in minutes.entries) _ActivityTotal(activities[e.key]!, e.value, sessions: sessions[e.key] ?? 0)];
+    // Temps, puis occurrences, puis répétitions : on ne classe jamais des unités différentes ensemble.
     result.sort((a, b) {
-      if (a.isCount != b.isCount) return a.isCount ? 1 : -1;
+      if (a.kind != b.kind) return a.kind.compareTo(b.kind);
       return b.minutes.compareTo(a.minutes);
     });
     return result;
   }
+
+  /// Ordre stable des catégories : de base, puis personnalisées, puis les autres par nom.
+  /// La même catégorie garde ainsi la même couleur dans toutes les sections.
+  List<String> _statCategoryOrder() {
+    final known = <String>{
+      for (final c in [...kBaseCategories, ..._customCategories]) c.trim().toLowerCase(),
+    };
+    final others = <String>{
+      for (final a in widget.activities) a.category.trim().isEmpty ? 'autre' : a.category.trim().toLowerCase(),
+      for (final l in widget.logs) l.category.trim().isEmpty ? 'autre' : l.category.trim().toLowerCase(),
+    }..removeAll(known);
+    return [...known, ...(others.toList()..sort())];
+  }
+
+  Color _categoryColor(String name, List<String> order) {
+    final index = order.indexOf(name.trim().toLowerCase());
+    return _palette[(index < 0 ? order.length : index) % _palette.length];
+  }
+
+  Widget _statsSectionHeader({required IconData icon, required String title, required String value, required String hint}) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Icon(icon, size: 20, color: _colors.accentIcon),
+        const SizedBox(width: 8),
+        Expanded(child: Text(title, style: _sectionTitleStyle(context))),
+        Text(value, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
+      ]),
+      const SizedBox(height: 2),
+      Text(hint, style: _hintStyle()),
+    ]);
+  }
+
+  List<Widget> _activityRows(List<_ActivityTotal> items) => [
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) Divider(height: 1, color: _colors.border),
+          _activityRow(items[i]),
+        ],
+      ];
 
   void _openActivity(Activity activity) {
     Navigator.of(context).push(
@@ -217,7 +269,13 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
         child: Row(children: [
           CircleAvatar(radius: 18, backgroundColor: _colors.tintStrong, child: _activityIconWidget(item.activity.emoji, size: 24)),
           const SizedBox(width: 12),
-          Expanded(child: Text(item.activity.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong))),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(item.activity.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w700, color: _colors.textStrong)),
+              if (item.isReps && item.sessions > 0)
+                Text('${item.sessions} ${_nutPlural(item.sessions, 'séance', 'séances')}', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
+            ]),
+          ),
           if (_activityIsDeleted(item.activity)) ...[
             const SizedBox(width: 6),
             _Pill('supprimée', background: _colors.surfaceSunken, foreground: _colors.textMuted),
@@ -354,6 +412,11 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
         : _daysBetween(first, today) + 1;
 
     final totals = _activityTotals(logs);
+    final categoryOrder = _statCategoryOrder();
+    final timeTotals = totals.where((t) => t.kind == 0).toList();
+    final occTotals = totals.where((t) => t.kind == 1).toList();
+    final repsTotals = totals.where((t) => t.kind == 2).toList();
+    final totalReps = repsTotals.fold<int>(0, (s, t) => s + t.minutes);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Statistiques'), leading: const BackButton()),
@@ -421,23 +484,31 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
               ),
             ],
             const SizedBox(height: AppSpace.m),
+            Center(
+              child: SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment<String>(value: '30 jours', label: Text('30 jours')),
+                  ButtonSegment<String>(value: '1 an', label: Text('1 an')),
+                  ButtonSegment<String>(value: 'Tout', label: Text('Tout')),
+                ],
+                selected: <String>{_period},
+                onSelectionChanged: (s) {
+                  if (s.isEmpty) return;
+                  setState(() => _period = s.first);
+                },
+              ),
+            ),
+            const SizedBox(height: AppSpace.m),
+            // ---- Section Temps : tout ce qui se compte en heures ----
             _AppCard(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Center(
-                  child: SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment<String>(value: '30 jours', label: Text('30 jours')),
-                      ButtonSegment<String>(value: '1 an', label: Text('1 an')),
-                      ButtonSegment<String>(value: 'Tout', label: Text('Tout')),
-                    ],
-                    selected: <String>{_period},
-                    onSelectionChanged: (s) {
-                      if (s.isEmpty) return;
-                      setState(() => _period = s.first);
-                    },
-                  ),
+                _statsSectionHeader(
+                  icon: Icons.schedule_rounded,
+                  title: 'Temps',
+                  value: '${_hoursLabel(totalMinutes)} h',
+                  hint: 'Activités suivies en durée, comptées en heures.',
                 ),
-                const SizedBox(height: AppSpace.l),
+                const SizedBox(height: AppSpace.m),
                 Center(
                   child: SizedBox(
                     width: 220,
@@ -447,7 +518,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
                         size: const Size(220, 220),
                         painter: _DonutPainter(
                           values: [for (final s in slices) s.value.toDouble()],
-                          colors: _palette,
+                          colors: [for (final s in slices) _categoryColor(s.key, categoryOrder)],
                           track: _colors.border,
                         ),
                       ),
@@ -467,7 +538,7 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
                       child: Text(
                         countLogs.isEmpty
                             ? 'Aucune catégorie de durée enregistrée.'
-                            : 'Aucune durée enregistrée ; les occurrences sont détaillées ci-dessous.',
+                            : 'Aucune durée enregistrée ; les occurrences sont détaillées plus bas.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: _colors.textMuted),
                       ),
@@ -479,49 +550,18 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
                       sorted[i].key,
                       sorted[i].value,
                       totalMinutes,
-                      _palette[i % _palette.length],
-                      onTap: () => _openCategoryDetail(sorted[i].key, [sorted[i].key], logs),
+                      _categoryColor(sorted[i].key, categoryOrder),
+                      onTap: () => _openCategoryDetail(sorted[i].key, [sorted[i].key], logs, onlyCount: false),
                     ),
                 if (sorted.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: AppSpace.m),
                     child: Text('Touche une catégorie pour voir le détail.', style: _hintStyle()),
                   ),
-                if (sortedCountCategories.isNotEmpty) ...[
+                if (timeTotals.isNotEmpty) ...[
                   const SizedBox(height: AppSpace.l),
                   Divider(height: 1, color: _colors.border),
                   const SizedBox(height: AppSpace.m),
-                  Row(children: [
-                    Icon(Icons.task_alt_rounded, size: 19, color: _colors.accentIcon),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text('Catégories suivies en occurrences', style: _sectionTitleStyle(context))),
-                    Text('$totalCountOccurrences', style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
-                  ]),
-                  const SizedBox(height: AppSpace.xs),
-                  Text('Ces réalisations sont comptées en fois, séparément des heures.', style: _hintStyle()),
-                  for (var i = 0; i < sortedCountCategories.length; i++)
-                    _countCategoryRow(
-                      sortedCountCategories[i].key,
-                      sortedCountCategories[i].value,
-                      totalCountOccurrences,
-                      _palette[i % _palette.length],
-                      onTap: () => _openCategoryDetail(sortedCountCategories[i].key, [sortedCountCategories[i].key], logs),
-                    ),
-                ],
-              ]),
-            ),
-            const SizedBox(height: AppSpace.m),
-            _calendarCard(
-              _minutesPerDay(widget.logs.where((l) => l.realisedMinutes > 0 && !_logIsCount(l))),
-              _countsPerDay(widget.logs.where(_logIsCount)),
-              perDayTimeActivities: _activitiesPerDay(widget.logs, count: false),
-              perDayCountActivities: _activitiesPerDay(widget.logs, count: true),
-            ),
-            if (totals.isNotEmpty) ...[
-              const SizedBox(height: AppSpace.m),
-              _AppCard(
-                padding: const EdgeInsets.fromLTRB(AppSpace.l, AppSpace.l, AppSpace.l, AppSpace.s),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const _SectionHeader(
                     iconKey: 'insights',
                     fallbackIcon: Icons.auto_graph_outlined,
@@ -529,13 +569,65 @@ class _StatsOverviewPageState extends State<_StatsOverviewPage> {
                     subtitle: 'Touche une activité pour voir son détail.',
                   ),
                   const SizedBox(height: AppSpace.s),
-                  for (var i = 0; i < totals.length; i++) ...[
-                    if (i > 0) Divider(height: 1, color: _colors.border),
-                    _activityRow(totals[i]),
+                  ..._activityRows(timeTotals),
+                ],
+              ]),
+            ),
+            // ---- Section Occurrences : tout ce qui se compte en fois (jamais ajouté aux heures) ----
+            if (sortedCountCategories.isNotEmpty) ...[
+              const SizedBox(height: AppSpace.m),
+              _AppCard(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  _statsSectionHeader(
+                    icon: Icons.task_alt_rounded,
+                    title: 'Occurrences',
+                    value: '$totalCountOccurrences fois',
+                    hint: 'Activités suivies en nombre de fois, comptées à part des heures.',
+                  ),
+                  for (var i = 0; i < sortedCountCategories.length; i++)
+                    _countCategoryRow(
+                      sortedCountCategories[i].key,
+                      sortedCountCategories[i].value,
+                      totalCountOccurrences,
+                      _categoryColor(sortedCountCategories[i].key, categoryOrder),
+                      onTap: () => _openCategoryDetail(sortedCountCategories[i].key, [sortedCountCategories[i].key], logs, onlyCount: true),
+                    ),
+                  if (occTotals.isNotEmpty) ...[
+                    const SizedBox(height: AppSpace.l),
+                    Divider(height: 1, color: _colors.border),
+                    const SizedBox(height: AppSpace.m),
+                    const _SectionHeader(
+                      iconKey: 'insights',
+                      fallbackIcon: Icons.auto_graph_outlined,
+                      title: 'Par activité',
+                      subtitle: 'Touche une activité pour voir son détail.',
+                    ),
+                    const SizedBox(height: AppSpace.s),
+                    ..._activityRows(occTotals),
+                  ],
+                  if (repsTotals.isNotEmpty) ...[
+                    const SizedBox(height: AppSpace.l),
+                    Divider(height: 1, color: _colors.border),
+                    const SizedBox(height: AppSpace.m),
+                    _SectionHeader(
+                      iconKey: 'insights',
+                      fallbackIcon: Icons.repeat_rounded,
+                      title: 'Répétitions',
+                      subtitle: '$totalReps rép. au total, comptées à part des occurrences.',
+                    ),
+                    const SizedBox(height: AppSpace.s),
+                    ..._activityRows(repsTotals),
                   ],
                 ]),
               ),
             ],
+            const SizedBox(height: AppSpace.m),
+            _calendarCard(
+              _minutesPerDay(widget.logs.where((l) => l.realisedMinutes > 0 && !_logIsCount(l))),
+              _countsPerDay(widget.logs.where(_logIsCount)),
+              perDayTimeActivities: _activitiesPerDay(widget.logs, count: false),
+              perDayCountActivities: _activitiesPerDay(widget.logs, count: true),
+            ),
           ],
         ),
       ),
@@ -646,6 +738,7 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
       perDay[_dayKey(l.date)] = (perDay[_dayKey(l.date)] ?? 0) + amount(l);
     }
     final monthMinutes = logs.where((l) => l.date.year == _month.year && l.date.month == _month.month).fold<int>(0, (s, l) => s + amount(l));
+    final monthReps = _repsTotal(logs.where((l) => l.date.year == _month.year && l.date.month == _month.month));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Détail de l’activité'), leading: const BackButton()),
@@ -753,7 +846,7 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
                     child: Column(children: [
                       Text('${_frMonthsLong[_month.month - 1]} ${_month.year}', style: _sectionTitleStyle(context)),
                       const SizedBox(height: 2),
-                      Text(monthMinutes == 0 ? 'Aucune réalisation' : (isCount ? '$monthMinutes fois' : _minutesLabel(monthMinutes)), style: _hintStyle()),
+                      Text(monthMinutes == 0 ? 'Aucune réalisation' : (isReps ? '$monthMinutes ${_nutPlural(monthMinutes, 'séance', 'séances')} · $monthReps rép.' : (isCount ? '$monthMinutes fois' : _minutesLabel(monthMinutes))), style: _hintStyle()),
                     ]),
                   ),
                   IconButton(
@@ -806,7 +899,7 @@ class _ActivityStatsPageState extends State<_ActivityStatsPage> {
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                             child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Text(isCount ? '1×' : _minutesLabel(l.realisedMinutes), style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+                              Text(isReps ? _logAmountLabel(l) : (isCount ? '1×' : _minutesLabel(l.realisedMinutes)), style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700, color: _colors.textMuted)),
                               const SizedBox(width: 4),
                               Icon(Icons.edit_outlined, size: 14, color: _colors.textFaint),
                             ]),
