@@ -85,6 +85,8 @@ extension _NutritionHomePart on _MaBelleSemaineAppState {
         activities: List<Activity>.from(activities),
         logs: List<ActivityLog>.from(logs),
         goals: List<RealizationGoal>.from(_realizationGoals),
+        nutritionActivities: List<Activity>.from(_nutritionActivitiesForChecklist()),
+        tone: _nutritionCoachTone,
       ),
     );
   }
@@ -295,6 +297,7 @@ extension _NutritionHomePart on _MaBelleSemaineAppState {
           ),
           if (!collapsed) ...[
             const SizedBox(height: 3),
+            if (compactHome && checklistActivities.isNotEmpty) _nutritionCoachCard(),
             if (!compactHome && checklistActivities.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(4, 2, 4, 5),
@@ -823,11 +826,15 @@ class _NutritionWeeklyAnalysisSheet extends StatelessWidget {
   final List<Activity> activities;
   final List<ActivityLog> logs;
   final List<RealizationGoal> goals;
+  final List<Activity> nutritionActivities; // V12.28.0 — mêmes habitudes que la carte d'accueil
+  final String tone;
 
   const _NutritionWeeklyAnalysisSheet({
     required this.activities,
     required this.logs,
     required this.goals,
+    required this.nutritionActivities,
+    required this.tone,
   });
 
   DateTime _day(DateTime value) => DateTime(value.year, value.month, value.day);
@@ -1032,6 +1039,17 @@ class _NutritionWeeklyAnalysisSheet extends StatelessWidget {
             ]),
           ),
           Expanded(child: ListView(padding: const EdgeInsets.fromLTRB(AppSpace.l, 0, AppSpace.l, AppSpace.xl), children: [
+            _NutritionCoachCard(
+              engine: _NutritionCoachEngine(
+                activities: nutritionActivities,
+                logs: logs,
+                goals: goals,
+                now: now,
+              ),
+              tone: tone,
+              compact: false,
+            ),
+            const SizedBox(height: AppSpace.s),
             _AppCard(
               tone: _CardTone.tint,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
