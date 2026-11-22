@@ -1,6 +1,8 @@
 // V12.26.15 — Coach Motivation & Progression.
 // Détection des objectifs en retard / irréguliers, compréhension des freins,
 // reprise planifiée en version courte et accompagnement dans le bilan hebdomadaire.
+// V12.27.0 — « Rampe de reprise » : preuve de capacité tirée de l'historique, messages selon le ton
+// du Coach, cible allégée et temporaire en un geste, relance reportable (« Plus tard ») puis pause proposée.
 
 part of '../main.dart';
 
@@ -21,6 +23,12 @@ class _CoachRemobilizationItem {
   final int missedPeriods;
   final String periodLabel;
   final _CoachRemobilizationLevel level;
+  // V12.27.0
+  final String? toneMessage; // message personnalisé selon le ton du Coach
+  final String? proof; // repères d'historique (« 11 réalisations depuis septembre · … »)
+  final int? rampTarget; // cible allégée proposée, si une rampe de reprise est possible
+  final int rampPeriods;
+  final int snoozeCount;
 
   const _CoachRemobilizationItem({
     required this.activity,
@@ -30,7 +38,21 @@ class _CoachRemobilizationItem {
     required this.missedPeriods,
     required this.periodLabel,
     required this.level,
+    this.toneMessage,
+    this.proof,
+    this.rampTarget,
+    this.rampPeriods = 2,
+    this.snoozeCount = 0,
   });
+
+  bool get showsProof =>
+      proof != null &&
+      (level == _CoachRemobilizationLevel.missedOnce ||
+          level == _CoachRemobilizationLevel.recurring ||
+          level == _CoachRemobilizationLevel.pattern);
+
+  /// Mise en pause proposée : méthode à revoir, ou relance reportée trois fois.
+  bool get canPause => !goal.isMaximum && (snoozeCount >= 3 || level == _CoachRemobilizationLevel.pattern);
 
   String get progressLabel => goal.isMaximum
       ? '$currentCount/$target maximum $periodLabel'
@@ -53,7 +75,9 @@ class _CoachRemobilizationItem {
     }
   }
 
-  String get message {
+  String get message => toneMessage ?? baseMessage;
+
+  String get baseMessage {
     if (goal.isMaximum) {
       switch (level) {
         case _CoachRemobilizationLevel.overLimit:
@@ -81,6 +105,15 @@ class _CoachRemobilizationItem {
         return 'Pas besoin de compenser. Revenons simplement à un rythme confortable pour la suite.';
     }
   }
+}
+
+/// Repères tirés du journal pour une activité suivie par un objectif « au moins ».
+class _RemobStats {
+  final int total;
+  final DateTime? first;
+  final DateTime? last;
+  final int bestStreak; // plus longue série de périodes complètes ayant atteint la cible d'origine
+  const _RemobStats({required this.total, this.first, this.last, this.bestStreak = 0});
 }
 
 const List<(String, String, String)> kCoachRemobilizationReasons = [
@@ -124,26 +157,30 @@ extension _CoachRemobilizationPart on _MaBelleSemaineAppState {
     return count;
   }
 
-  bool _remobPeriodMissed(RealizationGoal goal, int count) =>
-      goal.isMaximum ? count > goal.target : count < goal.target;
+  bool _remobPeriodMissed(RealizationGoal goal, int count, [DateTime? periodStart]) {
+    // La cible peut être allégée par une rampe de reprise pour cette période.
+    final target = _goalTargetFor(goal, periodStart);
+    return goal.isMaximum ? count > target : count < target;
+  }
 
   bool _remobCurrentPeriodBehind(RealizationGoal goal, int currentCount, DateTime now) {
-    if (goal.isMaximum) return currentCount > goal.target;
+    final target = _goalTargetFor(goal, now);
+    if (goal.isMaximum) return currentCount > target;
     switch (goal.cadence) {
       case 'jour':
         // Ne pas signaler une journée en retard dès le matin.
-        return now.hour >= 19 && currentCount < goal.target;
+        return now.hour >= 19 && currentCount < target;
       case 'mois':
         final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
         final elapsed = now.day / daysInMonth;
         if (elapsed < .45) return false;
-        final expected = (goal.target * elapsed).round();
+        final expected = (target * elapsed).round();
         return expected > 0 && currentCount < expected;
       case 'semaine':
       default:
         final elapsed = now.weekday / 7.0;
         if (elapsed < .45) return false;
-        final expected = (goal.target * elapsed).round();
+        final expected = (target * elapsed).round();
         return expected > 0 && currentCount < expected;
     }
   }
@@ -158,7 +195,7 @@ extension _CoachRemobilizationPart on _MaBelleSemaineAppState {
 
       final currentStart = _goalPeriodStart(goal, now);
       final currentCount = _goalProgress(goal, _clockNow);
-      final currentSatisfied = !_remobPeriodMissed(goal, currentCount);
+      final currentSatisfied = !_remobPeriodMissed(goal, currentCount, currentStart);
 
       // Compte les périodes complètes manquées les plus récentes. Les périodes
       // antérieures à la création de l’objectif sont ignorées, jamais pénalisées.
@@ -171,7 +208,7 @@ extension _CoachRemobilizationPart on _MaBelleSemaineAppState {
         cursor = previousStart;
         if (goal.createdAt.isAfter(previousStart)) continue;
         final count = _remobCountInRange(goal, previousStart, previousEnd);
-        if (_remobPeriodMissed(goal, count)) {
+        if (_remobPeriodMissed(goal, count, previousStart)) {
           missedPeriods++;
         } else {
           // On ne mesure que la série de périodes manquées la plus récente.
@@ -207,14 +244,42 @@ extension _CoachRemobilizationPart on _MaBelleSemaineAppState {
           : goal.cadence == 'mois'
               ? 'ce mois'
               : 'cette semaine';
+      // « Plus tard » : la relance de cette activité revient après le délai choisi.
+      final snooze = _coachRemobSnoozes[activity.id];
+      if (snooze != null && snooze.until.isAfter(_clockNow)) continue;
+      final snoozeCount = snooze?.count ?? 0;
+
+      final effectiveTarget = _goalTargetFor(goal, now);
+      final stats = goal.isMaximum ? null : _remobHistoryStats(goal, activity);
+      final offersRamp = !goal.isMaximum &&
+          (level == _CoachRemobilizationLevel.recurring || level == _CoachRemobilizationLevel.pattern);
+      final rampTarget = offersRamp ? _remobRampTarget(goal, activity) : null;
+      var toneMessage = stats == null
+          ? null
+          : _coachRemobBuildMessage(
+              level: level,
+              goal: goal,
+              activity: activity,
+              missed: missedPeriods,
+              progress: '$currentCount/$effectiveTarget $periodLabel',
+              stats: stats,
+            );
+      if (toneMessage != null && snoozeCount >= 3 && level != _CoachRemobilizationLevel.returnToTrack) {
+        toneMessage = '$toneMessage Tu as repoussé ce rappel $snoozeCount fois : veux-tu plutôt mettre cette activité en pause ?';
+      }
       items.add(_CoachRemobilizationItem(
         activity: activity,
         goal: goal,
         currentCount: currentCount,
-        target: goal.target,
+        target: effectiveTarget,
         missedPeriods: missedPeriods,
         periodLabel: periodLabel,
         level: level,
+        toneMessage: toneMessage,
+        proof: stats == null ? null : _remobProof(goal, stats),
+        rampTarget: rampTarget,
+        rampPeriods: _remobRampPeriods(goal),
+        snoozeCount: snoozeCount,
       ));
     }
 
@@ -240,6 +305,194 @@ extension _CoachRemobilizationPart on _MaBelleSemaineAppState {
       return a.activity.name.toLowerCase().compareTo(b.activity.name.toLowerCase());
     });
     return items;
+  }
+
+  // ----- V12.27.0 : repères d'historique, rampe de reprise, relances ---------------
+
+  String _remobUnit(RealizationGoal goal, int n) {
+    switch (goal.cadence) {
+      case 'jour':
+        return n > 1 ? 'jours' : 'jour';
+      case 'mois':
+        return 'mois';
+      case 'semaine':
+      default:
+        return n > 1 ? 'semaines' : 'semaine';
+    }
+  }
+
+  /// Journal de l'activité regroupé par période : total, premier et dernier jour,
+  /// et plus longue série de périodes complètes ayant atteint la cible d'origine.
+  _RemobStats _remobHistoryStats(RealizationGoal goal, Activity activity) {
+    final name = activity.name.trim().toLowerCase();
+    final perPeriod = <DateTime, int>{};
+    DateTime? first;
+    DateTime? last;
+    var total = 0;
+    for (final log in logs) {
+      final sameActivity = log.activityId == goal.activityId ||
+          (log.activityId == null && name.isNotEmpty && log.title.trim().toLowerCase() == name);
+      if (!sameActivity) continue;
+      if (log.realisedMinutes <= 0 && !activity.countOnly && (log.reps ?? 0) <= 0) continue;
+      final day = _remobDateOnly(log.date);
+      total++;
+      if (first == null || day.isBefore(first)) first = day;
+      if (last == null || day.isAfter(last)) last = day;
+      final key = _goalPeriodStart(goal, day);
+      perPeriod[key] = (perPeriod[key] ?? 0) + 1;
+    }
+    var best = 0;
+    if (first != null) {
+      var cursor = _goalPeriodStart(goal, first);
+      final end = _goalPeriodStart(goal, _clockNow); // la période en cours n'est pas encore jugée
+      var run = 0;
+      var guard = 0;
+      while (cursor.isBefore(end) && guard < 400) {
+        if ((perPeriod[cursor] ?? 0) >= goal.target) {
+          run++;
+          if (run > best) best = run;
+        } else {
+          run = 0;
+        }
+        cursor = _goalAddPeriods(goal, cursor, 1);
+        guard++;
+      }
+    }
+    return _RemobStats(total: total, first: first, last: last, bestStreak: best);
+  }
+
+  String? _remobProof(RealizationGoal goal, _RemobStats stats) {
+    final first = stats.first;
+    if (stats.total < 3 || first == null) return null;
+    final today = _remobDateOnly(_clockNow);
+    final since = first.year == today.year
+        ? _frMonthsLong[first.month - 1]
+        : '${_frMonthsLong[first.month - 1]} ${first.year}';
+    final parts = <String>['${stats.total} réalisations depuis $since'];
+    final last = stats.last;
+    if (last != null) {
+      final days = _daysBetween(last, today);
+      parts.add(days <= 0
+          ? 'dernière aujourd’hui'
+          : days == 1
+              ? 'dernière hier'
+              : days < 14
+                  ? 'dernière il y a $days jours'
+                  : 'dernière le ${last.day} ${_frMonthsLong[last.month - 1]}');
+    }
+    if (stats.bestStreak >= 2) {
+      parts.add('meilleure série : ${stats.bestStreak} ${_remobUnit(goal, stats.bestStreak)}');
+    }
+    return parts.join(' · ');
+  }
+
+  /// Cible allégée proposée pour une rampe de reprise (moitié de la cible, au moins 1),
+  /// ou null si la rampe n'a pas de sens ou si une rampe est déjà en cours ou programmée.
+  int? _remobRampTarget(RealizationGoal goal, Activity activity) {
+    if (goal.isMaximum || goal.target < 2) return null;
+    final category = activity.category.toLowerCase();
+    if (category.startsWith('nutri') || category.startsWith('alim')) return null; // suivi Nutrition inchangé
+    final until = goal.rampUntil;
+    if (until != null && until.isAfter(_clockNow)) return null;
+    final ramp = max(1, goal.target ~/ 2);
+    return ramp < goal.target ? ramp : null;
+  }
+
+  int _remobRampPeriods(RealizationGoal goal) => goal.cadence == 'jour' ? 3 : goal.cadence == 'mois' ? 1 : 2;
+
+  /// Message de remobilisation d'un objectif « au moins », dans le ton choisi pour le Coach.
+  String _coachRemobBuildMessage({
+    required _CoachRemobilizationLevel level,
+    required RealizationGoal goal,
+    required Activity activity,
+    required int missed,
+    required String progress,
+    required _RemobStats stats,
+  }) {
+    final tone = kCoachTones.any((t) => t.$1 == _coachTone) ? _coachTone : 'motivant';
+    String pick(String doux, String motivant, String direct) =>
+        tone == 'doux' ? doux : tone == 'direct' ? direct : motivant;
+    final name = activity.name;
+    final span = '$missed ${_remobUnit(goal, missed)}';
+    final proofShort = stats.total >= 3 ? ' Tu l’as déjà fait ${stats.total} fois.' : '';
+    final best = stats.bestStreak >= 2 ? ' Ta meilleure série : ${stats.bestStreak} ${_remobUnit(goal, stats.bestStreak)}.' : '';
+    switch (level) {
+      case _CoachRemobilizationLevel.atRisk:
+        return pick(
+          '$name prend un peu de retard ($progress). Un petit pas suffit, sans chercher à tout rattraper.',
+          '$name : $progress.$proofShort Une courte séance et tu reviens dans le rythme.',
+          '$name est en retard ($progress). Fais une version courte maintenant ou ajuste la cible.',
+        );
+      case _CoachRemobilizationLevel.missedOnce:
+        return pick(
+          'La dernière période n’a pas atteint la cible pour $name. Une seule reprise suffit pour relancer la dynamique.',
+          'Un passage à vide, rien de plus.$proofShort Une reprise et la série repart.',
+          'Période manquée sur $name. Une seule séance courte te remet sur les rails.',
+        );
+      case _CoachRemobilizationLevel.recurring:
+        return pick(
+          '$name est sous la cible depuis $span.$best Rien de grave : repartons avec une marche plus basse.',
+          '$span sous la cible, mais le réflexe existe.$proofShort Repars avec une cible allégée, puis remonte.',
+          '$span sous la cible sur $name. On allège temporairement l’objectif, ou on change de méthode.',
+        );
+      case _CoachRemobilizationLevel.pattern:
+        return pick(
+          '$span d’affilée sous la cible : la méthode actuelle est sans doute trop exigeante. Ce n’est pas un échec, choisissons ce qui sera facile à tenir.',
+          'C’est la méthode qui coince, pas toi.$proofShort Une marche plus basse pour repartir ?',
+          '$span sous la cible. Cet objectif ne tient pas tel quel : on l’allège, on change de format ou on met l’activité en pause.',
+        );
+      case _CoachRemobilizationLevel.returnToTrack:
+        return pick(
+          'Belle reprise sur $name. Cherchons maintenant à rendre cette habitude facile à répéter.',
+          'Reprise réussie !$proofShort Garde cet élan.',
+          'Reprise validée sur $name. Garde ce rythme.',
+        );
+      case _CoachRemobilizationLevel.overLimit:
+        return 'Pas besoin de compenser. Revenons simplement à un rythme confortable pour la suite.';
+    }
+  }
+
+  /// Rampe de reprise : allège temporairement la cible (jamais la cible d'origine).
+  /// Si la période en cours a déjà atteint la cible allégée, la rampe démarre à la période suivante
+  /// pour ne pas récompenser immédiatement un simple abaissement de la barre.
+  void _applyCoachRamp(_CoachRemobilizationItem item) {
+    final goal = item.goal;
+    final rampTarget = item.rampTarget;
+    if (rampTarget == null || goal.isMaximum || !mounted) return;
+    _captureGoalUndoSnapshot();
+    final now = _clockNow;
+    var start = _goalPeriodStart(goal, now);
+    final startsNext = _goalProgress(goal, now) >= rampTarget;
+    if (startsNext) start = _goalAddPeriods(goal, start, 1);
+    final periods = item.rampPeriods;
+    setState(() {
+      goal.rampTarget = rampTarget;
+      goal.rampStart = start;
+      goal.rampUntil = _goalAddPeriods(goal, start, periods);
+      _coachRemobSnoozes.remove(item.activity.id);
+    });
+    _queueLocalStatePersist();
+    _showFeedback('🌱 Rampe de reprise : $rampTarget ${_goalCadenceLabel(goal.cadence)} pendant $periods ${_remobUnit(goal, periods)}${startsNext ? ', dès la prochaine période' : ''}. La cible d’origine (${goal.target}) revient ensuite.');
+  }
+
+  void _snoozeCoachRemobilization(_CoachRemobilizationItem item) {
+    if (!mounted) return;
+    final count = (_coachRemobSnoozes[item.activity.id]?.count ?? 0) + 1;
+    setState(() {
+      _coachRemobSnoozes[item.activity.id] = (until: _addDays(_remobDateOnly(_clockNow), 2), count: count);
+    });
+    _queueLocalStatePersist();
+    _showFeedback(count >= 3
+        ? 'Reporté. À la prochaine relance, le Coach te proposera de mettre cette activité en pause.'
+        : 'D’accord, le Coach reviendra dans 2 jours.');
+  }
+
+  void _pauseCoachActivity(_CoachRemobilizationItem item) {
+    final activity = findActivity(item.activity.id);
+    if (!mounted || activity == null || activity.isFrozen) return;
+    _toggleActivityFrozen(activity);
+    setState(() => _coachRemobSnoozes.remove(activity.id));
+    _queueLocalStatePersist();
   }
 
   Color _coachRemobColor(_CoachRemobilizationLevel level) {
@@ -350,6 +603,14 @@ extension _CoachRemobilizationPart on _MaBelleSemaineAppState {
       Text(item.progressLabel, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.textMuted)),
       const SizedBox(height: 3),
       Text(item.message, style: TextStyle(fontSize: AppType.small, height: 1.3, color: _colors.textStrong)),
+      if (item.showsProof) ...[
+        const SizedBox(height: 5),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(Icons.history_rounded, size: 14, color: _colors.textFaint),
+          const SizedBox(width: 5),
+          Expanded(child: Text(item.proof!, style: TextStyle(fontSize: AppType.small, height: 1.3, color: _colors.textMuted))),
+        ]),
+      ],
       const SizedBox(height: 7),
       Wrap(spacing: 7, runSpacing: 6, children: [
         if (item.level != _CoachRemobilizationLevel.pattern)
@@ -359,12 +620,32 @@ extension _CoachRemobilizationPart on _MaBelleSemaineAppState {
             label: const Text('Trouver une solution'),
             style: OutlinedButton.styleFrom(minimumSize: const Size(0, 38), padding: const EdgeInsets.symmetric(horizontal: 12)),
           ),
+        if (item.rampTarget != null)
+          FilledButton.icon(
+            onPressed: () => _applyCoachRamp(item),
+            icon: const Icon(Icons.trending_up_rounded, size: 16),
+            label: Text('Alléger à ${item.rampTarget}'),
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 38), padding: const EdgeInsets.symmetric(horizontal: 12)),
+          ),
         if (!item.goal.isMaximum && item.level != _CoachRemobilizationLevel.pattern)
           FilledButton.tonalIcon(
             onPressed: item.activity.isDateRange ? null : () => _scheduleCoachRestart(item),
             icon: const Icon(Icons.event_available_rounded, size: 16),
             label: Text(item.activity.countOnly ? 'Prévoir' : 'Version courte'),
             style: FilledButton.styleFrom(minimumSize: const Size(0, 38), padding: const EdgeInsets.symmetric(horizontal: 10)),
+          ),
+        if (item.canPause)
+          TextButton.icon(
+            onPressed: () => _pauseCoachActivity(item),
+            icon: const Icon(Icons.pause_circle_outline_rounded, size: 17),
+            label: const Text('Mettre en pause'),
+            style: TextButton.styleFrom(minimumSize: const Size(0, 38), padding: const EdgeInsets.symmetric(horizontal: 8)),
+          ),
+        if (item.level != _CoachRemobilizationLevel.returnToTrack)
+          TextButton(
+            onPressed: () => _snoozeCoachRemobilization(item),
+            style: TextButton.styleFrom(minimumSize: const Size(0, 38), padding: const EdgeInsets.symmetric(horizontal: 8)),
+            child: const Text('Plus tard'),
           ),
       ]),
     ]);
@@ -388,12 +669,17 @@ extension _CoachRemobilizationPart on _MaBelleSemaineAppState {
             if (entry.$1 == selectedReason) { selectedEntry = entry; break; }
           }
           final advice = selectedEntry?.$3 ?? _coachRemobAdvice(item);
-          final primaryAction = item.goal.isMaximum
-              ? 'goal'
-              : item.activity.isDateRange
-                  ? 'activity'
-                  : 'plan';
-          final primaryLabel = item.goal.isMaximum
+          final rampTarget = item.rampTarget;
+          final primaryAction = rampTarget != null
+              ? 'ramp'
+              : item.goal.isMaximum
+                  ? 'goal'
+                  : item.activity.isDateRange
+                      ? 'activity'
+                      : 'plan';
+          final primaryLabel = rampTarget != null
+              ? 'Alléger à $rampTarget ${_goalCadenceLabel(item.goal.cadence)} pendant ${item.rampPeriods} ${_remobUnit(item.goal, item.rampPeriods)}'
+              : item.goal.isMaximum
               ? 'Ajuster mon plafond'
               : item.activity.isDateRange
                   ? 'Modifier cette activité'
@@ -420,6 +706,21 @@ extension _CoachRemobilizationPart on _MaBelleSemaineAppState {
                 ]),
                 const SizedBox(height: 8),
                 Text(item.message, style: TextStyle(fontSize: AppType.body, height: 1.35, color: _colors.textStrong)),
+                if (item.showsProof) ...[
+                  const SizedBox(height: 8),
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Icon(Icons.history_rounded, size: 16, color: _colors.textFaint),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(item.proof!, style: TextStyle(fontSize: AppType.small, height: 1.3, color: _colors.textMuted))),
+                  ]),
+                ],
+                if (rampTarget != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Rampe de reprise : cible allégée à $rampTarget ${_goalCadenceLabel(item.goal.cadence)} pendant ${item.rampPeriods} ${_remobUnit(item.goal, item.rampPeriods)}, puis retour à ${item.goal.target}. Réussir une marche compte comme une victoire (récompense : ${item.goal.rewardText}).',
+                    style: TextStyle(fontSize: AppType.small, height: 1.3, color: _colors.textMuted),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 Text(
                   item.level == _CoachRemobilizationLevel.pattern
@@ -465,26 +766,32 @@ extension _CoachRemobilizationPart on _MaBelleSemaineAppState {
                       Navigator.pop(sheetContext, primaryAction);
                     },
                     icon: Icon(
-                      primaryAction == 'goal'
-                          ? Icons.tune_rounded
-                          : primaryAction == 'activity'
-                              ? Icons.edit_rounded
-                              : Icons.event_available_rounded,
+                      primaryAction == 'ramp'
+                          ? Icons.trending_up_rounded
+                          : primaryAction == 'goal'
+                              ? Icons.tune_rounded
+                              : primaryAction == 'activity'
+                                  ? Icons.edit_rounded
+                                  : Icons.event_available_rounded,
                       size: 18,
                     ),
                     label: Text(primaryLabel),
                   ),
                 ),
                 const SizedBox(height: 6),
-                Row(children: [
+                Wrap(spacing: 8, runSpacing: 6, children: [
+                  if (rampTarget != null && !item.activity.isDateRange)
+                    OutlinedButton(onPressed: () { reasonToPersist = selectedReason; Navigator.pop(sheetContext, 'plan'); }, child: Text(item.activity.countOnly ? 'Prévoir' : 'Version courte')),
                   if (!item.goal.isMaximum)
-                    Expanded(child: OutlinedButton(onPressed: () { reasonToPersist = selectedReason; Navigator.pop(sheetContext, 'goal'); }, child: const Text('Adapter l’objectif'))),
-                  if (!item.goal.isMaximum && !item.activity.isDateRange) const SizedBox(width: 8),
+                    OutlinedButton(onPressed: () { reasonToPersist = selectedReason; Navigator.pop(sheetContext, 'goal'); }, child: const Text('Adapter l’objectif')),
                   if (!item.activity.isDateRange)
-                    Expanded(child: OutlinedButton(onPressed: () { reasonToPersist = selectedReason; Navigator.pop(sheetContext, 'activity'); }, child: const Text('Modifier l’activité'))),
+                    OutlinedButton(onPressed: () { reasonToPersist = selectedReason; Navigator.pop(sheetContext, 'activity'); }, child: const Text('Modifier l’activité')),
+                  if (item.canPause)
+                    OutlinedButton(onPressed: () { reasonToPersist = selectedReason; Navigator.pop(sheetContext, 'pause'); }, child: const Text('Mettre en pause')),
                 ]),
                 const SizedBox(height: 4),
-                Center(child: TextButton(onPressed: () => Navigator.pop(sheetContext), child: const Text('Pas maintenant'))),
+                if (item.level != _CoachRemobilizationLevel.returnToTrack)
+                  Center(child: TextButton(onPressed: () => Navigator.pop(sheetContext, 'snooze'), child: const Text('Me le rappeler dans 2 jours'))),
               ]),
             ),
           );
@@ -497,12 +804,21 @@ extension _CoachRemobilizationPart on _MaBelleSemaineAppState {
       setState(() => _coachRemobilizationReasons[item.activity.id] = reasonToPersist);
       _queueLocalStatePersist();
       if (action == 'remember') {
-        _showFeedback('🌱 Ton frein est mémorisé. Le Coach adaptera ses prochaines propositions.');
+        _showFeedback('🌱 Ton frein est mémorisé. Le Coach en tiendra compte dans ses conseils.');
         return;
       }
     }
     if (action == null) return;
     switch (action) {
+      case 'ramp':
+        _applyCoachRamp(item);
+        break;
+      case 'pause':
+        _pauseCoachActivity(item);
+        break;
+      case 'snooze':
+        _snoozeCoachRemobilization(item);
+        break;
       case 'plan':
         await _scheduleCoachRestart(item);
         break;

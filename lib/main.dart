@@ -79,8 +79,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.26.17';
-  static const buildVersion = '12.26.17+86';
+  static const version = 'V12.27.0';
+  static const buildVersion = '12.27.0+87';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -228,6 +228,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   final List<RealizationGoal> _realizationGoals = <RealizationGoal>[];
   // Freins déclarés au Coach, mémorisés par activité pour personnaliser les relances.
   final Map<String, String> _coachRemobilizationReasons = <String, String>{};
+  // V12.27.0 — relances du Coach reportées (« Plus tard ») : date de retour et nombre de reports par activité.
+  final Map<String, ({DateTime until, int count})> _coachRemobSnoozes = <String, ({DateTime until, int count})>{};
   // Suivi pondéral indépendant des activités.
   double _weightStartKg = 95.6;
   double _weightTargetKg = 90.0;

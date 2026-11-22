@@ -201,7 +201,7 @@ extension _HomeCoachMotivation on _MaBelleSemaineAppState {
       final a = findActivity(g.activityId);
       if (a == null) continue;
       final doneCount = _goalProgress(g);
-      final target = max(1, g.target);
+      final target = max(1, _goalTargetFor(g));
       final ratio = (doneCount / target).clamp(0.0, 1.0).toDouble();
       final remaining = target - doneCount;
       final period = g.cadence == 'jour' ? 'aujourd’hui' : g.cadence == 'mois' ? 'ce mois-ci' : 'cette semaine';

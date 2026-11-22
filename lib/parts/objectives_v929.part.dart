@@ -17,6 +17,11 @@ class RealizationGoal {
   DateTime createdAt;
   bool isMaximum; // false = au moins ; true = au plus
   final Set<String> rewardedPeriodKeys;
+  // V12.27.0 — rampe de reprise : cible allégée et temporaire (objectif « au moins »),
+  // la cible d'origine n'est jamais modifiée.
+  int? rampTarget;
+  DateTime? rampStart; // premier jour de la première période allégée
+  DateTime? rampUntil; // fin (exclue) de la dernière période allégée
 
   RealizationGoal({
     required this.id,
@@ -27,6 +32,9 @@ class RealizationGoal {
     required this.createdAt,
     this.isMaximum = false,
     Set<String>? rewardedPeriodKeys,
+    this.rampTarget,
+    this.rampStart,
+    this.rampUntil,
   }) : rewardedPeriodKeys = rewardedPeriodKeys == null ? <String>{} : {...rewardedPeriodKeys};
 }
 
@@ -423,12 +431,41 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     }
   }
 
+  /// Ajoute [periods] périodes (jour, semaine ou mois) à une date de début de période.
+  DateTime _goalAddPeriods(RealizationGoal goal, DateTime start, int periods) {
+    switch (goal.cadence) {
+      case 'jour':
+        return _addDays(start, periods);
+      case 'mois':
+        return DateTime(start.year, start.month + periods, 1);
+      case 'semaine':
+      default:
+        return _addDays(start, 7 * periods);
+    }
+  }
+
+  /// Vrai si la période de [reference] est couverte par une rampe de reprise.
+  bool _goalRampActive(RealizationGoal goal, [DateTime? reference]) {
+    final ramp = goal.rampTarget;
+    final start = goal.rampStart;
+    final until = goal.rampUntil;
+    if (goal.isMaximum || ramp == null || start == null || until == null) return false;
+    if (ramp >= goal.target) return false;
+    final periodStart = _goalPeriodStart(goal, reference ?? _clockNow);
+    return !periodStart.isBefore(start) && periodStart.isBefore(until);
+  }
+
+  /// Cible en vigueur pour la période de [reference] : celle de la rampe si elle
+  /// est active, sinon la cible d'origine.
+  int _goalTargetFor(RealizationGoal goal, [DateTime? reference]) =>
+      _goalRampActive(goal, reference) ? goal.rampTarget! : goal.target;
+
   double _goalProgressRatio(RealizationGoal goal) =>
-      (_goalProgress(goal) / max(1, goal.target)).clamp(0.0, 1.0).toDouble();
+      (_goalProgress(goal) / max(1, _goalTargetFor(goal))).clamp(0.0, 1.0).toDouble();
 
   bool _goalIsSatisfied(RealizationGoal goal) => goal.isMaximum
       ? _goalProgress(goal) <= goal.target
-      : _goalProgress(goal) >= goal.target;
+      : _goalProgress(goal) >= _goalTargetFor(goal);
 
   int _goalRewardCount(RealizationGoal goal) => goal.rewardedPeriodKeys.length;
 
@@ -438,15 +475,20 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     final now = _clockNow;
     var changed = false;
     var newlyWon = 0;
+    var rampWins = 0;
 
     for (final goal in _realizationGoals) {
       if (goal.isMaximum) continue; // un plafond ne déclenche pas de récompense automatique
       final key = _goalPeriodKey(goal, now);
-      if (_goalProgress(goal, now) >= goal.target &&
+      final target = _goalTargetFor(goal, now);
+      if (_goalProgress(goal, now) >= target &&
           !goal.rewardedPeriodKeys.contains(key)) {
         goal.rewardedPeriodKeys.add(key);
+        // Une période réussie met fin aux reports de relance de cette activité.
+        _coachRemobSnoozes.remove(goal.activityId);
         changed = true;
         newlyWon++;
+        if (target < goal.target) rampWins++;
       }
     }
 
@@ -456,6 +498,14 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     _persistLocalState(recordUndo: false);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (rampWins > 0 && rampWins == newlyWon) {
+        _showFeedback(
+          newlyWon == 1
+              ? '🌱 Marche de reprise franchie · récompense gagnée !'
+              : '🌱 $newlyWon marches de reprise franchies · récompenses gagnées !',
+        );
+        return;
+      }
       _showFeedback(
         newlyWon == 1
             ? '🎁 Objectif atteint · récompense gagnée !'
@@ -619,6 +669,10 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
         existing.target = safeTarget;
         existing.rewardText = draft.rewardText;
         existing.isMaximum = draft.isMaximum;
+        // Modifier l'objectif remplace toute rampe de reprise en cours.
+        existing.rampTarget = null;
+        existing.rampStart = null;
+        existing.rampUntil = null;
       }
     });
 
@@ -692,6 +746,8 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
     final complete = _goalIsSatisfied(goal);
     final exceeded = goal.isMaximum && progress > goal.target;
     final rewardCount = _goalRewardCount(goal);
+    final rampActive = _goalRampActive(goal);
+    final shownTarget = _goalTargetFor(goal);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -741,7 +797,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${goal.isMaximum ? 'Au plus' : 'Au moins'} ${goal.target} ${_goalCadenceLabel(goal.cadence)}',
+                          '${goal.isMaximum ? 'Au plus' : 'Au moins'} $shownTarget ${_goalCadenceLabel(goal.cadence)}${rampActive ? ' · rampe de reprise (cible ${goal.target})' : ''}',
                           style: TextStyle(
                             fontSize: AppType.small,
                             fontWeight: FontWeight.w700,
@@ -764,7 +820,7 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '${goal.isMaximum ? '$progress/${goal.target} max' : '$progress/${goal.target}'}',
+                    '${goal.isMaximum ? '$progress/${goal.target} max' : '$progress/$shownTarget'}',
                     style: TextStyle(
                       fontSize: AppType.label,
                       fontWeight: FontWeight.w700,

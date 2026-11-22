@@ -316,6 +316,10 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                           Text(item.progressLabel, style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w800, color: _colors.textMuted)),
                           const SizedBox(height: 4),
                           Text(item.message, style: TextStyle(fontSize: AppType.body, height: 1.35, color: _colors.textStrong)),
+                          if (item.showsProof) ...[
+                            const SizedBox(height: 3),
+                            Text(item.proof!, style: TextStyle(fontSize: AppType.small, height: 1.3, color: _colors.textMuted)),
+                          ],
                           if (item.level != _CoachRemobilizationLevel.pattern)
                             Align(
                               alignment: Alignment.centerLeft,

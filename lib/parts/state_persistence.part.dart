@@ -267,6 +267,9 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         'createdAt': g.createdAt.toIso8601String(),
         'rewardedPeriodKeys': [...g.rewardedPeriodKeys],
         'isMaximum': g.isMaximum,
+        'rampTarget': g.rampTarget,
+        'rampStart': g.rampStart?.toIso8601String(),
+        'rampUntil': g.rampUntil?.toIso8601String(),
       }).toList(),
       'customActivityEmojis': _customActivityEmojis.map((e) => e.value).toList(),
       'customActivityIcons': _customActivityIcons.map((e) => {
@@ -278,6 +281,10 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       'customCategories': [..._customCategories],
       'coachTone': _coachTone,
       'coachRemobilizationReasons': {..._coachRemobilizationReasons},
+      'coachRemobSnoozes': {
+        for (final entry in _coachRemobSnoozes.entries)
+          entry.key: {'until': entry.value.until.toIso8601String(), 'count': entry.value.count},
+      },
       'coachRules': [for (final r in _coachRules) r.toJson()],
       'todayNameday': _todayNameday,
       'todayNamedayDateKey': _todayNamedayDateKey,
@@ -691,6 +698,9 @@ extension _StatePersistence on _MaBelleSemaineAppState {
                   rewardText: (_asString(rawGoal['rewardText']) ?? 'un petit plaisir').trim().isEmpty ? 'un petit plaisir' : (_asString(rawGoal['rewardText']) ?? 'un petit plaisir').trim(),
                   createdAt: createdAt,
                   isMaximum: rawGoal['isMaximum'] == true,
+                  rampTarget: rawGoal['rampTarget'] == null ? null : max(1, min(99, _asInt(rawGoal['rampTarget'], 1))),
+                  rampStart: DateTime.tryParse(_asString(rawGoal['rampStart']) ?? ''),
+                  rampUntil: DateTime.tryParse(_asString(rawGoal['rampUntil']) ?? ''),
                   rewardedPeriodKeys: rawGoal['rewardedPeriodKeys'] is List
                       ? (rawGoal['rewardedPeriodKeys'] as List).map((v) => '$v').where((v) => v.trim().isNotEmpty).toSet()
                       : <String>{},
@@ -738,6 +748,15 @@ extension _StatePersistence on _MaBelleSemaineAppState {
               .map((entry) => MapEntry(entry.key, '${entry.value}'))
               .where((entry) => restoredActivities.any((activity) => activity.id == entry.key) &&
                   kCoachRemobilizationReasons.any((reason) => reason.$1 == entry.value)));
+        _coachRemobSnoozes.clear();
+        if (root['coachRemobSnoozes'] is Map) {
+          Map<String, dynamic>.from(root['coachRemobSnoozes']).forEach((key, raw) {
+            if (raw is! Map || !restoredActivities.any((activity) => activity.id == key)) return;
+            final until = DateTime.tryParse(_asString(raw['until']) ?? '');
+            if (until == null) return;
+            _coachRemobSnoozes[key] = (until: until, count: max(1, min(9, _asInt(raw['count'], 1))));
+          });
+        }
         _coachRules
           ..clear()
           ..addAll((root['coachRules'] is List ? List<dynamic>.from(root['coachRules']) : <dynamic>[])
@@ -904,6 +923,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       // Une réinitialisation complète repart aussi sans objectifs de réalisation.
       _realizationGoals.clear();
       _coachRemobilizationReasons.clear();
+      _coachRemobSnoozes.clear();
       _weightEntries.clear();
       _weightStartKg = 95.6;
       _weightTargetKg = 90.0;
