@@ -64,6 +64,7 @@ part 'parts/coach_remobilization.part.dart';
 part 'parts/nutrition_home.part.dart';
 part 'parts/nutrition_tracking.part.dart';
 part 'parts/nutrition_coach.part.dart';
+part 'parts/coach_balance.part.dart';
 
 void main() {
   if (kIsWeb) _installMascotBrowserIcon();
@@ -80,8 +81,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.29.0';
-  static const buildVersion = '12.29.0+89';
+  static const version = 'V12.30.0';
+  static const buildVersion = '12.30.0+90';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',

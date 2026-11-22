@@ -151,6 +151,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
     _scaffoldMessengerKey.currentState?.showSnackBar(
       SnackBar(content: Text('« ${item.title} » déplacée à ${dayNames[target]} · $targetPeriod.')),
     );
+    _maybeAskProcrastination(item);
   }
 
 
@@ -193,6 +194,7 @@ extension _PlanInteractionPart on _MaBelleSemaineAppState {
     });
     _queueLocalStatePersist();
     _showFeedback('« ${item.title} » déplacée vers ${dayNames[targetDay]} · $targetPeriod.');
+    _maybeAskProcrastination(item);
   }
 
 

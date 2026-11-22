@@ -832,9 +832,12 @@ extension _CoachRemobilizationPart on _MaBelleSemaineAppState {
     }
   }
 
-  Future<void> _scheduleCoachRestart(_CoachRemobilizationItem item) async {
+  Future<void> _scheduleCoachRestart(_CoachRemobilizationItem item) => _scheduleShortVersion(item.activity);
+
+  /// Replace une activité en version courte (5 à 15 minutes, ou une coche) sur le jour choisi.
+  Future<void> _scheduleShortVersion(Activity reference) async {
     if (!mounted) return;
-    final activity = findActivity(item.activity.id);
+    final activity = findActivity(reference.id);
     if (activity == null || activity.isDateRange) {
       _showFeedback('Cette activité ne peut pas être replacée automatiquement. Modifie son planning depuis sa fiche.');
       return;

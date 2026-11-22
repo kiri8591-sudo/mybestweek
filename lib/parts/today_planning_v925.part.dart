@@ -16,6 +16,7 @@ extension _TodayPlanningPart on _MaBelleSemaineAppState {
     });
     _queueLocalStatePersist();
     _showFeedback('« ${item.title} » déplacée vers $targetPeriod.');
+    _maybeAskProcrastination(item);
   }
 
   Widget _todayPeriodSection(String label, List<PlanItem> items) {

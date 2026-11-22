@@ -77,6 +77,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
     final movedToDayCounts = <int, int>{};
     for (final move in activityMoveLogs) {
       if (move.date.isBefore(cutoff) || move.date.isAfter(now)) continue;
+      if (_isPostponementMove(move)) continue; // V12.30.0 : un report est de l'évitement, pas une préférence
       final matches = move.activityId == activity.id ||
           (move.activityId == null && move.activityName.trim().toLowerCase() == activity.name.trim().toLowerCase());
       if (!matches) continue;
@@ -304,9 +305,9 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
 
   Future<void> _markPlanItemDoneQuick(PlanItem item) async {
     if (!mounted) return;
-    setState(() => item.done = true);
-    _queueLocalStatePersist();
-    _showFeedback('« ${item.title} » marqué comme fait.');
+    // V12.30.0 — passe par la validation standard : elle crée l'entrée d'historique
+    // (série, objectifs et statistiques) ; l'ancien marquage rapide ne le faisait pas.
+    togglePlanItemDone(item, true);
   }
 
   void _showPastPlanQuickActions(PlanItem item) {
@@ -390,6 +391,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
     setState(() {
       final index = plan.indexOf(item);
       if (index >= 0) {
+        _recordActivityMove(item, fromDay: item.day, fromPeriod: item.period, toDay: newDay, toPeriod: newPeriod);
         plan[index] = PlanItem(
           id: 'reschedule_${DateTime.now().microsecondsSinceEpoch}',
           day: newDay,
@@ -414,6 +416,7 @@ extension _HomePlanningPart on _MaBelleSemaineAppState {
     _sortPlan();
     _queueLocalStatePersist();
     _showFeedback('« ${item.title} » reporté.');
+    _maybeAskProcrastination(item);
   }
 
   Widget planRow(

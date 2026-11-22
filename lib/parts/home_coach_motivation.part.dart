@@ -539,10 +539,6 @@ extension _HomeCoachMotivation on _MaBelleSemaineAppState {
             Text('$doneToday/${items.length}${minutesLeft > 0 ? ' · ~${_minutesLabel(minutesLeft)} restantes' : ''}', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted)),
           ]),
         ],
-        if (next != null && remaining.isNotEmpty) ...[
-          const SizedBox(height: AppSpace.m),
-          _coachNextActionCard(next),
-        ],
         const SizedBox(height: AppSpace.m),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           _coachTile('${streak.now} j', streak.best > streak.now ? 'Série · record ${streak.best} j' : 'Série en cours', Icons.local_fire_department_rounded),

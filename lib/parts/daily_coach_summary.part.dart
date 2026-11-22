@@ -174,10 +174,10 @@ extension _DailyCoachSummaryPart on _MaBelleSemaineAppState {
     final insights = <String>[];
     final difficult = weekLogs.where((l) => _normalizeFeeling(l.feeling) == 'Difficile').length;
     final veryGood = weekLogs.where((l) => _normalizeFeeling(l.feeling) == 'Très bien').length;
-    final movedThisWeek = activityMoveLogs.where((m) {
-      final start = _startOfCurrentWeek();
-      return !m.date.isBefore(start) && m.date.isBefore(_addDays(start, 7));
-    }).length;
+    final weekStart = _startOfCurrentWeek();
+    final weekMoves = activityMoveLogs.where((m) => !m.date.isBefore(weekStart) && m.date.isBefore(_addDays(weekStart, 7))).toList();
+    final movedThisWeek = weekMoves.where((m) => !_isPostponementMove(m)).length;
+    final postponedThisWeek = weekMoves.where(_isPostponementMove).length;
 
     final activeProfiles = activities
         .map((a) => MapEntry(a, _activityLearning(a)))
@@ -188,6 +188,7 @@ extension _DailyCoachSummaryPart on _MaBelleSemaineAppState {
     if (difficult >= 2) insights.add('Charge : je tiendrai davantage compte des ressentis difficiles lors de la prochaine génération.');
     if (veryGood >= 2) insights.add('Confort : je conserve les rythmes qui donnent régulièrement un ressenti « Très bien », sans les multiplier artificiellement.');
     if (movedThisWeek >= 2) insights.add('Souplesse : comme plusieurs moments ont bougé cette semaine, j’augmenterai le poids des habitudes de déplacement quand elles sont répétées.');
+    if (postponedThisWeek >= 2) insights.add('Reports : $postponedThisWeek moments ont été repoussés cette semaine. Je ne les prends pas pour des préférences de jour : je cherche plutôt ce qui bloque.');
     if (_weatherForecast.isNotEmpty) {
       final weatherDays = <String>[];
       for (var d = today; d < 7; d++) {
