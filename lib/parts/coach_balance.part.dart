@@ -48,6 +48,51 @@ class _BalanceAction {
   });
 }
 
+class _ProgressChip {
+  final IconData icon;
+  final String label;
+  final String value;
+  final String sub;
+  final VoidCallback? onTap;
+  const _ProgressChip(this.icon, this.label, this.value, this.sub, [this.onTap]);
+}
+
+/// Barre de progression avec un repère : la part de la semaine déjà échue (rythme attendu).
+class _PaceBar extends StatelessWidget {
+  final double value;
+  final double? expected;
+  const _PaceBar({required this.value, this.expected});
+
+  @override
+  Widget build(BuildContext context) {
+    final v = value.isNaN ? 0.0 : value.clamp(0.0, 1.0).toDouble();
+    final e = expected;
+    return LayoutBuilder(builder: (context, constraints) {
+      return SizedBox(
+        height: 10,
+        child: Stack(clipBehavior: Clip.none, alignment: Alignment.centerLeft, children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            child: LinearProgressIndicator(
+              value: v,
+              minHeight: 4,
+              backgroundColor: _colors.tintStrong,
+              valueColor: AlwaysStoppedAnimation<Color>(_colors.accentOutline),
+            ),
+          ),
+          if (e != null && e > 0 && e < 1)
+            Positioned(
+              left: (constraints.maxWidth * e - 1).clamp(0.0, max(0.0, constraints.maxWidth - 2)).toDouble(),
+              top: 0,
+              bottom: 0,
+              child: Container(width: 2, decoration: BoxDecoration(color: _colors.textMuted, borderRadius: BorderRadius.circular(1))),
+            ),
+        ]),
+      );
+    });
+  }
+}
+
 class _CoachBalance {
   final List<_BalanceLine> plus;
   final List<_BalanceLine> minus;
@@ -261,6 +306,121 @@ extension _CoachBalancePart on _MaBelleSemaineAppState {
     }
   }
 
+  // ----- rythme attendu et progression -------------------------------------------------------
+
+  /// Moments déjà échus (jours passés, ou créneaux passés aujourd'hui) : repère du rythme attendu.
+  ({int due, double ratio}) _weekPace(List<PlanItem> items) {
+    if (items.isEmpty) return (due: 0, ratio: 0.0);
+    final due = items.where((p) => p.day < today || (p.day == today && _homePeriodIsPast(p.period))).length;
+    return (due: due, ratio: due / items.length);
+  }
+
+  _ProgressChip _weightProgressChip() {
+    final now = _clockNow;
+    final today0 = DateTime(now.year, now.month, now.day);
+    final entries = <({DateTime date, double kg})>[];
+    for (final e in _weightEntries) {
+      final d = DateTime.tryParse('${e['date']}');
+      final kg = e['kg'];
+      if (d != null && kg is num) entries.add((date: DateTime(d.year, d.month, d.day), kg: kg.toDouble()));
+    }
+    entries.sort((a, b) => a.date.compareTo(b.date));
+    String fmt(double v) => v.toStringAsFixed(1).replaceAll('.', ',');
+    void openGoals() => setState(() => tab = 3);
+    // Une donnée absente n'est pas un échec : on invite à saisir, sans juger.
+    if (entries.isEmpty) return _ProgressChip(Icons.monitor_weight_outlined, 'Poids', 'À saisir', 'aucune pesée', openGoals);
+    final last = entries.last;
+    final age = _daysBetween(last.date, today0);
+    if (age > 14) return _ProgressChip(Icons.monitor_weight_outlined, 'Poids', 'À saisir', 'dernière il y a $age j', openGoals);
+    final window = entries.where((e) => _daysBetween(e.date, last.date) <= 28).toList();
+    final span = _daysBetween(window.first.date, last.date);
+    if (window.length >= 3 && span >= 14) {
+      final delta = last.kg - window.first.kg;
+      return _ProgressChip(Icons.monitor_weight_outlined, 'Poids', '${delta <= 0 ? '−' : '+'}${fmt(delta.abs())} kg', 'sur $span jours', openGoals);
+    }
+    return _ProgressChip(Icons.monitor_weight_outlined, 'Poids', '${fmt(last.kg)} kg', 'tendance : trop peu de pesées', openGoals);
+  }
+
+  List<_ProgressChip> _buildProgressChips() {
+    final chips = <_ProgressChip>[];
+    final trend = _coachWeekTrend();
+    final diff = trend.thisDays - trend.lastDays;
+    chips.add(_ProgressChip(
+      Icons.calendar_month_outlined,
+      'Jours actifs',
+      '${trend.thisDays}',
+      diff > 0 ? '↗ +$diff vs semaine passée' : (diff < 0 ? '↘ $diff vs semaine passée' : '= semaine passée'),
+    ));
+    chips.add(_ProgressChip(
+      Icons.schedule_rounded,
+      'Temps',
+      _minutesLabel(trend.thisMin),
+      'semaine passée à date : ${_minutesLabel(trend.lastMin)}',
+    ));
+
+    // Objectifs « en bonne voie » : atteints, ou au rythme attendu pour la période (jamais jugés d'avance).
+    final now = _clockNow;
+    var total = 0;
+    var onTrack = 0;
+    for (final g in _realizationGoals) {
+      final activity = findActivity(g.activityId);
+      if (activity == null || activity.isFrozen) continue;
+      total++;
+      if (!_remobCurrentPeriodBehind(g, _goalProgress(g, now), now)) onTrack++;
+    }
+    if (total > 0) {
+      chips.add(_ProgressChip(Icons.flag_outlined, 'Objectifs', '$onTrack/$total', 'en bonne voie', () => setState(() => tab = 3)));
+    }
+
+    final engine = _balanceNutritionEngine();
+    if (engine != null) {
+      final week = engine.weekDays();
+      final evaluated = week.where((d) => d.evaluated).length;
+      if (evaluated > 0) {
+        final held = week.where((d) => d.state == _NutDayState.held).length;
+        chips.add(_ProgressChip(Icons.restaurant_outlined, 'Nutrition', '$held/$evaluated', 'jours tenus', _openNutritionWeeklyAnalysis));
+      }
+    }
+    if (_homeShowWeight) chips.add(_weightProgressChip());
+    return chips;
+  }
+
+  Widget _progressRow(List<_ProgressChip> chips) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final width = (constraints.maxWidth - 16) / 3;
+      return Wrap(spacing: 8, runSpacing: 8, children: [
+        for (final chip in chips)
+          SizedBox(
+            width: width,
+            child: InkWell(
+              onTap: chip.onTap,
+              borderRadius: BorderRadius.circular(AppRadius.m),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(8, 6, 8, 7),
+                decoration: BoxDecoration(
+                  color: _colors.card,
+                  borderRadius: BorderRadius.circular(AppRadius.m),
+                  border: Border.all(color: _colors.borderTint),
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Icon(chip.icon, size: 12, color: _colors.textMuted),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(chip.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+                    ),
+                  ]),
+                  const SizedBox(height: 2),
+                  Text(chip.value, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.bodyL, fontWeight: FontWeight.w800, color: _colors.textStrong)),
+                  Text(chip.sub, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: AppType.micro, height: 1.2, color: _colors.textMuted)),
+                ]),
+              ),
+            ),
+          ),
+      ]);
+    });
+  }
+
   // ----- bloc « + / − / action » ---------------------------------------------------------------
 
   _NutritionCoachEngine? _balanceNutritionEngine() {
@@ -453,6 +613,7 @@ extension _CoachBalancePart on _MaBelleSemaineAppState {
   Widget _homeCoachBalance() {
     final data = _buildCoachBalance();
     final action = data.action;
+    final progressChips = _buildProgressChips();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: _AppCard(
@@ -528,6 +689,10 @@ extension _CoachBalancePart on _MaBelleSemaineAppState {
                     ]),
                   ]),
           ),
+          const SizedBox(height: 10),
+          Text('Ma progression', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+          const SizedBox(height: 5),
+          _progressRow(progressChips),
         ]),
       ),
     );

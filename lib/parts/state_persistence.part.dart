@@ -257,6 +257,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       'weightStartKg': _weightStartKg,
       'weightTargetKg': _weightTargetKg,
       'weightTargetDate': _weightTargetDate?.toIso8601String(),
+      'homeShowWeight': _homeShowWeight,
       'weightEntries': _weightEntries.map((e) => {...e}).toList(),
       'realizationGoals': _realizationGoals.map((g) => {
         'id': g.id,
@@ -674,6 +675,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         _weightTargetKg = (root['weightTargetKg'] is num ? (root['weightTargetKg'] as num).toDouble() : 90.0);
         final weightDateRaw = _asString(root['weightTargetDate']);
         _weightTargetDate = weightDateRaw == null ? DateTime(2027, 3, 1) : DateTime.tryParse(weightDateRaw);
+        _homeShowWeight = _asBool(root['homeShowWeight'], false);
         _weightEntries
           ..clear()
           ..addAll((root['weightEntries'] is List ? root['weightEntries'] as List : const [])
@@ -928,6 +930,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _weightStartKg = 95.6;
       _weightTargetKg = 90.0;
       _weightTargetDate = null;
+      _homeShowWeight = false;
       _systemIconOverrides.clear();
       _systemUiIconOverrides.clear();
       _customCategories.clear();

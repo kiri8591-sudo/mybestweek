@@ -81,8 +81,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.30.0';
-  static const buildVersion = '12.30.0+90';
+  static const version = 'V12.31.0';
+  static const buildVersion = '12.31.0+91';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -236,6 +236,7 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   double _weightStartKg = 95.6;
   double _weightTargetKg = 90.0;
   DateTime? _weightTargetDate = DateTime(2027, 3, 1);
+  bool _homeShowWeight = false; // V12.31.0 — tendance du poids sur l'accueil (désactivée par défaut)
   final List<Map<String, dynamic>> _weightEntries = <Map<String, dynamic>>[];
 
   // Icônes personnalisables de l'interface (en-têtes, navigation et boutons).

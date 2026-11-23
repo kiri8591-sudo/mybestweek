@@ -1384,6 +1384,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
     final totalMinutes = trackable.fold<int>(0, (sum, p) => sum + p.duration);
     final weekCompleted = trackable.where((p) => p.done).length;
     final weekProgress = trackable.isEmpty ? 0.0 : weekCompleted / trackable.length;
+    final pace = _weekPace(trackable);
     final selectedDay = _weekSelectedDay >= 0 && _weekSelectedDay < 7 ? _weekSelectedDay : today;
     final selectedItems = itemsForDay(selectedDay);
     final selectedActionItems = selectedItems.where((item) => !_isDateRangePlanItem(item)).toList();
@@ -1425,15 +1426,17 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                           const SizedBox(height: 2),
                           Text('$weekCompleted / ${trackable.length} moment(s) validé(s) · ${(weekProgress * 100).round()} %', style: TextStyle(fontSize: AppType.body, color: _colors.textMuted)),
                           const SizedBox(height: 7),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(AppRadius.pill),
-                            child: LinearProgressIndicator(
-                              value: weekProgress,
-                              minHeight: 4,
-                              backgroundColor: _colors.tintStrong,
-                              valueColor: AlwaysStoppedAnimation<Color>(_colors.accentOutline),
+                          _PaceBar(value: weekProgress, expected: pace.due == 0 ? null : pace.ratio),
+                          if (pace.due > 0)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                weekCompleted >= pace.due
+                                    ? 'Repère : rythme attendu · tu es dans le rythme'
+                                    : 'Repère : rythme attendu · ${pace.due - weekCompleted} à rattraper',
+                                style: TextStyle(fontSize: AppType.small, color: _colors.textMuted),
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),

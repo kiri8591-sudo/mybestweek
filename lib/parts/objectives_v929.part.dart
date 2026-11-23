@@ -983,7 +983,18 @@ extension _ObjectivesV929Part on _MaBelleSemaineAppState {
       if (weeklyDelta != null) Text('Évolution sur environ une semaine : ${weeklyDelta <= 0 ? '−' : '+'}${weeklyDelta.abs().toStringAsFixed(1).replaceAll('.', ',')} kg', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
       if (projectedDate != null) Text('Projection indicative au rythme observé : ${_weightDateLabel(projectedDate)}', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
       if (sorted.isNotEmpty) Text('${sorted.length} pesée${sorted.length>1?'s':''} enregistrée${sorted.length>1?'s':''} · dernière le ${_weightDateLabel(DateTime.tryParse('${sorted.last['date']}'))}', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted)),
-      const SizedBox(height: 8), Align(alignment: Alignment.centerRight, child: FilledButton.tonalIcon(onPressed: () => _addWeightEntry(context), icon: const Icon(Icons.add), label: const Text('Ajouter une pesée'))),
+      const SizedBox(height: 6),
+      Row(children: [
+        Expanded(child: Text('Afficher la tendance sur l’accueil', style: TextStyle(fontSize: AppType.small, color: _colors.textMuted))),
+        Switch(
+          value: _homeShowWeight,
+          onChanged: (value) {
+            setState(() => _homeShowWeight = value);
+            _queueLocalStatePersist();
+          },
+        ),
+      ]),
+      const SizedBox(height: 2), Align(alignment: Alignment.centerRight, child: FilledButton.tonalIcon(onPressed: () => _addWeightEntry(context), icon: const Icon(Icons.add), label: const Text('Ajouter une pesée'))),
     ]));
   }
 
