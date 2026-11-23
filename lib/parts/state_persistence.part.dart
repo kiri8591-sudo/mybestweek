@@ -258,6 +258,9 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       'weightTargetKg': _weightTargetKg,
       'weightTargetDate': _weightTargetDate?.toIso8601String(),
       'homeShowWeight': _homeShowWeight,
+      'dailyContracts': [for (final c in _dailyContracts) c.toJson()],
+      'contractSkippedDateKey': _contractSkippedDateKey,
+      'lifeReviews': [for (final r in _lifeReviews) r.toJson()],
       'weightEntries': _weightEntries.map((e) => {...e}).toList(),
       'realizationGoals': _realizationGoals.map((g) => {
         'id': g.id,
@@ -676,6 +679,23 @@ extension _StatePersistence on _MaBelleSemaineAppState {
         final weightDateRaw = _asString(root['weightTargetDate']);
         _weightTargetDate = weightDateRaw == null ? DateTime(2027, 3, 1) : DateTime.tryParse(weightDateRaw);
         _homeShowWeight = _asBool(root['homeShowWeight'], false);
+        _dailyContracts.clear();
+        if (root['dailyContracts'] is List) {
+          for (final raw in root['dailyContracts'] as List) {
+            final contract = DailyContract.fromJson(raw);
+            if (contract != null) _dailyContracts.add(contract);
+          }
+          if (_dailyContracts.length > 90) _dailyContracts.removeRange(0, _dailyContracts.length - 90);
+        }
+        _contractSkippedDateKey = _asString(root['contractSkippedDateKey']) ?? '';
+        _lifeReviews.clear();
+        if (root['lifeReviews'] is List) {
+          for (final raw in root['lifeReviews'] as List) {
+            final review = LifeReviewEntry.fromJson(raw);
+            if (review != null) _lifeReviews.add(review);
+          }
+          if (_lifeReviews.length > 26) _lifeReviews.removeRange(0, _lifeReviews.length - 26);
+        }
         _weightEntries
           ..clear()
           ..addAll((root['weightEntries'] is List ? root['weightEntries'] as List : const [])
@@ -931,6 +951,9 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _weightTargetKg = 90.0;
       _weightTargetDate = null;
       _homeShowWeight = false;
+      _dailyContracts.clear();
+      _contractSkippedDateKey = '';
+      _lifeReviews.clear();
       _systemIconOverrides.clear();
       _systemUiIconOverrides.clear();
       _customCategories.clear();

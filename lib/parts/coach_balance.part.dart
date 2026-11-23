@@ -464,6 +464,11 @@ extension _CoachBalancePart on _MaBelleSemaineAppState {
         streak.now >= streak.best && streak.now >= 3 ? 'Série de ${streak.now} jours : ton record' : 'Série de ${streak.now} jours${streak.best > streak.now ? ' (record ${streak.best})' : ''}',
       ));
     }
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final contractStats = _contractStats(_addDays(todayStart, -(now.weekday - 1)), _addDays(todayStart, 1));
+    if (contractStats.total >= 2 && contractStats.kept >= 1) {
+      plus.add(_BalanceLine(Icons.assignment_turned_in_outlined, 'Contrats tenus : ${contractStats.kept}/${contractStats.total} cette semaine'));
+    }
     if (trend.thisDays >= 2 && trend.thisDays > trend.lastDays) {
       plus.add(_BalanceLine(Icons.calendar_month_outlined, '${trend.thisDays} jours actifs cette semaine (${trend.lastDays} la semaine dernière)'));
     }
@@ -476,6 +481,10 @@ extension _CoachBalancePart on _MaBelleSemaineAppState {
 
     // ----- ce qui dérape -----
     final seen = <String>{};
+    final yesterdayContract = _contractFor(DateTime(now.year, now.month, now.day - 1));
+    if (yesterdayContract != null && _contractStatus(yesterdayContract) == _ContractStatus.missed) {
+      minus.add(_BalanceLine(Icons.assignment_late_outlined, 'Contrat d’hier non tenu : « ${yesterdayContract.title} »'));
+    }
     for (final p in procrastination) {
       seen.add(p.activity?.id ?? p.key);
       minus.add(_BalanceLine(Icons.event_repeat_rounded, '« ${p.title} » repoussé ${p.count} fois en 14 jours'));
@@ -537,7 +546,22 @@ extension _CoachBalancePart on _MaBelleSemaineAppState {
 
     // ----- une seule action maintenant -----
     _BalanceAction? action;
-    if (overdue.isNotEmpty) {
+    final contract = _contractFor(now);
+    if (contract != null && _contractStatus(contract) == _ContractStatus.open) {
+      final pastSlot = _homePeriodIsPast(contract.period);
+      action = _BalanceAction(
+        title: 'Ton contrat : « ${contract.title} »',
+        detail: now.hour >= 19
+            ? 'La journée se termine : une version minimale suffit pour tenir ton contrat.'
+            : (pastSlot
+                ? 'Créneau ${contract.period.toLowerCase()} passé : fais-le maintenant, même en version minimale.'
+                : 'Prévu ${contract.period.toLowerCase()}${contract.minimal ? ' · version minimale' : ''}. Tu t’y es engagé.'),
+        primaryLabel: 'Je l’ai fait',
+        onPrimary: () => _contractDone(contract),
+        secondaryLabel: contract.minimal ? null : 'Version minimale',
+        onSecondary: contract.minimal ? null : () => _contractMinimal(contract),
+      );
+    } else if (overdue.isNotEmpty) {
       final item = overdue.first;
       action = _BalanceAction(
         title: 'Fais « ${item.title} » maintenant',
@@ -631,8 +655,43 @@ extension _CoachBalancePart on _MaBelleSemaineAppState {
                 style: TextStyle(fontSize: AppType.micro, fontWeight: FontWeight.w900, letterSpacing: .3, color: _colors.accentStrongText),
               ),
             ),
+            TextButton(
+              onPressed: _openLifeReview,
+              style: TextButton.styleFrom(minimumSize: const Size(0, 30), padding: const EdgeInsets.symmetric(horizontal: 8)),
+              child: Text(_lifeReviewDue() ? 'Bilan à faire' : 'Bilan'),
+            ),
           ]),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
+          _contractSection(),
+          if (_lifeReviewDue())
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _colors.card,
+                  borderRadius: BorderRadius.circular(AppRadius.l),
+                  border: Border.all(color: _colors.borderTint),
+                ),
+                child: Row(children: [
+                  Icon(Icons.fact_check_outlined, size: 18, color: _colors.accentIcon),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'C’est l’heure du bilan de la semaine : 3 minutes pour décider de ta priorité de la semaine prochaine.',
+                      style: TextStyle(fontSize: AppType.small, height: 1.3, color: _colors.textStrong),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _openLifeReview,
+                    style: FilledButton.styleFrom(minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 12)),
+                    child: const Text('Faire le bilan'),
+                  ),
+                ]),
+              ),
+            ),
           Text('Ça va bien', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.accentText)),
           const SizedBox(height: 3),
           if (data.plus.isEmpty)
