@@ -696,7 +696,11 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
       // Un créneau devient repliable lorsque toutes ses activités réelles
       // sont réalisées. Les blocs de temps libre ne bloquent pas le repli.
       final allDone = trackedPeriodItems.isNotEmpty && trackedPeriodItems.every((item) => item.done);
-      final collapsed = allDone && !_homeExpandedPeriods.contains(period);
+      // V12.33.0 — l'état d'ouverture est propre à chaque jour : une ouverture manuelle d'hier ou d'un
+      // précédent passage à « tout réalisé » ne bloque plus le repli. Un créneau peut aussi être replié
+      // à la main à tout moment.
+      final collapsed = _homePeriodCollapsed(period, allDone);
+      final doneInPeriod = trackedPeriodItems.where((item) => item.done).length;
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 5),
@@ -716,15 +720,7 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 InkWell(
                   borderRadius: BorderRadius.circular(AppRadius.m),
-                  onTap: allDone
-                      ? () => setState(() {
-                            if (_homeExpandedPeriods.contains(period)) {
-                              _homeExpandedPeriods.remove(period);
-                            } else {
-                              _homeExpandedPeriods.add(period);
-                            }
-                          })
-                      : null,
+                  onTap: () => setState(() => _toggleHomePeriod(period, collapsed: collapsed, allDone: allDone)),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(children: [
@@ -739,6 +735,12 @@ extension _MainScreensPart on _MaBelleSemaineAppState {
                       ] else ...[
                         const SizedBox(width: 9),
                         Expanded(child: Divider(height: 1, thickness: .8, color: _colors.borderTint)),
+                        if (collapsed && trackedPeriodItems.isNotEmpty) ...[
+                          const SizedBox(width: 7),
+                          Text('$doneInPeriod/${trackedPeriodItems.length}', style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted)),
+                        ],
+                        const SizedBox(width: 3),
+                        _uiIcon(collapsed ? 'chevronDown' : 'chevronUp', collapsed ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_up_rounded, size: 18, color: _colors.textMuted),
                       ],
                       if (highlighted) ...[
                         const SizedBox(width: 7),

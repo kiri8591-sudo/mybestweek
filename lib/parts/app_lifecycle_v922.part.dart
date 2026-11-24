@@ -13,7 +13,10 @@ extension _AppLifecyclePart on _MaBelleSemaineAppState {
     _focusVariant = random.nextInt(3);
     generateWeek(showSnack: false);
     _clockTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (mounted) setState(() => _clockNow = DateTime.now());
+      if (mounted) {
+        setState(() => _clockNow = DateTime.now());
+        _startNewWeekPlanIfNeeded();
+      }
     });
 
     // iPhone / Safari / PWA : sauvegarde synchrone dès que la page passe
@@ -23,6 +26,10 @@ extension _AppLifecyclePart on _MaBelleSemaineAppState {
       _visibilitySubscription = html.document.onVisibilityChange.listen((_) {
         if (html.document.visibilityState == 'hidden') {
           _persistLocalState(recordUndo: false);
+        } else if (mounted) {
+          // Retour au premier plan (ex. lundi matin, l'app étant restée ouverte depuis dimanche).
+          setState(() => _clockNow = DateTime.now());
+          _startNewWeekPlanIfNeeded();
         }
       });
       _pageHideSubscription = html.window.onPageHide.listen((_) {
@@ -47,6 +54,10 @@ extension _AppLifecyclePart on _MaBelleSemaineAppState {
   }
 
   void _handleAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      setState(() => _clockNow = DateTime.now());
+      _startNewWeekPlanIfNeeded();
+    }
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused ||

@@ -425,6 +425,18 @@ extension _LifeReviewPart on _MaBelleSemaineAppState {
                   'Du ${_reviewDateLabel(data.monday)} au ${_reviewDateLabel(data.lastDay)}',
                   style: TextStyle(fontSize: AppType.body, color: _colors.textMuted),
                 ),
+                if ((weeklyNotes[_reviewKey(data.monday)] ?? '').trim().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: _colors.tintSoft, borderRadius: BorderRadius.circular(AppRadius.m)),
+                    child: Text(
+                      'Ton petit mot : « ${weeklyNotes[_reviewKey(data.monday)]!.trim()} »',
+                      style: TextStyle(fontSize: AppType.body, height: 1.3, fontStyle: FontStyle.italic, color: _colors.textStrong),
+                    ),
+                  ),
+                ],
                 _reviewHeading('En chiffres'),
                 Wrap(spacing: 8, runSpacing: 8, children: [
                   _reviewStat(statWidth, 'Jours actifs', '${data.activeDays}', delta(data.activeDays, data.prevActiveDays, data.activeDays - data.prevActiveDays == 1 || data.activeDays - data.prevActiveDays == -1 ? 'jour' : 'jours')),

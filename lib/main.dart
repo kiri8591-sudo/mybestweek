@@ -67,6 +67,7 @@ part 'parts/nutrition_coach.part.dart';
 part 'parts/coach_balance.part.dart';
 part 'parts/daily_contract.part.dart';
 part 'parts/life_review.part.dart';
+part 'parts/week_rollover.part.dart';
 
 void main() {
   if (kIsWeb) _installMascotBrowserIcon();
@@ -83,8 +84,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.32.0';
-  static const buildVersion = '12.32.0+92';
+  static const version = 'V12.33.0';
+  static const buildVersion = '12.33.0+93';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -160,7 +161,11 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   String _homeCoachView = 'today'; // today | yesterday | week
   String _coachTone = 'motivant'; // doux | motivant | direct
   bool _homeCoachExpanded = true;
-  final Set<String> _homeExpandedPeriods = <String>{};
+  // V12.33.0 — repli des créneaux de l'accueil : états mémorisés par jour (« jour|créneau »).
+  final Set<String> _homeExpandedPeriods = <String>{}; // ouvert à la main alors que tout est réalisé
+  final Set<String> _homeFoldedPeriods = <String>{}; // replié à la main
+  // V12.33.0 — semaine pour laquelle le planning actuel a été construit (≠ semaine de la dernière sauvegarde).
+  String _planWeekKey = '';
 
   // Critères utilisés uniquement pour les nouvelles occurrences générées.
   // Ils n'autorisent jamais « Repenser » à modifier les jours passés ni aujourd'hui.
@@ -269,7 +274,8 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   // Les retraits manuels sont valables uniquement pour la semaine où ils ont
   // été effectués. Cela évite qu'un retrait du lundi reste actif la semaine suivante.
   String _manualDayRemovalsWeekKey = '';
-  String weeklyNote = '';
+  String weeklyNote = ''; // ancien champ unique : conservé uniquement pour migrer les anciennes sauvegardes
+  final Map<String, String> weeklyNotes = <String, String>{}; // V12.33.0 — petit bilan personnel, une note par semaine
 
   // Directions choisies le dimanche pour guider la régénération du lundi.
   final Set<String> _nextWeekCoachDirections = <String>{};

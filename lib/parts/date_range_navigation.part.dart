@@ -142,9 +142,27 @@ extension _DateRangeNavigationPart on _MaBelleSemaineAppState {
         logs: logs,
         moveLogs: activityMoveLogs,
         activities: activities,
-        weeklyNote: weeklyNote,
+        weeklyNote: weeklyNotes[_reviewKey(_reviewMonday(_clockNow))] ?? '',
         onSaveNote: (value) {
-          setState(() => weeklyNote = value);
+          final key = _reviewKey(_reviewMonday(_clockNow));
+          setState(() {
+            final text = value.trim();
+            if (text.isEmpty) {
+              weeklyNotes.remove(key);
+            } else {
+              weeklyNotes[key] = text;
+            }
+          });
+          _queueLocalStatePersist();
+        },
+        previousNotes: [
+          for (final e in (weeklyNotes.entries.where((e) => e.key != _reviewKey(_reviewMonday(_clockNow))).toList()
+                ..sort((a, b) => b.key.compareTo(a.key)))
+              .take(6))
+            (weekKey: e.key, text: e.value),
+        ],
+        onDeletePreviousNote: (key) {
+          setState(() => weeklyNotes.remove(key));
           _queueLocalStatePersist();
         },
         onOpenHistory: openHistory,

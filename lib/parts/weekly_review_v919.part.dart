@@ -11,6 +11,8 @@ class _WeeklyReviewPage extends StatefulWidget {
   final List<Activity> activities;
   final String weeklyNote;
   final ValueChanged<String> onSaveNote;
+  final List<({String weekKey, String text})> previousNotes;
+  final ValueChanged<String> onDeletePreviousNote;
   final VoidCallback onOpenHistory;
   final VoidCallback onReplan;
   final String coachSummary;
@@ -27,6 +29,8 @@ class _WeeklyReviewPage extends StatefulWidget {
     required this.activities,
     required this.weeklyNote,
     required this.onSaveNote,
+    required this.previousNotes,
+    required this.onDeletePreviousNote,
     required this.onOpenHistory,
     required this.onReplan,
     required this.coachSummary,
@@ -43,11 +47,13 @@ class _WeeklyReviewPage extends StatefulWidget {
 
 class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
   late final TextEditingController noteController;
+  late List<({String weekKey, String text})> previousNotes;
 
   @override
   void initState() {
     super.initState();
     noteController = TextEditingController(text: widget.weeklyNote);
+    previousNotes = List<({String weekKey, String text})>.of(widget.previousNotes);
   }
 
   @override
@@ -58,6 +64,11 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
 
   String _dm(DateTime date) =>
       '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
+
+  String _noteWeekLabel(String weekKey) {
+    final d = DateTime.tryParse(weekKey);
+    return d == null ? weekKey : '${d.day} ${_frMonthsLong[d.month - 1]}';
+  }
 
   Widget _coachBullet(String text) {
     return Padding(
@@ -479,7 +490,7 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                   iconKey: 'edit',
                   fallbackIcon: Icons.edit_note_rounded,
                   title: 'Mon petit bilan personnel',
-                  subtitle: 'Une phrase suffit : ce qui m’a plu, ce qui a été facile ou ce que j’aimerais changer.',
+                  subtitle: 'Une phrase pour toi, relue dans ton bilan du dimanche. Elle repart à zéro chaque lundi.',
                 ),
                 const SizedBox(height: AppSpace.m),
                 TextField(
@@ -489,17 +500,74 @@ class _WeeklyReviewPageState extends State<_WeeklyReviewPage> {
                   decoration: const InputDecoration(hintText: 'Ex. Belle balade vendredi, piano agréable lundi…'),
                 ),
                 const SizedBox(height: AppSpace.m),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      widget.onSaveNote(noteController.text.trim());
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bilan personnel enregistré.')));
-                    },
-                    icon: _uiIcon('save', Icons.save_outlined, size: 18, color: _colors.onPrimary),
-                    label: const Text('Enregistrer mon bilan'),
+                Row(children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        widget.onSaveNote(noteController.text.trim());
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bilan personnel enregistré.')));
+                      },
+                      icon: _uiIcon('save', Icons.save_outlined, size: 18, color: _colors.onPrimary),
+                      label: const Text('Enregistrer'),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: noteController,
+                    builder: (context, value, _) => OutlinedButton.icon(
+                      onPressed: (value.text.trim().isEmpty && widget.weeklyNote.trim().isEmpty)
+                          ? null
+                          : () async {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (dialogContext) => AlertDialog(
+                                  title: const Text('Supprimer ce petit bilan ?'),
+                                  content: const Text('Le texte de cette semaine sera effacé.'),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Annuler')),
+                                    FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Supprimer')),
+                                  ],
+                                ),
+                              );
+                              if (confirmed != true || !mounted) return;
+                              noteController.clear();
+                              widget.onSaveNote('');
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bilan personnel supprimé.')));
+                            },
+                      icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                      label: const Text('Supprimer'),
+                    ),
+                  ),
+                ]),
+                if (previousNotes.isNotEmpty) ...[
+                  const SizedBox(height: AppSpace.l),
+                  Text('Semaines précédentes', style: TextStyle(fontSize: AppType.label, fontWeight: FontWeight.w800, color: _colors.textMuted)),
+                  const SizedBox(height: 4),
+                  for (final note in previousNotes)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(
+                              'Semaine du ${_noteWeekLabel(note.weekKey)}',
+                              style: TextStyle(fontSize: AppType.small, fontWeight: FontWeight.w700, color: _colors.textMuted),
+                            ),
+                            Text(note.text, style: TextStyle(fontSize: AppType.body, height: 1.3, color: _colors.textStrong)),
+                          ]),
+                        ),
+                        IconButton(
+                          tooltip: 'Supprimer',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () {
+                            widget.onDeletePreviousNote(note.weekKey);
+                            setState(() => previousNotes = previousNotes.where((n) => n.weekKey != note.weekKey).toList());
+                          },
+                          icon: Icon(Icons.close_rounded, size: 18, color: _colors.textMuted),
+                        ),
+                      ]),
+                    ),
+                ],
               ]),
             ),
             const SizedBox(height: AppSpace.m),

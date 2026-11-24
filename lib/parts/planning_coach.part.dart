@@ -850,13 +850,14 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
     bool showSnack = true,
     bool markAsRegenerated = false,
     bool? fullWeekRebuildOverride,
+    int? cutoffDayOverride, // V12.33.0 : dernier jour protégé (-1 = la semaine entière est générée)
   }) {
     // En usage normal, « Repenser » protège le passé et aujourd'hui.
     // Exception : juste après une réinitialisation complète, le planning est
     // volontairement vide ; la première régénération doit alors reconstruire
     // toute la semaine à partir du lundi.
     final fullWeekRebuild = fullWeekRebuildOverride ?? _regenerateWholeWeekAfterReset;
-    final cutoffDay = fullWeekRebuild ? -1 : today;
+    final cutoffDay = cutoffDayOverride ?? (fullWeekRebuild ? -1 : today);
     _regeneratedSportBudgets.removeWhere((day, _) => day > cutoffDay);
     final preservedPastAndToday = plan.where((p) => p.day <= cutoffDay).toList();
 
@@ -1110,6 +1111,7 @@ extension _PlanningCoachPart on _MaBelleSemaineAppState {
     );
 
     setState(() {
+      _planWeekKey = _currentWeekKey();
       if (markAsRegenerated) {
         _lastPlanningWasFullWeek = fullWeekRebuild;
         _regenerateWholeWeekAfterReset = false;

@@ -13,6 +13,9 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       final previousRaw = _preferences?.getString(_MaBelleSemaineAppState._localStateKey);
       final root = jsonDecode(_backupJson()) as Map<String, dynamic>;
       root['weekKey'] = _currentWeekKey();
+      // V12.33.0 : semaine du planning (et non semaine de la sauvegarde), pour repérer un planning périmé
+      // même si l'app est restée ouverte d'une semaine à l'autre.
+      root['planWeekKey'] = _planWeekKey.isEmpty ? _currentWeekKey() : _planWeekKey;
       root['savedAt'] = DateTime.now().toIso8601String();
       final nextRaw = const JsonEncoder.withIndent('  ').convert(root);
       var undoChanged = false;
@@ -182,7 +185,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       final root = jsonDecode(raw);
       if (root is! Map) return;
 
-      final savedWeek = root['weekKey']?.toString();
+      final savedWeek = (root['planWeekKey'] ?? root['weekKey'])?.toString();
       var restored = restoreBackup(raw);
 
       // Si le fichier principal est corrompu/incomplet, essayer le miroir avant
@@ -206,12 +209,12 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       if (!restored) return;
       safeToPersistAfterHydration = true;
 
-      if (savedWeek != _currentWeekKey()) {
-        setState(() {
-          plan.clear();
-          _regeneratedSportBudgets.clear();
-        });
-        generateWeek(showSnack: false);
+      _planWeekKey = savedWeek ?? _currentWeekKey();
+      if (_planWeekKey != _currentWeekKey()) {
+        // Première ouverture d'une nouvelle semaine : le planning est construit automatiquement
+        // (dès aujourd'hui, ou dès lundi si on est lundi).
+        _rollToNewWeekPlan();
+        _showFeedback('📅 Nouvelle semaine : ton planning est prêt.');
       }
     } catch (_) {
       // Une erreur de lecture ne doit jamais écraser la dernière sauvegarde.
@@ -311,7 +314,8 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       },
       'lastPlanningCoachExplanation': _lastPlanningCoachExplanation,
       'lastPlanningDecisionDetails': [..._lastPlanningDecisionDetails],
-      'weeklyNote': weeklyNote,
+      'weeklyNote': weeklyNotes[_reviewKey(_reviewMonday(DateTime.now()))] ?? '',
+      'weeklyNotes': {...weeklyNotes},
       'nextWeekCoachDirections': [..._nextWeekCoachDirections],
       'sportCoachLastAnalysis': sportCoachLastAnalysis,
       'sportCoachLastAnalysisAt': sportCoachLastAnalysisAt?.toIso8601String(),
@@ -791,7 +795,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
               .where((value) => value.isNotEmpty));
         _todayNameday = _asString(root['todayNameday']) ?? '';
         _todayNamedayDateKey = _asString(root['todayNamedayDateKey']) ?? '';
-        weeklyNote = _asString(root['weeklyNote']) ?? '';
+        _restoreWeeklyNotes(root);
         _nextWeekCoachDirections
           ..clear()
           ..addAll((root['nextWeekCoachDirections'] is List)
@@ -918,6 +922,8 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _manualDayRemovals = {};
       _manualDayRemovalsWeekKey = _currentWeekKey();
       weeklyNote = '';
+      weeklyNotes.clear();
+      _planWeekKey = '';
       _nextWeekCoachDirections.clear();
       sportCoachLastAnalysis = '';
       sportCoachLastAnalysisAt = null;
