@@ -68,6 +68,7 @@ part 'parts/coach_balance.part.dart';
 part 'parts/daily_contract.part.dart';
 part 'parts/life_review.part.dart';
 part 'parts/week_rollover.part.dart';
+part 'parts/nutrition_pnns.part.dart';
 
 void main() {
   if (kIsWeb) _installMascotBrowserIcon();
@@ -84,8 +85,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.33.0';
-  static const buildVersion = '12.33.0+93';
+  static const version = 'V12.34.0';
+  static const buildVersion = '12.34.0+94';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -248,6 +249,11 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   final List<DailyContract> _dailyContracts = <DailyContract>[];
   String _contractSkippedDateKey = '';
   final List<LifeReviewEntry> _lifeReviews = <LifeReviewEntry>[];
+  // V12.34.0 — bilan alimentaire PNNS : profil de référence, repères actifs, habitudes associées, compteurs du jour
+  String _pnnsProfile = 'senior';
+  final Map<String, bool> _pnnsEnabled = <String, bool>{};
+  final Map<String, String> _pnnsLinks = <String, String>{};
+  final Map<String, Map<String, int>> _pnnsCounters = <String, Map<String, int>>{};
   final List<Map<String, dynamic>> _weightEntries = <Map<String, dynamic>>[];
 
   // Icônes personnalisables de l'interface (en-têtes, navigation et boutons).

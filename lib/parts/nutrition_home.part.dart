@@ -298,6 +298,7 @@ extension _NutritionHomePart on _MaBelleSemaineAppState {
           if (!collapsed) ...[
             const SizedBox(height: 3),
             if (compactHome && checklistActivities.isNotEmpty) _nutritionCoachCard(),
+            if (compactHome) _pnnsHomeRow(),
             if (!compactHome && checklistActivities.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(4, 2, 4, 5),

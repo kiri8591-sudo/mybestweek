@@ -263,6 +263,12 @@ extension _LifeReviewPart on _MaBelleSemaineAppState {
         if (off >= 2) struggles.add('Nutrition : $off jours hors cadre');
       }
     }
+    final pnns = _pnnsWeek(monday, spanDays);
+    if (pnns.total > 0) {
+      form.add('Repères PNNS : ${pnns.met}/${pnns.total} tenus');
+      final worst = pnns.rows.where((r) => r.status == _PnnsStatus.missing || r.status == _PnnsStatus.over).toList();
+      if (worst.isNotEmpty) struggles.add('PNNS : ${worst.first.ref.label} à améliorer (${worst.first.detail.toLowerCase()})');
+    }
     if (veryGood + good + difficult > 0) {
       form.add('Ressenti : $veryGood « Très bien » · $good « Bien » · $difficult « Difficile »');
     }

@@ -264,6 +264,10 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       'dailyContracts': [for (final c in _dailyContracts) c.toJson()],
       'contractSkippedDateKey': _contractSkippedDateKey,
       'lifeReviews': [for (final r in _lifeReviews) r.toJson()],
+      'pnnsProfile': _pnnsProfile,
+      'pnnsEnabled': {..._pnnsEnabled},
+      'pnnsLinks': {..._pnnsLinks},
+      'pnnsCounters': {for (final e in _pnnsCounters.entries) e.key: {...e.value}},
       'weightEntries': _weightEntries.map((e) => {...e}).toList(),
       'realizationGoals': _realizationGoals.map((g) => {
         'id': g.id,
@@ -700,6 +704,7 @@ extension _StatePersistence on _MaBelleSemaineAppState {
           }
           if (_lifeReviews.length > 26) _lifeReviews.removeRange(0, _lifeReviews.length - 26);
         }
+        _restorePnns(root);
         _weightEntries
           ..clear()
           ..addAll((root['weightEntries'] is List ? root['weightEntries'] as List : const [])
@@ -960,6 +965,10 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _dailyContracts.clear();
       _contractSkippedDateKey = '';
       _lifeReviews.clear();
+      _pnnsProfile = 'senior';
+      _pnnsEnabled.clear();
+      _pnnsLinks.clear();
+      _pnnsCounters.clear();
       _systemIconOverrides.clear();
       _systemUiIconOverrides.clear();
       _customCategories.clear();
