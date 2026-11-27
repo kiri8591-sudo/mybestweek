@@ -85,8 +85,8 @@ class MaBelleSemaineApp extends StatefulWidget {
 
 
 class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindingObserver {
-  static const version = 'V12.34.0';
-  static const buildVersion = '12.34.0+94';
+  static const version = 'V12.36.0';
+  static const buildVersion = '12.36.0+96';
 
   static const List<String> morningThoughts = [
     'Une belle journée n’a pas besoin d’être remplie pour être réussie.',
@@ -252,7 +252,10 @@ class _MaBelleSemaineAppState extends State<MaBelleSemaineApp> with WidgetsBindi
   // V12.34.0 — bilan alimentaire PNNS : profil de référence, repères actifs, habitudes associées, compteurs du jour
   String _pnnsProfile = 'senior';
   final Map<String, bool> _pnnsEnabled = <String, bool>{};
-  final Map<String, String> _pnnsLinks = <String, String>{};
+  final Map<String, String> _pnnsLinks = <String, String>{}; // ancien format (repère → habitude), migré vers _pnnsAttach
+  final Map<String, String> _pnnsAttach = <String, String>{}; // aliment (id d'activité) → repère ; '' = aucun repère
+  final Map<String, Map<String, Object?>> _pnnsOverrides = <String, Map<String, Object?>>{}; // titre, icône, quantité modifiés
+  final List<Map<String, Object?>> _pnnsCustom = <Map<String, Object?>>[]; // repères ajoutés par l'utilisateur
   final Map<String, Map<String, int>> _pnnsCounters = <String, Map<String, int>>{};
   final List<Map<String, dynamic>> _weightEntries = <Map<String, dynamic>>[];
 

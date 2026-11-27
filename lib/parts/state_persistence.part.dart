@@ -266,7 +266,9 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       'lifeReviews': [for (final r in _lifeReviews) r.toJson()],
       'pnnsProfile': _pnnsProfile,
       'pnnsEnabled': {..._pnnsEnabled},
-      'pnnsLinks': {..._pnnsLinks},
+      'pnnsAttach': {..._pnnsAttach},
+      'pnnsOverrides': {for (final e in _pnnsOverrides.entries) e.key: {...e.value}},
+      'pnnsCustom': [for (final c in _pnnsCustom) {...c}],
       'pnnsCounters': {for (final e in _pnnsCounters.entries) e.key: {...e.value}},
       'weightEntries': _weightEntries.map((e) => {...e}).toList(),
       'realizationGoals': _realizationGoals.map((g) => {
@@ -968,6 +970,9 @@ extension _StatePersistence on _MaBelleSemaineAppState {
       _pnnsProfile = 'senior';
       _pnnsEnabled.clear();
       _pnnsLinks.clear();
+      _pnnsAttach.clear();
+      _pnnsOverrides.clear();
+      _pnnsCustom.clear();
       _pnnsCounters.clear();
       _systemIconOverrides.clear();
       _systemUiIconOverrides.clear();
